@@ -133,6 +133,17 @@ The system MUST declarar `credencial.valor` como `Bytes @db.ByteA`. La app MUST 
 - THEN la fila en `credencial` contiene bytes opacos en `valor`
 - AND `SELECT valor FROM credencial` no devuelve texto plano recuperable sin la clave de cifrado
 
+### Requirement: Semántica de casoPrueba.rutaScript
+
+El campo `casoPrueba.rutaScript` MUST almacenar una ruta relativa POSIX, sin leading slash, resoluble desde `PLAYWRIGHT_SCRIPTS_ROOT`.
+
+#### Scenario: Ruta relativa válida en modelo
+
+- GIVEN el modelo Prisma con `casoPrueba.rutaScript: String`
+- WHEN se inserta `rutaScript="proy/caso.spec.ts"`
+- THEN se acepta como valor válido
+- AND el worker puede resolverla desde `PLAYWRIGHT_SCRIPTS_ROOT`
+
 ## Notes
 
 Naming DB **camelCase** (Checkpoint 1, sin `@map`/`@@map`); IDs `uuid` v4; Postgres 16+. `acta` NO incluye columnas de firma (diferido a Fase 5). CA #1 de HU-0.1 queda como TODO hasta que la primera HU de implementación scaffoldee el stack. Refs: `proposal/proposal.md`, `explore/exploration.md`, HUs 1.1, 2.3, 3.3, 4.3, 5.1, 5.3, 7.1.
