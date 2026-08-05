@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ACTA — Mockups MVP automatización de pruebas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#131E2B;
+  --ink-2:#3A4B5C;
+  --ink-3:#6B7C8D;
+  --paper:#EEF2F5;
+  --surface:#FFFFFF;
+  --rule:#D7E0E7;
+  --rule-soft:#E7EDF1;
+  --stamp:#A8322A;
+  --seal:#0E6B4F;
+  --amber:#A9741A;
+  --param:#3F3A7A;
+  --client:#C9822F;
+  --sans:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --mono:'IBM Plex Mono','SFMono-Regular',Menlo,Consolas,monospace;
+  --rail:224px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+/* ---------- shell ---------- */
+.app{display:flex;min-height:100vh;padding-bottom:64px}
+.rail{
+  width:var(--rail);flex:0 0 var(--rail);
+  background:var(--ink);color:#C8D4DE;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+}
+.brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.09)}
+.brand h1{
+  font-size:22px;font-weight:700;letter-spacing:.14em;
+  color:#fff;text-transform:uppercase;
+}
+.brand p{font-size:11px;color:#7D91A3;margin-top:3px;letter-spacing:.02em}
+.proj{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.09)}
+.proj .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:#6B8095;text-transform:uppercase}
+.proj .val{font-size:13px;color:#E4EBF1;font-weight:500;margin-top:5px}
+.nav{padding:14px 12px;display:flex;flex-direction:column;gap:2px}
+.nav button{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:5px;
+  font-size:13.5px;color:#A9BACA;text-align:left;width:100%;
+}
+.nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav button[aria-current="true"]{background:rgba(255,255,255,.11);color:#fff;font-weight:500}
+.nav .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex:0 0 5px}
+.rail-foot{margin-top:auto;padding:16px 20px;font-family:var(--mono);font-size:10.5px;color:#5E7286;line-height:1.6}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--rule);
+  padding:16px 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.topbar h2{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.topbar .sub{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.spacer{margin-left:auto}
+.body{padding:26px;flex:1}
+
+/* ---------- primitives ---------- */
+.btn{
+  padding:8px 15px;border-radius:5px;font-size:13px;font-weight:500;
+  border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);
+}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn-primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn-primary:hover{background:#0B141F;color:#fff}
+.btn-stop{background:var(--stamp);border-color:var(--stamp);color:#fff}
+.btn-stop:hover{background:#8E2921;color:#fff}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:7px}
+.eyebrow{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);
+}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  padding:3px 9px;border-radius:20px;border:1px solid;
+}
+.p-pass{color:var(--seal);border-color:#B4D9C9;background:#EDF7F3}
+.p-fail{color:var(--stamp);border-color:#E4C0BC;background:#FBEFEE}
+.p-heal{color:var(--amber);border-color:#E5D3AE;background:#FBF5E9}
+.p-idle{color:var(--ink-3);border-color:var(--rule);background:var(--paper)}
+.chip-param{
+  font-family:var(--mono);font-size:11.5px;color:var(--param);
+  background:#EFEEF7;border:1px solid #CFCBE6;border-radius:4px;padding:1px 6px;
+}
+.chip-secret{
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+  background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:1px 6px;
+}
+
+/* ---------- stamp (signature element) ---------- */
+.stamp{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--sans);font-weight:700;font-size:11.5px;
+  letter-spacing:.19em;text-transform:uppercase;
+  color:var(--stamp);border:2.5px solid var(--stamp);
+  padding:5px 11px;border-radius:3px;
+  transform:rotate(-2.4deg);opacity:.88;
+}
+.stamp .ink{
+  width:7px;height:7px;border-radius:50%;background:var(--stamp);
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ---------- ledger (the step acta) ---------- */
+.ledger{display:flex;flex-direction:column}
+.ledger-head{
+  padding:15px 18px;border-bottom:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.steps{list-style:none;padding:6px 0}
+.step{
+  display:grid;grid-template-columns:38px 1fr;gap:12px;
+  padding:9px 18px 9px 14px;position:relative;align-items:start;
+}
+.step + .step{border-top:1px solid var(--rule-soft)}
+.step:hover{background:#F7FAFB}
+.step .no{
+  font-family:var(--mono);font-size:11.5px;font-weight:500;
+  color:var(--ink-3);padding-top:2px;text-align:right;
+}
+.step .txt{font-size:13.2px;color:var(--ink);line-height:1.5}
+.step .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.step-assert{background:#FBF9F1}
+.step-assert .txt::before{content:"⚑ ";color:var(--amber)}
+.step.new{animation:write .34s ease-out}
+@keyframes write{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ---------- recorder ---------- */
+.rec-grid{display:grid;grid-template-columns:1fr 380px;gap:18px;align-items:start}
+.viewport{
+  background:var(--surface);border:1px solid var(--rule);border-radius:7px;overflow:hidden;
+}
+.vp-chrome{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;
+  background:#F7F9FA;border-bottom:1px solid var(--rule);
+}
+.vp-chrome .lights{display:flex;gap:5px}
+.vp-chrome .lights i{width:9px;height:9px;border-radius:50%;background:var(--rule);display:block}
+.vp-url{
+  flex:1;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:4px 9px;
+}
+.vp-live{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--stamp);
+  text-transform:uppercase;font-weight:600;
+}
+.vp-stage{
+  height:376px;background:#FBFCFD;padding:26px;position:relative;
+  display:flex;flex-direction:column;gap:14px;
+}
+.fake-h{font-size:19px;font-weight:600}
+.fake-row{display:flex;gap:12px;flex-wrap:wrap}
+.fake-card{
+  flex:1;min-width:170px;border:1px solid var(--rule);border-radius:6px;
+  padding:14px;background:var(--surface);
+}
+.fake-card .k{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.fake-card .v{font-size:20px;font-weight:600;margin-top:6px;font-family:var(--mono)}
+.fake-card.picked{outline:2px solid var(--stamp);outline-offset:2px}
+.pick-tag{
+  position:absolute;font-family:var(--mono);font-size:10.5px;
+  background:var(--stamp);color:#fff;padding:2px 7px;border-radius:3px;
+}
+.vp-toolbar{
+  position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+  display:flex;gap:5px;background:var(--ink);padding:5px;border-radius:7px;
+  box-shadow:0 6px 22px rgba(19,30,43,.24);
+}
+.vp-toolbar button{
+  color:#B9C8D5;font-size:12.5px;padding:7px 12px;border-radius:5px;white-space:nowrap;
+}
+.vp-toolbar button:hover{background:rgba(255,255,255,.09);color:#fff}
+.vp-toolbar button.on{background:var(--stamp);color:#fff}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse}
+th{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;font-weight:500;
+  padding:11px 16px;border-bottom:1px solid var(--rule);
+}
+td{padding:13px 16px;border-bottom:1px solid var(--rule-soft);font-size:13.2px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#F7FAFB;cursor:pointer}
+.tname{font-weight:500}
+.tmeta{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+/* ---------- editor ---------- */
+.ed-grid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.param-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 16px;border-bottom:1px solid var(--rule-soft);
+}
+.param-row:last-child{border-bottom:none}
+.param-val{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.dataset{padding:16px;border-top:1px solid var(--rule)}
+.ds-note{font-size:12.5px;color:var(--ink-3);margin-top:8px;line-height:1.55}
+
+/* ---------- run ---------- */
+.run-grid{display:grid;grid-template-columns:1fr 400px;gap:18px;align-items:start}
+.run-stat{display:flex;gap:26px;padding:18px 20px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.run-stat div .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.run-stat div .v{font-size:17px;font-weight:600;margin-top:4px;font-family:var(--mono)}
+.rstep{display:grid;grid-template-columns:38px 1fr auto;gap:12px;padding:10px 18px 10px 14px;align-items:center}
+.rstep + .rstep{border-top:1px solid var(--rule-soft)}
+.rstep .no{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);text-align:right}
+.rstep .dur{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.rstep.fail{background:#FCF3F2}
+.rstep.heal{background:#FCF8EE}
+.video{
+  background:var(--ink);border-radius:6px;height:206px;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.video .ann{
+  position:absolute;top:12px;right:12px;background:rgba(168,50,42,.92);color:#fff;
+  font-family:var(--mono);font-size:10.5px;padding:3px 8px;border-radius:3px;
+}
+.video .chapter{
+  position:absolute;left:12px;bottom:34px;color:#fff;
+}
+.video .chapter b{display:block;font-size:13px;font-weight:600}
+.video .chapter span{font-family:var(--mono);font-size:10.5px;color:#9FB2C2}
+.video .bar{position:absolute;left:0;right:0;bottom:0;height:22px;background:rgba(255,255,255,.07);display:flex;align-items:center;padding:0 12px;gap:8px}
+.video .bar i{height:3px;background:rgba(255,255,255,.28);border-radius:2px;display:block}
+.video .bar i.done{background:var(--stamp)}
+.shots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:16px}
+.shot{aspect-ratio:4/3;background:var(--paper);border:1px solid var(--rule);border-radius:4px;position:relative}
+.shot span{position:absolute;left:5px;bottom:4px;font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
+
+/* ---------- acta ---------- */
+.acta-wrap{display:flex;justify-content:center;padding:8px 0 26px}
+.acta{
+  width:min(760px,100%);background:var(--surface);border:1px solid var(--rule);
+  border-radius:3px;padding:44px 52px;box-shadow:0 2px 18px rgba(19,30,43,.07);
+}
+.acta-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding-bottom:18px;border-bottom:2px solid var(--ink)}
+.acta-head h3{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.acta-head .org{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:22px 0}
+.meta-grid div{padding:9px 0;border-bottom:1px solid var(--rule-soft)}
+.meta-grid .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.meta-grid .v{font-family:var(--mono);font-size:12px;color:var(--ink);margin-top:3px;word-break:break-all}
+.acta h4{font-size:12px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:26px 0 10px}
+.acta table td{font-size:12.5px;padding:9px 10px 9px 0}
+.acta table th{padding:8px 10px 8px 0}
+.hashbox{
+  margin-top:26px;padding:14px 16px;background:var(--paper);border:1px solid var(--rule);border-radius:4px;
+  font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.7;word-break:break-all;
+}
+
+/* ---------- creds ---------- */
+.cred-row{display:flex;align-items:center;gap:14px;padding:15px 18px;border-bottom:1px solid var(--rule-soft)}
+.cred-row:last-child{border-bottom:none}
+.cred-row .nm{font-weight:500;font-size:13.5px}
+.cred-row .dt{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:2px}
+
+/* ---------- multi-proyecto ---------- */
+.rail{position:relative}
+.client-band{position:absolute;top:0;right:0;width:3px;height:100%;background:var(--client)}
+.switcher{position:relative;border-bottom:1px solid rgba(255,255,255,.09)}
+.switcher > button{width:100%;padding:15px 20px;text-align:left;display:flex;align-items:center;gap:10px}
+.switcher > button:hover{background:rgba(255,255,255,.06)}
+.sw-mark{width:9px;height:9px;border-radius:2px;background:var(--client);flex:0 0 9px}
+.sw-txt{flex:1;min-width:0}
+.sw-client{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:#7D91A3;text-transform:uppercase}
+.sw-proj{font-size:13px;color:#E4EBF1;font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw-caret{color:#6B8095;font-size:10px}
+.sw-panel{
+  display:none;position:absolute;top:calc(100% - 4px);left:10px;right:10px;z-index:60;
+  background:#fff;border-radius:7px;box-shadow:0 12px 32px rgba(0,0,0,.38);padding:5px;
+}
+.switcher.open .sw-panel{display:block}
+.sw-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:5px;text-align:left}
+.sw-item:hover{background:var(--paper)}
+.sw-item i{width:9px;height:9px;border-radius:2px;flex:0 0 9px}
+.sw-item .nm{font-size:12.5px;color:var(--ink);font-weight:500}
+.sw-item .cl{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.09em;text-transform:uppercase}
+.sw-all{border-top:1px solid var(--rule);margin-top:5px;padding-top:5px;font-size:12.5px;color:var(--ink-2)}
+
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(298px,1fr));gap:16px}
+.proj-card{background:var(--surface);border:1px solid var(--rule);border-radius:7px;overflow:hidden;text-align:left;width:100%;display:block}
+.proj-card:hover{border-color:var(--ink-3)}
+.pc-top{padding:15px 18px;border-top:3px solid}
+.pc-client{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.pc-name{font-size:15px;font-weight:600;margin-top:5px;letter-spacing:-.01em}
+.pc-stats{display:flex;gap:20px;padding:13px 18px;border-top:1px solid var(--rule-soft);background:#FAFCFD}
+.pc-stats .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.pc-stats .v{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:3px}
+.pc-foot{padding:11px 18px;border-top:1px solid var(--rule-soft);font-family:var(--mono);font-size:10.5px;color:var(--ink-3);display:flex;justify-content:space-between;gap:10px}
+.scope-bar{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.scope-bar i{width:8px;height:8px;border-radius:2px;flex:0 0 8px;background:var(--client)}
+
+/* ---------- mockup navigator ---------- */
+.navbar{
+  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:50;
+  display:flex;gap:3px;background:var(--ink);padding:5px;border-radius:9px;
+  box-shadow:0 8px 26px rgba(19,30,43,.3);max-width:calc(100vw - 24px);overflow-x:auto;
+}
+.navbar button{
+  color:#A9BACA;font-size:12px;padding:7px 13px;border-radius:6px;white-space:nowrap;
+  font-family:var(--mono);letter-spacing:.03em;
+}
+.navbar button:hover{color:#fff;background:rgba(255,255,255,.08)}
+.navbar button[aria-current="true"]{background:#fff;color:var(--ink);font-weight:500}
+
+.view{display:none}
+.view.active{display:block}
+.note{
+  font-size:12.5px;color:var(--ink-3);line-height:1.6;padding:14px 18px;
+  border-left:2px solid var(--rule);margin-top:18px;background:var(--surface);border-radius:0 5px 5px 0;
+}
+.note b{color:var(--ink-2);font-weight:600}
+
+@media (max-width:1100px){
+  .rec-grid,.ed-grid,.run-grid{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .rail{display:none}
+  .body{padding:16px}
+  .acta{padding:26px 22px}
+  .meta-grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <h1>Acta</h1>
+      <p>Automatización de pruebas</p>
+    </div>
+    <div class="switcher" id="switcher">
+      <button id="sw-toggle" aria-haspopup="true" aria-expanded="false">
+        <span class="sw-mark"></span>
+        <span class="sw-txt">
+          <span class="sw-client">Bancoomeva</span>
+          <span class="sw-proj">Interoperabilidad — Portal transaccional</span>
+        </span>
+        <span class="sw-caret">▼</span>
+      </button>
+      <div class="sw-panel">
+        <button class="sw-item"><i style="background:#C9822F"></i><span><span class="cl">Bancoomeva</span><br><span class="nm">Interoperabilidad — Portal transaccional</span></span></button>
+        <button class="sw-item"><i style="background:#C9822F"></i><span><span class="cl">Bancoomeva</span><br><span class="nm">Migración de core — Fase 2</span></span></button>
+        <button class="sw-item"><i style="background:#2F6FA8"></i><span><span class="cl">Cliente B</span><br><span class="nm">Portal de afiliados</span></span></button>
+        <button class="sw-item"><i style="background:#5C8A3A"></i><span><span class="cl">Cliente C</span><br><span class="nm">Onboarding digital</span></span></button>
+        <button class="sw-item sw-all" data-go="proyectos">Ver todos los proyectos</button>
+      </div>
+    </div>
+    <nav class="nav">
+      <button data-go="proyectos"><span class="dot"></span>Proyectos</button>
+      <button data-go="casos" aria-current="true"><span class="dot"></span>Casos de prueba</button>
+      <button data-go="ejecucion"><span class="dot"></span>Ejecuciones</button>
+      <button data-go="credenciales"><span class="dot"></span>Credenciales</button>
+    </nav>
+    <div class="rail-foot">
+      Ambiente QA<br>Playwright 1.62.1
+    </div>
+    <span class="client-band" aria-hidden="true"></span>
+  </aside>
+
+  <div class="main">
+
+    <!-- ============ 0. PROYECTOS ============ -->
+    <section class="view" id="v-proyectos">
+      <div class="topbar">
+        <h2>Proyectos</h2>
+        <span class="sub">4 proyectos activos · 3 clientes</span>
+        <span class="spacer"></span>
+        <button class="btn btn-primary">Crear proyecto</button>
+      </div>
+      <div class="body">
+        <div class="proj-grid">
+
+          <button class="proj-card" data-go="casos">
+            <div class="pc-top" style="border-top-color:#C9822F">
+              <div class="pc-client">Bancoomeva</div>
+              <div class="pc-name">Interoperabilidad — Portal transaccional</div>
+            </div>
+            <div class="pc-stats">
+              <div><div class="k">Casos</div><div class="v">5</div></div>
+              <div><div class="k">Conformes</div><div class="v" style="color:var(--seal)">2</div></div>
+              <div><div class="k">No conformes</div><div class="v" style="color:var(--stamp)">1</div></div>
+            </div>
+            <div class="pc-foot"><span>Ambiente QA</span><span>hace 2 h</span></div>
+          </button>
+
+          <button class="proj-card" data-go="casos">
+            <div class="pc-top" style="border-top-color:#C9822F">
+              <div class="pc-client">Bancoomeva</div>
+              <div class="pc-name">Migración de core — Fase 2</div>
+            </div>
+            <div class="pc-stats">
+              <div><div class="k">Casos</div><div class="v">12</div></div>
+              <div><div class="k">Conformes</div><div class="v" style="color:var(--seal)">11</div></div>
+              <div><div class="k">No conformes</div><div class="v">0</div></div>
+            </div>
+            <div class="pc-foot"><span>Ambiente Staging</span><span>ayer</span></div>
+          </button>
+
+          <button class="proj-card" data-go="casos">
+            <div class="pc-top" style="border-top-color:#2F6FA8">
+              <div class="pc-client">Cliente B</div>
+              <div class="pc-name">Portal de afiliados</div>
+            </div>
+            <div class="pc-stats">
+              <div><div class="k">Casos</div><div class="v">9</div></div>
+              <div><div class="k">Conformes</div><div class="v" style="color:var(--seal)">6</div></div>
+              <div><div class="k">No conformes</div><div class="v" style="color:var(--stamp)">2</div></div>
+            </div>
+            <div class="pc-foot"><span>Ambiente QA</span><span>hace 5 d</span></div>
+          </button>
+
+          <button class="proj-card" data-go="casos">
+            <div class="pc-top" style="border-top-color:#5C8A3A">
+              <div class="pc-client">Cliente C</div>
+              <div class="pc-name">Onboarding digital</div>
+            </div>
+            <div class="pc-stats">
+              <div><div class="k">Casos</div><div class="v">3</div></div>
+              <div><div class="k">Conformes</div><div class="v">0</div></div>
+              <div><div class="k">No conformes</div><div class="v">0</div></div>
+            </div>
+            <div class="pc-foot"><span>Sin ambiente</span><span>sin ejecuciones</span></div>
+          </button>
+
+        </div>
+        <div class="note">
+          <b>El color no decora:</b> cada cliente tiene un color propio que acompaña al usuario en toda la aplicación
+          — la franja del panel izquierdo, el punto junto al nombre del proyecto, el borde de esta tarjeta.
+          En una herramienta que toca ambientes de varios clientes, el error más caro es ejecutar contra el cliente
+          equivocado, y ese color existe para que eso no pase.
+          <br><br>
+          Los nombres “Cliente B” y “Cliente C” son de relleno; el único proyecto real aquí es el de Bancoomeva.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 1. CASOS ============ -->
+    <section class="view active" id="v-casos">
+      <div class="topbar">
+        <h2>Casos de prueba</h2>
+        <span class="scope-bar"><i></i>Bancoomeva · Interoperabilidad — Portal transaccional</span>
+        <span class="sub">5 casos · 3 con ejecución reciente</span>
+        <span class="spacer"></span>
+        <button class="btn">Importar</button>
+        <button class="btn btn-primary" data-go="grabador">Grabar caso nuevo</button>
+      </div>
+      <div class="body">
+        <div class="card">
+          <table>
+            <thead>
+              <tr><th>Caso</th><th>Pasos</th><th>Última ejecución</th><th>Resultado</th><th>Responsable</th></tr>
+            </thead>
+            <tbody>
+              <tr data-go="ejecucion">
+                <td><div class="tname">Consulta de saldo — cuenta de ahorros</div><div class="tmeta">REQ-2481</div></td>
+                <td class="tmeta">8</td>
+                <td class="tmeta">hace 2 h</td>
+                <td><span class="pill p-pass">Aprobado</span></td>
+                <td class="tmeta">L. Ramírez</td>
+              </tr>
+              <tr data-go="ejecucion">
+                <td><div class="tname">Transferencia a otra entidad</div><div class="tmeta">REQ-2503</div></td>
+                <td class="tmeta">18</td>
+                <td class="tmeta">ayer, 17:42</td>
+                <td><span class="pill p-fail">Falló en paso 12</span></td>
+                <td class="tmeta">D. Ospina</td>
+              </tr>
+              <tr data-go="editor">
+                <td><div class="tname">Registro de cuenta destino</div><div class="tmeta">REQ-2490</div></td>
+                <td class="tmeta">9</td>
+                <td class="tmeta">ayer, 09:15</td>
+                <td><span class="pill p-heal">Reparado (1)</span></td>
+                <td class="tmeta">L. Ramírez</td>
+              </tr>
+              <tr data-go="editor">
+                <td><div class="tname">Bloqueo de tarjeta débito</div><div class="tmeta">REQ-2512</div></td>
+                <td class="tmeta">7</td>
+                <td class="tmeta">—</td>
+                <td><span class="pill p-idle">Sin ejecutar</span></td>
+                <td class="tmeta">M. Cárdenas</td>
+              </tr>
+              <tr data-go="ejecucion">
+                <td><div class="tname">Descarga de extracto en PDF</div><div class="tmeta">REQ-2455</div></td>
+                <td class="tmeta">11</td>
+                <td class="tmeta">hace 3 d</td>
+                <td><span class="pill p-pass">Aprobado</span></td>
+                <td class="tmeta">D. Ospina</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <b>Decisión visible aquí:</b> el caso se identifica por su requerimiento (REQ-####), no por un nombre libre.
+          Eso es lo que después hace trazable el acta ante auditoría.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. GRABADOR ============ -->
+    <section class="view" id="v-grabador">
+      <div class="topbar">
+        <h2>Consulta de saldo — cuenta de ahorros</h2>
+        <span class="sub">REQ-2481 · Ambiente QA · Credencial: usuario funcional</span>
+        <span class="spacer"></span>
+        <button class="btn">Descartar</button>
+        <button class="btn btn-stop" data-go="editor">Detener y revisar</button>
+      </div>
+      <div class="body">
+        <div class="rec-grid">
+
+          <div class="viewport">
+            <div class="vp-chrome">
+              <div class="lights"><i></i><i></i><i></i></div>
+              <div class="vp-url">https://portal-qa.interno/productos/ahorros</div>
+              <div class="vp-live">● En vivo</div>
+            </div>
+            <div class="vp-stage">
+              <div class="fake-h">Resumen de productos</div>
+              <div class="fake-row">
+                <div class="fake-card picked">
+                  <div class="k">Cuenta de ahorros</div>
+                  <div class="v">$ 4.812.300</div>
+                  <div class="pick-tag" style="top:-11px;left:10px">Saldo disponible</div>
+                </div>
+                <div class="fake-card">
+                  <div class="k">Tarjeta de crédito</div>
+                  <div class="v">$ 1.204.000</div>
+                </div>
+              </div>
+              <div class="fake-row">
+                <div class="fake-card">
+                  <div class="k">Cuenta corriente</div>
+                  <div class="v">$ 980.500</div>
+                </div>
+                <div class="fake-card">
+                  <div class="k">CDT</div>
+                  <div class="v">$ 12.000.000</div>
+                </div>
+              </div>
+              <div class="vp-toolbar">
+                <button class="on">Señalar elemento</button>
+                <button>Agregar verificación</button>
+                <button>Convertir en parámetro</button>
+                <button>Pausar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card ledger">
+            <div class="ledger-head">
+              <div>
+                <div class="eyebrow">Pasos registrados</div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:3px">8 pasos · 00:47</div>
+              </div>
+              <div class="stamp"><span class="ink"></span>Grabando</div>
+            </div>
+            <ol class="steps">
+              <li class="step"><div class="no">01</div><div class="txt">Abrir <span class="chip-secret">portal-qa.interno/login</span></div></li>
+              <li class="step"><div class="no">02</div><div class="txt">Escribir <span class="chip-param">{{usuario}}</span> en “Usuario”</div><div class="meta"></div></li>
+              <li class="step"><div class="no">03</div><div class="txt">Escribir <span class="chip-secret">•••••••• credencial</span> en “Contraseña”</div></li>
+              <li class="step"><div class="no">04</div><div class="txt">Clic en “Ingresar”</div></li>
+              <li class="step"><div class="no">05</div><div class="txt">Esperar “Resumen de productos”</div><div class="meta">auto · 1,2 s</div></li>
+              <li class="step"><div class="no">06</div><div class="txt">Clic en “Cuenta de ahorros”</div></li>
+              <li class="step step-assert"><div class="no">07</div><div class="txt">Verificar que “Saldo disponible” está visible</div></li>
+              <li class="step step-assert new"><div class="no">08</div><div class="txt">Verificar que el saldo es <span class="chip-param">{{saldo_esperado}}</span></div><div class="meta">recién agregado</div></li>
+            </ol>
+          </div>
+
+        </div>
+        <div class="note">
+          <b>La apuesta de esta pantalla:</b> el navegador es el espacio de trabajo, pero el protagonista es el acta de la derecha —
+          el usuario ve que su acción quedó escrita en un renglón numerado y legible, en el mismo instante en que la hace.
+          La contraseña nunca se escribe en el acta: queda como referencia a la credencial compartida.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. EDITOR ============ -->
+    <section class="view" id="v-editor">
+      <div class="topbar">
+        <h2>Revisar caso</h2>
+        <span class="sub">REQ-2481 · borrador sin guardar</span>
+        <span class="spacer"></span>
+        <button class="btn" data-go="grabador">Seguir grabando</button>
+        <button class="btn btn-primary" data-go="ejecucion">Guardar y ejecutar</button>
+      </div>
+      <div class="body">
+        <div class="ed-grid">
+
+          <div class="card ledger">
+            <div class="ledger-head">
+              <div>
+                <div class="eyebrow">Pasos del caso</div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:3px">8 pasos · arrastra para reordenar</div>
+              </div>
+              <button class="btn">Agregar paso</button>
+            </div>
+            <ol class="steps">
+              <li class="step"><div class="no">01</div><div class="txt">Abrir <span class="chip-secret">portal-qa.interno/login</span></div></li>
+              <li class="step"><div class="no">02</div><div class="txt">Escribir <span class="chip-param">{{usuario}}</span> en “Usuario”</div><div class="meta">campo por rol · respaldo: por etiqueta, por id</div></li>
+              <li class="step"><div class="no">03</div><div class="txt">Escribir <span class="chip-secret">•••••••• credencial</span> en “Contraseña”</div></li>
+              <li class="step"><div class="no">04</div><div class="txt">Clic en “Ingresar”</div><div class="meta">botón por rol · respaldo: por texto</div></li>
+              <li class="step"><div class="no">05</div><div class="txt">Esperar “Resumen de productos”</div></li>
+              <li class="step"><div class="no">06</div><div class="txt">Clic en “Cuenta de ahorros”</div></li>
+              <li class="step step-assert"><div class="no">07</div><div class="txt">Verificar que “Saldo disponible” está visible</div></li>
+              <li class="step step-assert"><div class="no">08</div><div class="txt">Verificar que el saldo es <span class="chip-param">{{saldo_esperado}}</span></div></li>
+            </ol>
+          </div>
+
+          <div class="card">
+            <div class="ledger-head"><div class="eyebrow">Parámetros</div></div>
+            <div class="param-row">
+              <span class="chip-param">{{usuario}}</span>
+              <span class="param-val">qa.funcional</span>
+            </div>
+            <div class="param-row">
+              <span class="chip-param">{{saldo_esperado}}</span>
+              <span class="param-val">$ 4.812.300</span>
+            </div>
+            <div class="param-row">
+              <span class="chip-param">{{cuenta}}</span>
+              <span class="param-val">••••4471</span>
+            </div>
+            <div class="dataset">
+              <div class="eyebrow">Juego de datos</div>
+              <div class="ds-note">
+                Este caso corre 1 vez con los valores de arriba.
+                Para probar varios escenarios, sube un archivo con una fila por escenario.
+              </div>
+              <button class="btn" style="margin-top:12px;width:100%">Subir juego de datos</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="note">
+          <b>Por qué importa:</b> nada de esto es código. Cada paso es un registro editable, y por eso un analista funcional
+          puede corregir un caso sin pedirle nada a un desarrollador. El código Playwright se genera al exportar, no al grabar.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. EJECUCIÓN ============ -->
+    <section class="view" id="v-ejecucion">
+      <div class="topbar">
+        <h2>Ejecución #1184</h2>
+        <span class="sub">Transferencia a otra entidad · REQ-2503 · 30 jul 2026, 17:42 (UTC−5)</span>
+        <span class="spacer"></span>
+        <button class="btn">Volver a ejecutar</button>
+        <button class="btn btn-primary" data-go="acta">Generar acta de evidencia</button>
+      </div>
+      <div class="body">
+        <div class="run-grid">
+
+          <div class="card">
+            <div class="run-stat">
+              <div><div class="k">Resultado</div><div class="v" style="color:var(--stamp)">Falló</div></div>
+              <div><div class="k">Pasos</div><div class="v">11 / 18</div></div>
+              <div><div class="k">Duración</div><div class="v">1m 12s</div></div>
+              <div><div class="k">Reparados</div><div class="v" style="color:var(--amber)">1</div></div>
+            </div>
+            <div>
+              <div class="rstep"><div class="no">08</div><div>Clic en “Transferir a otra entidad”</div><div class="dur">0,4 s</div></div>
+              <div class="rstep"><div class="no">09</div><div>Escribir <span class="chip-param">{{cuenta_destino}}</span> en “Número de cuenta”</div><div class="dur">0,6 s</div></div>
+              <div class="rstep heal">
+                <div class="no">10</div>
+                <div>Seleccionar “Ahorros” en “Tipo de cuenta”
+                  <div class="meta" style="font-family:var(--mono);font-size:10.5px;color:var(--amber);margin-top:3px">reparado — el selector principal ya no existe, se usó el respaldo por etiqueta</div>
+                </div>
+                <div class="dur">1,9 s</div>
+              </div>
+              <div class="rstep"><div class="no">11</div><div>Escribir <span class="chip-param">{{monto}}</span> en “Valor a transferir”</div><div class="dur">0,5 s</div></div>
+              <div class="rstep fail">
+                <div class="no">12</div>
+                <div>Verificar que aparece “Confirmación de transferencia”
+                  <div class="meta" style="font-family:var(--mono);font-size:10.5px;color:var(--stamp);margin-top:3px">no apareció después de 8 s — la página mostró “Servicio no disponible”</div>
+                </div>
+                <div class="dur">8,0 s</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card" style="padding:16px">
+              <div class="eyebrow" style="margin-bottom:10px">Video de la ejecución</div>
+              <div class="video">
+                <div class="ann">Paso 12 · verificación</div>
+                <div class="chapter">
+                  <b>Confirmación de transferencia</b>
+                  <span>capítulo 4 de 5 · 00:58</span>
+                </div>
+                <div class="bar">
+                  <i class="done" style="width:34%"></i>
+                  <i style="width:12%"></i><i style="width:20%"></i><i style="width:14%"></i><i style="width:12%"></i>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin-top:14px">
+              <div class="ledger-head"><div class="eyebrow">Capturas por paso</div><span class="tmeta">18</span></div>
+              <div class="shots">
+                <div class="shot"><span>10</span></div>
+                <div class="shot" style="outline:2px solid var(--stamp);outline-offset:-2px"><span>12</span></div>
+                <div class="shot"><span>13</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="note">
+          <b>El video se anota solo:</b> Playwright marca sobre la grabación qué elemento se tocó y en qué paso, y separa
+          la ejecución en capítulos. Quien revisa la evidencia no tiene que adivinar qué está viendo.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 5. ACTA ============ -->
+    <section class="view" id="v-acta">
+      <div class="topbar">
+        <h2>Acta de evidencia</h2>
+        <span class="sub">Vista previa · Ejecución #1184</span>
+        <span class="spacer"></span>
+        <button class="btn" data-go="ejecucion">Volver a la ejecución</button>
+        <button class="btn btn-primary">Descargar PDF</button>
+      </div>
+      <div class="body">
+        <div class="acta-wrap">
+          <article class="acta">
+            <div class="acta-head">
+              <div>
+                <div class="org">Bancoomeva · Interoperabilidad — Portal transaccional</div>
+                <h3>Acta de ejecución de pruebas</h3>
+                <div class="pc-client" style="margin-top:6px;color:var(--ink-3)">Elaborada por Vortexbird S.A.S.</div>
+              </div>
+              <div class="stamp" style="transform:rotate(2deg);color:var(--stamp);border-color:var(--stamp)">No conforme</div>
+            </div>
+
+            <div class="meta-grid">
+              <div><div class="k">Identificador de ejecución</div><div class="v">EJC-2026-001184</div></div>
+              <div><div class="k">Caso de prueba</div><div class="v">CP-2503-01</div></div>
+              <div><div class="k">Requerimiento</div><div class="v">REQ-2503</div></div>
+              <div><div class="k">Ambiente</div><div class="v">QA · portal-qa.interno</div></div>
+              <div><div class="k">Versión del sistema</div><div class="v">2.14.3-rc2 · build 8871</div></div>
+              <div><div class="k">Ejecutado por</div><div class="v">d.ospina@vortexbird.com</div></div>
+              <div><div class="k">Inicio</div><div class="v">2026-07-30 17:42:06 UTC−5</div></div>
+              <div><div class="k">Fin</div><div class="v">2026-07-30 17:43:18 UTC−5</div></div>
+            </div>
+
+            <h4>Resultado por paso</h4>
+            <table>
+              <thead><tr><th>#</th><th>Acción</th><th>Resultado</th><th>Evidencia</th></tr></thead>
+              <tbody>
+                <tr><td class="tmeta">10</td><td>Seleccionar “Ahorros” en “Tipo de cuenta”</td><td><span class="pill p-heal">Reparado</span></td><td class="tmeta">img-010.webp</td></tr>
+                <tr><td class="tmeta">11</td><td>Escribir 250.000 en “Valor a transferir”</td><td><span class="pill p-pass">Conforme</span></td><td class="tmeta">img-011.webp</td></tr>
+                <tr><td class="tmeta">12</td><td>Verificar “Confirmación de transferencia”</td><td><span class="pill p-fail">No conforme</span></td><td class="tmeta">img-012.webp · video</td></tr>
+              </tbody>
+            </table>
+
+            <h4>Integridad de los artefactos</h4>
+            <div class="hashbox">
+              video.webm &nbsp; sha256:9f2c41ab7de0…c81e4a<br>
+              img-012.webp &nbsp; sha256:44a1e7b90cf3…7d20b8<br>
+              traza.zip &nbsp;&nbsp;&nbsp;&nbsp; sha256:0be5cc17aa42…9f31d6<br>
+              <span style="color:var(--ink-3)">Almacenamiento inmutable · retención 5 años · consulta registrada en bitácora</span>
+            </div>
+          </article>
+        </div>
+        <div class="note" style="max-width:760px;margin:0 auto">
+          <b>Nota abierta:</b> el bloque de integridad y el periodo de retención son mi propuesta, no un requisito verificado.
+          Hay que confirmarlos con el oficial de cumplimiento de Bancoomeva antes de fijarlos.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CREDENCIALES ============ -->
+    <section class="view" id="v-credenciales">
+      <div class="topbar">
+        <h2>Credenciales compartidas</h2>
+        <span class="scope-bar"><i></i>Bancoomeva · Interoperabilidad — Portal transaccional</span>
+        <span class="sub">Ambiente QA · 3 credenciales</span>
+        <span class="spacer"></span>
+        <button class="btn btn-primary">Agregar credencial</button>
+      </div>
+      <div class="body">
+        <div class="card">
+          <div class="cred-row">
+            <div style="flex:1">
+              <div class="nm">Usuario funcional</div>
+              <div class="dt">qa.funcional · usada en 4 casos · sesión vence en 42 min</div>
+            </div>
+            <span class="pill p-pass">Sesión activa</span>
+            <button class="btn">Renovar</button>
+          </div>
+          <div class="cred-row">
+            <div style="flex:1">
+              <div class="nm">Usuario operativo</div>
+              <div class="dt">qa.operativo · usada en 2 casos · sin sesión</div>
+            </div>
+            <span class="pill p-idle">Requiere ingreso</span>
+            <button class="btn">Iniciar sesión</button>
+          </div>
+          <div class="cred-row">
+            <div style="flex:1">
+              <div class="nm">Usuario consulta</div>
+              <div class="dt">qa.consulta · sin uso reciente</div>
+            </div>
+            <span class="pill p-idle">Requiere ingreso</span>
+            <button class="btn">Iniciar sesión</button>
+          </div>
+        </div>
+        <div class="note">
+          <b>Lo que no se ve, a propósito:</b> nadie puede leer una contraseña desde aquí. La herramienta guarda la sesión
+          cifrada y con vencimiento; el usuario la usa, no la conoce. Esa es la diferencia entre una credencial compartida
+          y una contraseña compartida.
+          <br><br>
+          <b>Y con multi-cliente esto sube de nivel:</b> estas credenciales existen solo dentro de este proyecto.
+          Alguien del equipo de otro cliente no las ve, no las lista y no puede ejecutar con ellas — ni siquiera sabe
+          que existen. Con clientes financieros distintos en la misma herramienta, el aislamiento deja de ser buena
+          práctica y pasa a ser el requisito que define si la herramienta es viable.
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<nav class="navbar" aria-label="Navegación de mockups">
+  <button data-go="proyectos">1 · Proyectos</button>
+  <button data-go="casos" aria-current="true">2 · Casos</button>
+  <button data-go="grabador">3 · Grabador</button>
+  <button data-go="editor">4 · Editor</button>
+  <button data-go="ejecucion">5 · Ejecución</button>
+  <button data-go="acta">6 · Acta</button>
+  <button data-go="credenciales">7 · Credenciales</button>
+</nav>
+
+<script>
+(function(){
+  var views = document.querySelectorAll('.view');
+  function go(id){
+    views.forEach(function(v){ v.classList.toggle('active', v.id === 'v'+'-'+id); });
+    document.querySelectorAll('.navbar button').forEach(function(b){
+      b.setAttribute('aria-current', b.dataset.go === id ? 'true' : 'false');
+    });
+    document.querySelectorAll('.nav button').forEach(function(b){
+      b.setAttribute('aria-current', b.dataset.go === id ? 'true' : 'false');
+    });
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+  var sw = document.getElementById('switcher');
+  var swToggle = document.getElementById('sw-toggle');
+
+  document.addEventListener('click', function(e){
+    if(e.target.closest('#sw-toggle')){
+      var open = sw.classList.toggle('open');
+      swToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+    if(!e.target.closest('#switcher')){
+      sw.classList.remove('open');
+      swToggle.setAttribute('aria-expanded','false');
+    }
+    var t = e.target.closest('[data-go]');
+    if(t){ sw.classList.remove('open'); go(t.dataset.go); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ sw.classList.remove('open'); swToggle.setAttribute('aria-expanded','false'); }
+  });
+})();
+</script>
+
+</body>
+</html>
