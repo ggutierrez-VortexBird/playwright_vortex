@@ -1,0 +1,50 @@
+change: hu0-1-modelo-de-datos-prisma
+project: acta
+phase: tasks
+artifact_store: hybrid
+openspec_dir: openspec/changes/hu0-1-modelo-de-datos-prisma
+last_updated: 2026-08-05
+init_completed: true
+explore_completed: true
+propose_completed: true
+spec_completed: true
+design_completed: true
+tasks_completed: true
+next_phase: apply
+
+artifacts:
+  explore: true
+  proposal: true
+  spec: true
+  design: true
+  tasks: true
+  apply: false
+  verify: false
+  archive: false
+
+tasks_progress:
+  completed:
+    - "Fase 1 EXPLORER completada: exploration.md + observación Engram sdd/hu0-1-modelo-de-datos-prisma/explore"
+    - "Fase 2 PROPOSER completada: proposal.md + observación Engram sdd/hu0-1-modelo-de-datos-prisma/proposal"
+    - "Fase 3 SPEC-WRITER completada: specs/modelo-de-datos-prisma/spec.md (9 requisitos, 14 escenarios) + observación Engram sdd/hu0-1-modelo-de-datos-prisma/spec"
+    - "Fase 4 DESIGNER completada: design.md (schema.prisma completo de 11 modelos + 3 enums; 10 decisiones técnicas; <800 palabras de prosa) + observación Engram sdd/hu0-1-modelo-de-datos-prisma/design"
+    - "Fase 5 TASK-PLANNER completada: tasks.md (4 fases, 39 tareas; 3 work units chained PRs; cobertura explícita de los 9 requisitos del spec; tildes prospectivas para HU-0.3) + observación Engram sdd/hu0-1-modelo-de-datos-prisma/tasks"
+  pending: []
+  open_questions_for_user: []
+
+delivery_strategy:
+  chained_prs_recommended: true
+  chain_strategy: feature-branch-chain
+  decision_needed_before_apply: true
+  split: "PR 1 (scaffold + docker dev) → PR 2 (schema + init) → PR 3 (cliente + tests)"
+
+# DAG de fases obligatorias (Vorkan v2.1.0, 9 fases + 1 compuerta manual):
+#   explore -> proposal -> spec -> design -> tasks -> apply -> verify -> [manual gate] -> archive
+# Las primeras 4 fases del pipeline (EXPLORER, PROPOSER, SPEC-WRITER, DESIGNER) son
+# de análisis puro: no requieren código instalado.
+# TDD-GUARDIAN y IMPLEMENTER (Fases 6 y 7) sí requieren stack instalado.
+# Como el stack NO está instalado todavía, las fases 6 y 7 no pueden ejecutarse
+# en este cambio (hu0-1-modelo-de-datos-prisma es solo análisis del modelo
+# de datos, no implementación). El runner se instalará cuando se ejecute la
+# primera HU de implementación (la que cree el proyecto Next.js — sugerida HU-0.3
+# "Scaffold + primera migración" según design.md Migration/Rollout).
