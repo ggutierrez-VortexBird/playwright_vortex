@@ -1,0 +1,33 @@
+# Docker Compose — entorno de desarrollo
+#
+# Monta el volumen playwright-scripts en /app/playwright-scripts para que
+# el worker pueda localizar y ejecutar scripts sin configuración adicional.
+#
+# Uso: docker compose -f docker-compose.dev.yml up
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acta-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - PLAYWRIGHT_SCRIPTS_ROOT=/app/playwright-scripts
+    volumes:
+      # Volumen nombrado para scripts de Playwright.
+      # En desarrollo se puede sustituir por un bind mount si se desea editar
+      # scripts desde el host: ./playwright-scripts:/app/playwright-scripts
+      - playwright-scripts:/app/playwright-scripts
+      # Persistencia de artefactos de ejecución (evidencias, screenshots, traces).
+      - artefactos:/app/artefactos
+    # El worker corre como proceso dentro del mismo contenedor (long-lived Node).
+    # No se usa restart: always en dev para evitar bucles si el build falla.
+    restart: "no"
+
+volumes:
+  playwright-scripts:
+    driver: local
+  artefactos:
+    driver: local
