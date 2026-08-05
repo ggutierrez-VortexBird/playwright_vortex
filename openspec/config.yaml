@@ -20,8 +20,8 @@ status: stack-planned-not-installed
 # ni next.config, ni prisma/schema.prisma. El código se crea en Fase 7
 # (IMPLEMENTER) de la primera HU que lo requiera.
 #
-# Rama activa: feature/hu0-1-modelo-de-datos-prisma (cortada de develop)
-# Cambio objetivo: hu0-1-modelo-de-datos-prisma
+# Rama activa: feature/hu0-2-convencion-de-registro-del-script-de-playwright (cortada de develop)
+# Cambio objetivo: hu0-2-convencion-de-registro-del-script-de-playwright
 context: |
   Project: ACTA — internal Vortexbird tool to run existing Playwright tests
   and generate formal evidence reports.
