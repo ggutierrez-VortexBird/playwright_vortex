@@ -1,5 +1,6 @@
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/db";
 
 export interface SessionData {
   userId?: string;
@@ -32,4 +33,23 @@ export async function saveSession(userId: string, email: string) {
 export async function destroySession() {
   const session = await getSession();
   await session.destroy();
+}
+
+/**
+ * Verify that the current session user has superadmin role.
+ * Throws 403 if not authorized.
+ */
+export async function requireSuperadmin(session: SessionData): Promise<void> {
+  if (!session.userId) {
+    throw { status: 403, body: { error: "forbidden", message: "superadmin required" } };
+  }
+
+  const user = await prisma.usuario.findUnique({
+    where: { id: session.userId },
+    select: { rol: true },
+  });
+
+  if (user?.rol !== "superadmin") {
+    throw { status: 403, body: { error: "forbidden", message: "superadmin required" } };
+  }
 }

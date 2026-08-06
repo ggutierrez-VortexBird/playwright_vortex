@@ -5,8 +5,8 @@ import {
   updateProyecto,
   deleteProyecto,
   getMetrics,
-  requireSuperadmin,
 } from "@/lib/proyectos/actions";
+import { requireSuperadmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import type { SessionData } from "@/lib/auth";
@@ -36,6 +36,7 @@ jest.mock("@/lib/db", () => ({
 }));
 
 jest.mock("@/lib/auth", () => ({
+  ...jest.requireActual("@/lib/auth"),
   getSession: jest.fn(),
 }));
 

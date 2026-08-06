@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { listEspacios, createEspacio } from "@/lib/espacios/actions";
+import { listCasos, createCaso } from "@/lib/casos/actions";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSession();
 
   if (!session.userId) {
@@ -12,8 +12,12 @@ export async function GET() {
     );
   }
 
-  const espacios = await listEspacios();
-  return NextResponse.json(espacios);
+  const url = new URL(request.url);
+  const proyectoId = url.searchParams.get("proyectoId") || undefined;
+
+  const casos = await listCasos(proyectoId);
+
+  return NextResponse.json({ casos });
 }
 
 export async function POST(request: Request) {
@@ -29,8 +33,8 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   try {
-    const espacio = await createEspacio(body, session);
-    return NextResponse.json(espacio, { status: 201 });
+    const caso = await createCaso(body, session);
+    return NextResponse.json(caso, { status: 201 });
   } catch (err: any) {
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
