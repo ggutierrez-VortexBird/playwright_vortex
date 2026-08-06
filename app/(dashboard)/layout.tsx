@@ -41,6 +41,15 @@ export default async function DashboardLayout({
             </li>
             <li>
               <a
+                href="/espacios"
+                className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-client" />
+                Espacios
+              </a>
+            </li>
+            <li>
+              <a
                 href="/casos"
                 className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
               >
