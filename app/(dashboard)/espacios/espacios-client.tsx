@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { EspaciosForm } from "./espacios-form";
 import type { Espacio } from "@/types/espacio";
 
@@ -11,6 +12,12 @@ interface EspaciosListProps {
 }
 
 function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
+  const router = useRouter();
+
+  function handleViewProyectos(espacioId: string) {
+    router.push(`/espacios/${espacioId}/proyectos`);
+  }
+
   if (espacios.length === 0) {
     return (
       <div className="rounded-lg border border-rule bg-surface p-8 text-center">
@@ -27,7 +34,7 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
       {espacios.map((espacio) => (
         <div
           key={espacio.id}
-          className="flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3"
+          className="group relative flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3 transition-colors hover:border-ink-3"
         >
           <div className="flex items-center gap-3">
             <span
@@ -35,16 +42,28 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
               style={{ backgroundColor: espacio.color }}
             />
             <span className="font-medium text-ink">{espacio.nombre}</span>
+            <button
+              onClick={() => handleViewProyectos(espacio.id)}
+              className="ml-2 text-sm text-client hover:underline"
+            >
+              Ver proyectos
+            </button>
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => onEdit(espacio)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(espacio);
+              }}
               className="rounded border border-rule px-3 py-1 text-sm text-ink hover:bg-rule-soft"
             >
               Editar
             </button>
             <button
-              onClick={() => onDelete(espacio)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(espacio);
+              }}
               className="rounded border border-stamp px-3 py-1 text-sm text-stamp hover:bg-red-50"
             >
               Eliminar

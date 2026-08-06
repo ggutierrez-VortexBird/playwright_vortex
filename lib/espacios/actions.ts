@@ -65,6 +65,15 @@ export async function deleteEspacio(id: string) {
     throw { status: 404, body: { error: "not_found" } };
   }
 
+  // Check if there are any active proyectos for this espacio
+  const proyectosActivos = await prisma.proyecto.count({
+    where: { espacioId: id, activo: true },
+  });
+
+  if (proyectosActivos > 0) {
+    throw { status: 409, body: { error: "conflict", message: "hay proyectos activos" } };
+  }
+
   await prisma.espacio.update({
     where: { id },
     data: { activo: false },

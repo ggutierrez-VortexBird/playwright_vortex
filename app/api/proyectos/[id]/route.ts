@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getEspacioById, updateEspacio, deleteEspacio } from "@/lib/espacios/actions";
+import { getProyectoById, updateProyecto, deleteProyecto } from "@/lib/proyectos/actions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,14 +19,8 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   try {
-    const espacio = await getEspacioById(id);
-    if (!espacio) {
-      return NextResponse.json(
-        { error: "not_found" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json(espacio);
+    const proyecto = await getProyectoById(id);
+    return NextResponse.json(proyecto);
   } catch (err: any) {
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
@@ -49,8 +43,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
   const body = await request.json();
 
   try {
-    const espacio = await updateEspacio(id, body);
-    return NextResponse.json(espacio);
+    const proyecto = await updateProyecto(id, body, session);
+    return NextResponse.json(proyecto);
   } catch (err: any) {
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
@@ -72,8 +66,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   try {
-    const result = await deleteEspacio(id);
-    return NextResponse.json(result, { status: 204 });
+    await deleteProyecto(id, session);
+    return new NextResponse(null, { status: 204 });
   } catch (err: any) {
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
