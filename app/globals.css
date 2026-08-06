@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ink: #131e2b;
+    --ink-2: #3a4b5c;
+    --ink-3: #6b7c8d;
+    --paper: #eef2f5;
+    --surface: #ffffff;
+    --rule: #d7e0e7;
+    --rule-soft: #e7edf1;
+    --stamp: #a8322a;
+    --seal: #0e6b4f;
+    --amber: #a9741a;
+    --param: #3f3a7a;
+    --client: #c9822f;
+    --rail: 224px;
+    --radius: 0.5rem;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--stamp);
+    outline-offset: 2px;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+}

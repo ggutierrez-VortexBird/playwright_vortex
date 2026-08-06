@@ -15,6 +15,7 @@ services:
       - "3000:3000"
     environment:
       - PLAYWRIGHT_SCRIPTS_ROOT=/app/playwright-scripts
+      - DATABASE_URL=postgresql://acta:acta@postgres:5432/acta?schema=public
     volumes:
       # Volumen nombrado para scripts de Playwright.
       # En desarrollo se puede sustituir por un bind mount si se desea editar
@@ -25,9 +26,31 @@ services:
     # El worker corre como proceso dentro del mismo contenedor (long-lived Node).
     # No se usa restart: always en dev para evitar bucles si el build falla.
     restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: acta-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: acta
+      POSTGRES_PASSWORD: acta
+      POSTGRES_DB: acta
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acta -d acta"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   playwright-scripts:
     driver: local
   artefactos:
+    driver: local
+  postgres-data:
     driver: local

@@ -1,0 +1,220 @@
+// ACTA — Prisma schema
+// HU-0.1: 11 tablas + 3 enums. Naming camelCase en DB. UUID v4. Postgres 16+.
+// Convenciones: Restrict en PKs de evidencia; Cascade en child rows.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Enums nativos Postgres
+// ============================================================
+
+enum EjecucionEstado {
+  pendiente
+  corriendo
+  paso
+  fallo
+  reparado
+  errorMotor
+}
+
+enum PasoEjecucionEstado {
+  paso
+  fallo
+  reparado
+}
+
+enum ArtefactoTipo {
+  video
+  captura
+  trace
+}
+
+// ============================================================
+// Entidades de identidad y membresía (HU-1.1, HU-6.1)
+// ============================================================
+
+model Usuario {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  rol          String   @default("superadmin")
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  espacios        UsuarioEspacio[]
+  casosAsignados  CasoPrueba[]    @relation("CasoPruebaResponsable")
+
+  @@index([email])
+}
+
+model Espacio {
+  id        String   @id @default(uuid())
+  nombre    String
+  color     String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  proyectos Proyecto[]
+  miembros  UsuarioEspacio[]
+}
+
+model UsuarioEspacio {
+  usuarioId  String
+  espacioId  String
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, espacioId])
+  @@index([espacioId])
+}
+
+// ============================================================
+// Jerarquía espacio → proyecto → caso de prueba (HU-2.x)
+// ============================================================
+
+model Proyecto {
+  id             String   @id @default(uuid())
+  espacioId      String
+  nombre         String
+  ambiente       String
+  descripcion    String?
+  versionSistema String?
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  espacio     Espacio       @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  casosPrueba CasoPrueba[]
+  credenciales Credencial[]
+
+  @@index([espacioId])
+}
+
+model CasoPrueba {
+  id            String   @id @default(uuid())
+  proyectoId    String
+  codigo        String
+  nombre        String
+  rutaScript    String
+  responsableId String
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+
+  proyecto    Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+  responsable Usuario   @relation("CasoPruebaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  ejecuciones Ejecucion[]
+
+  @@unique([proyectoId, codigo])
+  @@index([responsableId])
+  @@index([proyectoId])
+}
+
+// ============================================================
+// Ejecución, pasos, artefactos (HU-3.x, HU-4.x)
+// ============================================================
+
+model Ejecucion {
+  id           String          @id @default(uuid())
+  casoPruebaId String
+  estado       EjecucionEstado
+  inicioAt     DateTime?
+  finAt        DateTime?
+  duracionMs   Int?
+  createdAt    DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
+
+  casoPrueba CasoPrueba      @relation(fields: [casoPruebaId], references: [id], onDelete: Restrict)
+  pasos      PasoEjecucion[]
+  artefactos Artefacto[]
+  acta       Acta?
+
+  @@index([casoPruebaId])
+  @@index([estado])
+}
+
+model PasoEjecucion {
+  id          String              @id @default(uuid())
+  ejecucionId String
+  numero      Int
+  descripcion String
+  estado      PasoEjecucionEstado
+  duracionMs  Int?
+  selfHealed  Boolean             @default(false)
+  errorMsg    String?
+  createdAt   DateTime            @default(now()) @db.Timestamptz(6)
+
+  ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+
+  @@unique([ejecucionId, numero])
+  @@index([ejecucionId])
+}
+
+model Artefacto {
+  id          String        @id @default(uuid())
+  ejecucionId String
+  tipo        ArtefactoTipo
+  path        String
+  sha256      String
+  bytes       Int
+  createdAt   DateTime      @default(now()) @db.Timestamptz(6)
+
+  ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+
+  @@index([ejecucionId])
+  @@index([tipo])
+}
+
+// ============================================================
+// Acta de evidencia (HU-5.x) — 1-a-1 con ejecución
+// ============================================================
+
+model Acta {
+  id           String    @id @default(uuid())
+  ejecucionId  String    @unique
+  consecutivo  String    @unique
+  rutaPdf      String
+  generatedAt  DateTime?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+
+  ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Restrict)
+}
+
+// ============================================================
+// Credenciales (HU-7.x) — prioridad baja
+// ============================================================
+
+model Credencial {
+  id             String    @id @default(uuid())
+  proyectoId     String
+  nombre         String
+  tipo           String
+  valor          Bytes     @db.ByteA
+  sesionVenceAt  DateTime?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+
+  @@index([proyectoId])
+}
+
+// ============================================================
+// Tabla auxiliar — correlativo anual atómico (HU-5.3)
+// ============================================================
+
+model ConsecutivoAnual {
+  anio   Int @id
+  ultimo Int
+}
