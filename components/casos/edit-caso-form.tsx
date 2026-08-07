@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { ResponsableSelect } from "./responsable-select";
+import { ScriptSelect } from "./script-select";
 
 interface EditCasoFormProps {
   caso: CasoPruebaListItem;
@@ -95,20 +96,15 @@ export function EditCasoForm({ caso, onSuccess, onCancel }: EditCasoFormProps) {
 
         <div>
           <label htmlFor="edit-rutaScript" className="block text-sm font-medium text-ink">
-            Ruta del script
+            Script de Playwright
           </label>
-          <input
-            id="edit-rutaScript"
-            type="text"
+          <ScriptSelect
+            proyectoId={caso.proyectoId}
             value={rutaScript}
-            onChange={(e) => setRutaScript(e.target.value)}
-            required
-            maxLength={500}
-            className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink placeholder:text-ink-3 focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
-            placeholder="Ej: tests/e2e/login.spec.ts"
+            onChange={setRutaScript}
           />
           <p className="mt-1 text-xs text-ink-3">
-            Ruta relativa al proyecto. Se validará que el archivo exista.
+            Selecciona un archivo .spec.ts o .test.ts del directorio del proyecto.
           </p>
         </div>
 

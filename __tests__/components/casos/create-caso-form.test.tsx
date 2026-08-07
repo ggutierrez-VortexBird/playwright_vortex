@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CreateCasoForm } from "@/components/casos/create-caso-form";
 
-// Mock ResponsableSelect to avoid nested fetch mocking
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: jest.fn() }),
 }));
@@ -20,6 +19,20 @@ jest.mock("@/components/casos/responsable-select", () => ({
   ),
 }));
 
+jest.mock("@/components/casos/script-select", () => ({
+  ScriptSelect: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <select
+      data-testid="script-select"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">Selecciona un script</option>
+      <option value="tests/login.spec.ts">login.spec.ts</option>
+      <option value="tests/dup.spec.ts">dup.spec.ts</option>
+    </select>
+  ),
+}));
+
 describe("CreateCasoForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,7 +42,7 @@ describe("CreateCasoForm", () => {
     render(<CreateCasoForm proyectoId="proyecto-1" onSuccess={jest.fn()} />);
     expect(screen.getByLabelText(/código/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/ruta del script/i)).toBeInTheDocument();
+    expect(screen.getByTestId("script-select")).toBeInTheDocument();
     expect(screen.getByTestId("responsable-select")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /crear caso/i })).toBeInTheDocument();
   });
@@ -47,7 +60,7 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByLabelText(/ruta del script/i), { target: { value: "tests/login.spec.ts" } });
+    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -87,7 +100,7 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByLabelText(/ruta del script/i), { target: { value: "bad/path.ts" } });
+    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -110,7 +123,7 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-DUP" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso dup" } });
-    fireEvent.change(screen.getByLabelText(/ruta del script/i), { target: { value: "tests/dup.spec.ts" } });
+    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/dup.spec.ts" } });
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -139,7 +152,7 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByLabelText(/ruta del script/i), { target: { value: "tests/login.spec.ts" } });
+    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
     // Leave responsable unselected
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -185,7 +198,7 @@ describe("CreateCasoForm", () => {
     fireEvent.change(screen.getByLabelText(/proyecto/i), { target: { value: "p-1" } });
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByLabelText(/ruta del script/i), { target: { value: "tests/login.spec.ts" } });
+    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
