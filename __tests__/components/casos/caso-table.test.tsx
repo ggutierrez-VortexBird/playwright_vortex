@@ -17,6 +17,7 @@ const mockCasos: CasoPruebaListItem[] = [
     createdAt: "2026-08-01T00:00:00Z",
     updatedAt: "2026-08-05T00:00:00Z",
     fechaUltimaEjecucion: "2026-08-05T10:30:00Z",
+    pasosCount: 5,
   },
   {
     id: "caso-2",
@@ -32,6 +33,7 @@ const mockCasos: CasoPruebaListItem[] = [
     createdAt: "2026-08-02T00:00:00Z",
     updatedAt: "2026-08-04T00:00:00Z",
     fechaUltimaEjecucion: null,
+    pasosCount: 3,
   },
   {
     id: "caso-3",
@@ -47,6 +49,7 @@ const mockCasos: CasoPruebaListItem[] = [
     createdAt: "2026-08-03T00:00:00Z",
     updatedAt: "2026-08-03T00:00:00Z",
     fechaUltimaEjecucion: null,
+    pasosCount: null,
   },
 ];
 

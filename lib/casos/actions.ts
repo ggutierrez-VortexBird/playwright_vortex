@@ -84,7 +84,11 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
     include: {
       proyecto: { select: { nombre: true } },
       responsable: { select: { email: true } },
-      ejecuciones: { orderBy: { finAt: "desc" } },
+      ejecuciones: {
+        include: { pasos: { select: { id: true } } },
+        orderBy: { finAt: "desc" },
+        take: 1,
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -92,6 +96,7 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
   return casos.map((caso) => {
     const estado = computeEstado(caso.ejecuciones);
     const fechaUltimaEjecucion = computeFechaUltimaEjecucion(caso.ejecuciones);
+    const pasosCount = caso.ejecuciones[0]?.pasos.length ?? null;
     return {
       id: caso.id,
       proyectoId: caso.proyectoId,
@@ -104,6 +109,7 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
       estado,
       activo: caso.activo,
       fechaUltimaEjecucion,
+      pasosCount,
       createdAt: caso.createdAt,
       updatedAt: caso.updatedAt,
     };

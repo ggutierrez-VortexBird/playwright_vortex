@@ -88,6 +88,9 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
             <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
               Última ejecución
             </th>
+            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
+              Pasos
+            </th>
             {canEdit && (
               <th className="px-4 py-3 text-right font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
                 Acciones
@@ -129,6 +132,11 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                     {formatDate(caso.fechaUltimaEjecucion)}
                   </div>
                 </td>
+                <td className="px-4 py-3">
+                  <div className="font-mono text-xs text-ink-3">
+                    {caso.pasosCount ?? 0}
+                  </div>
+                </td>
                 {canEdit && (
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
@@ -139,7 +147,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                             onEdit(caso);
                           }}
                           aria-label="Editar"
-                          className="rounded border border-rule px-2 py-1 text-xs text-ink hover:bg-rule-soft"
+                          className="invisible group-hover:visible rounded border border-rule px-2 py-1 text-xs text-ink hover:bg-rule-soft media-hover:visible"
                         >
                           Editar
                         </button>
@@ -151,7 +159,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                             onDelete(caso);
                           }}
                           aria-label="Eliminar"
-                          className="rounded border border-stamp px-2 py-1 text-xs text-stamp hover:bg-red-50"
+                          className="invisible group-hover:visible rounded border border-stamp px-2 py-1 text-xs text-stamp hover:bg-red-50 media-hover:visible"
                         >
                           Eliminar
                         </button>
@@ -164,6 +172,13 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
           })}
         </tbody>
       </table>
+      <style jsx>{`
+        @media (hover: none) {
+          .media-hover\\:visible {
+            visibility: visible;
+          }
+        }
+      `}</style>
     </div>
   );
 }

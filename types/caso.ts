@@ -37,6 +37,7 @@ export interface CasoPruebaListItem {
   estado: "sin ejecuciones" | "paso" | "fallo" | "reparado" | "errorMotor";
   activo: boolean;
   fechaUltimaEjecucion: string | null;
+  pasosCount: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

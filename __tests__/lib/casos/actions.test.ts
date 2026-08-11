@@ -207,7 +207,7 @@ describe("listCasos", () => {
         proyecto: { nombre: "Proyecto Alpha" },
         responsable: { email: "test@example.com" },
         ejecuciones: [
-          { estado: "paso", finAt: new Date("2026-08-01"), inicioAt: new Date("2026-08-01") },
+          { estado: "paso", finAt: new Date("2026-08-01"), inicioAt: new Date("2026-08-01"), pasos: [{ id: "p1" }, { id: "p2" }] },
         ],
       },
       {
@@ -238,7 +238,7 @@ describe("listCasos", () => {
       include: {
         proyecto: { select: { nombre: true } },
         responsable: { select: { email: true } },
-        ejecuciones: { orderBy: { finAt: "desc" } },
+        ejecuciones: { include: { pasos: { select: { id: true } } }, orderBy: { finAt: "desc" }, take: 1 },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -272,7 +272,7 @@ describe("listCasos", () => {
       include: {
         proyecto: { select: { nombre: true } },
         responsable: { select: { email: true } },
-        ejecuciones: { orderBy: { finAt: "desc" } },
+        ejecuciones: { include: { pasos: { select: { id: true } } }, orderBy: { finAt: "desc" }, take: 1 },
       },
       orderBy: { createdAt: "desc" },
     });
