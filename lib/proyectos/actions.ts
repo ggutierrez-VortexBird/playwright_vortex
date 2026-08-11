@@ -1,25 +1,7 @@
 import { prisma } from "@/lib/db";
+import { requireSuperadmin } from "@/lib/auth";
 import type { CreateProyectoInput, UpdateProyectoInput, ProyectoWithMetrics } from "@/types/proyecto";
 import type { SessionData } from "@/lib/auth";
-
-/**
- * Verify that the current session user has superadmin role.
- * Throws 403 if not authorized.
- */
-export async function requireSuperadmin(session: SessionData): Promise<void> {
-  if (!session.userId) {
-    throw { status: 403, body: { error: "forbidden", message: "superadmin required" } };
-  }
-
-  const user = await prisma.usuario.findUnique({
-    where: { id: session.userId },
-    select: { rol: true },
-  });
-
-  if (user?.rol !== "superadmin") {
-    throw { status: 403, body: { error: "forbidden", message: "superadmin required" } };
-  }
-}
 
 /**
  * Create a new proyecto within an espacio.

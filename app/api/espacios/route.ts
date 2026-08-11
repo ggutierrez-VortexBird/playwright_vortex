@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   try {
-    const espacio = await createEspacio(body);
+    const espacio = await createEspacio(body, session);
     return NextResponse.json(espacio, { status: 201 });
   } catch (err: any) {
     if (err.status) {

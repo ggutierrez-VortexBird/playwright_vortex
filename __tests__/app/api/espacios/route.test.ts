@@ -1,6 +1,6 @@
 import { listEspacios, createEspacio, getEspacioById, updateEspacio, deleteEspacio } from "@/lib/espacios/actions";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import type { SessionData } from "@/lib/auth";
 
 jest.mock("@/lib/db", () => ({
   prisma: {
@@ -10,12 +10,19 @@ jest.mock("@/lib/db", () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    usuario: {
+      findUnique: jest.fn(),
+    },
+    proyecto: {
+      count: jest.fn(),
+    },
   },
 }));
 
-jest.mock("@/lib/auth", () => ({
-  getSession: jest.fn(),
-}));
+const mockSession: SessionData = {
+  userId: "user-123",
+  email: "admin@example.com",
+};
 
 describe("listEspacios", () => {
   beforeEach(() => {
@@ -56,6 +63,17 @@ describe("createEspacio", () => {
     jest.clearAllMocks();
   });
 
+  it("should throw 403 when user is not superadmin", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+
+    await expect(
+      createEspacio({ nombre: "Acme Corp", color: "#C9822F" }, mockSession)
+    ).rejects.toEqual({
+      status: 403,
+      body: { error: "forbidden", message: "superadmin required" },
+    });
+  });
+
   it("should create espacio successfully", async () => {
     const mockCreated = {
       id: "espacio-1",
@@ -65,9 +83,10 @@ describe("createEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.create as jest.Mock).mockResolvedValue(mockCreated);
 
-    const result = await createEspacio({ nombre: "Acme Corp", color: "#C9822F" });
+    const result = await createEspacio({ nombre: "Acme Corp", color: "#C9822F" }, mockSession);
 
     expect(result.nombre).toBe("Acme Corp");
     expect(result.color).toBe("#C9822F");
@@ -75,21 +94,27 @@ describe("createEspacio", () => {
   });
 
   it("should throw 400 when nombre is missing", async () => {
-    await expect(createEspacio({ color: "#C9822F" } as any)).rejects.toEqual({
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+
+    await expect(createEspacio({ color: "#C9822F" } as any, mockSession)).rejects.toEqual({
       status: 400,
       body: { error: "validation", message: "nombre is required" },
     });
   });
 
   it("should throw 400 when color is missing", async () => {
-    await expect(createEspacio({ nombre: "Acme Corp" } as any)).rejects.toEqual({
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+
+    await expect(createEspacio({ nombre: "Acme Corp" } as any, mockSession)).rejects.toEqual({
       status: 400,
       body: { error: "validation", message: "color is required" },
     });
   });
 
   it("should throw 400 when nombre is empty string", async () => {
-    await expect(createEspacio({ nombre: "", color: "#C9822F" })).rejects.toEqual({
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+
+    await expect(createEspacio({ nombre: "", color: "#C9822F" }, mockSession)).rejects.toEqual({
       status: 400,
       body: { error: "validation", message: "nombre is required" },
     });
@@ -104,9 +129,10 @@ describe("createEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.create as jest.Mock).mockResolvedValue(mockCreated);
 
-    await createEspacio({ nombre: "  Acme Corp  ", color: "  #C9822F  " });
+    await createEspacio({ nombre: "  Acme Corp  ", color: "  #C9822F  " }, mockSession);
 
     expect(prisma.espacio.create).toHaveBeenCalledWith({
       data: {
@@ -145,6 +171,15 @@ describe("updateEspacio", () => {
     jest.clearAllMocks();
   });
 
+  it("should throw 403 when user is not superadmin", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+
+    await expect(updateEspacio("abc123", { nombre: "New Name" }, mockSession)).rejects.toEqual({
+      status: 403,
+      body: { error: "forbidden", message: "superadmin required" },
+    });
+  });
+
   it("should update espacio nombre successfully", async () => {
     const mockUpdated = {
       id: "abc123",
@@ -154,10 +189,11 @@ describe("updateEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "abc123", activo: true });
     (prisma.espacio.update as jest.Mock).mockResolvedValue(mockUpdated);
 
-    const result = await updateEspacio("abc123", { nombre: "New Name" });
+    const result = await updateEspacio("abc123", { nombre: "New Name" }, mockSession);
 
     expect(result.nombre).toBe("New Name");
   });
@@ -171,18 +207,20 @@ describe("updateEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "abc123", activo: true });
     (prisma.espacio.update as jest.Mock).mockResolvedValue(mockUpdated);
 
-    const result = await updateEspacio("abc123", { color: "#33FF57" });
+    const result = await updateEspacio("abc123", { color: "#33FF57" }, mockSession);
 
     expect(result.color).toBe("#33FF57");
   });
 
   it("should throw 404 when espacio not found", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue(null);
 
-    await expect(updateEspacio("nonexistent", { nombre: "New Name" })).rejects.toEqual({
+    await expect(updateEspacio("nonexistent", { nombre: "New Name" }, mockSession)).rejects.toEqual({
       status: 404,
       body: { error: "not_found" },
     });
@@ -194,11 +232,22 @@ describe("deleteEspacio", () => {
     jest.clearAllMocks();
   });
 
+  it("should throw 403 when user is not superadmin", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+
+    await expect(deleteEspacio("abc123", mockSession)).rejects.toEqual({
+      status: 403,
+      body: { error: "forbidden", message: "superadmin required" },
+    });
+  });
+
   it("should soft delete espacio successfully", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "abc123", activo: true });
+    (prisma.proyecto.count as jest.Mock).mockResolvedValue(0);
     (prisma.espacio.update as jest.Mock).mockResolvedValue({ id: "abc123", activo: false });
 
-    const result = await deleteEspacio("abc123");
+    const result = await deleteEspacio("abc123", mockSession);
 
     expect(result).toEqual({ success: true });
     expect(prisma.espacio.update).toHaveBeenCalledWith({
@@ -208,25 +257,12 @@ describe("deleteEspacio", () => {
   });
 
   it("should throw 404 when espacio not found", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue(null);
 
-    await expect(deleteEspacio("nonexistent")).rejects.toEqual({
+    await expect(deleteEspacio("nonexistent", mockSession)).rejects.toEqual({
       status: 404,
       body: { error: "not_found" },
     });
-  });
-});
-
-describe("auth guard integration", () => {
-  // Auth is handled at the route handler level, not in the actions.
-  // These are tested via integration/e2e tests.
-  // The actions themselves do not call getSession - they are pure business logic.
-  it("actions should work without session context", async () => {
-    (prisma.espacio.findMany as jest.Mock).mockResolvedValue([]);
-
-    // This should work without any session - actions are pure business logic
-    const result = await listEspacios();
-
-    expect(result).toEqual([]);
   });
 });

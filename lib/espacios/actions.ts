@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/db";
+import { requireSuperadmin } from "@/lib/auth";
+import type { SessionData } from "@/lib/auth";
 import type { CreateEspacioInput, UpdateEspacioInput } from "@/types/espacio";
 
 export async function listEspacios() {
@@ -8,7 +10,9 @@ export async function listEspacios() {
   });
 }
 
-export async function createEspacio(input: CreateEspacioInput) {
+export async function createEspacio(input: CreateEspacioInput, session: SessionData) {
+  await requireSuperadmin(session);
+
   const { nombre, color } = input;
 
   if (!nombre || typeof nombre !== "string" || nombre.trim() === "") {
@@ -33,7 +37,9 @@ export async function getEspacioById(id: string) {
   });
 }
 
-export async function updateEspacio(id: string, input: UpdateEspacioInput) {
+export async function updateEspacio(id: string, input: UpdateEspacioInput, session: SessionData) {
+  await requireSuperadmin(session);
+
   const existing = await prisma.espacio.findUnique({
     where: { id },
   });
@@ -56,7 +62,9 @@ export async function updateEspacio(id: string, input: UpdateEspacioInput) {
   });
 }
 
-export async function deleteEspacio(id: string) {
+export async function deleteEspacio(id: string, session: SessionData) {
+  await requireSuperadmin(session);
+
   const existing = await prisma.espacio.findUnique({
     where: { id },
   });

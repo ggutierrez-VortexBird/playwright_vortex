@@ -1,4 +1,6 @@
-import { getSession, saveSession, destroySession, sessionOptions } from "@/lib/auth";
+import { getSession, saveSession, destroySession, sessionOptions, requireSuperadmin } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import type { SessionData } from "@/lib/auth";
 
 const mockSave = jest.fn();
 const mockDestroy = jest.fn();
@@ -16,6 +18,19 @@ jest.mock("iron-session", () => ({
 jest.mock("next/headers", () => ({
   cookies: jest.fn(() => Promise.resolve({})),
 }));
+
+jest.mock("@/lib/db", () => ({
+  prisma: {
+    usuario: {
+      findUnique: jest.fn(),
+    },
+  },
+}));
+
+const mockSuperadminSession: SessionData = {
+  userId: "user-123",
+  email: "admin@example.com",
+};
 
 describe("auth", () => {
   beforeEach(() => {
@@ -74,6 +89,30 @@ describe("auth", () => {
     it("should call destroy on the session", async () => {
       await destroySession();
       expect(mockDestroy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("requireSuperadmin", () => {
+    it("should throw 403 when userId is missing", async () => {
+      await expect(requireSuperadmin({ userId: undefined, email: "" })).rejects.toEqual({
+        status: 403,
+        body: { error: "forbidden", message: "superadmin required" },
+      });
+    });
+
+    it("should throw 403 when user.rol !== 'superadmin'", async () => {
+      (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+
+      await expect(requireSuperadmin(mockSuperadminSession)).rejects.toEqual({
+        status: 403,
+        body: { error: "forbidden", message: "superadmin required" },
+      });
+    });
+
+    it("should not throw when user.rol === 'superadmin'", async () => {
+      (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+
+      await expect(requireSuperadmin(mockSuperadminSession)).resolves.toBeUndefined();
     });
   });
 });

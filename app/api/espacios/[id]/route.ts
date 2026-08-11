@@ -49,7 +49,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   const body = await request.json();
 
   try {
-    const espacio = await updateEspacio(id, body);
+    const espacio = await updateEspacio(id, body, session);
     return NextResponse.json(espacio);
   } catch (err: any) {
     if (err.status) {
@@ -72,7 +72,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   try {
-    const result = await deleteEspacio(id);
+    const result = await deleteEspacio(id, session);
     return NextResponse.json(result, { status: 204 });
   } catch (err: any) {
     if (err.status) {
