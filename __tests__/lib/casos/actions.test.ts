@@ -7,7 +7,6 @@ import {
 } from "@/lib/casos/actions";
 import { prisma } from "@/lib/db";
 import { requireSuperadmin } from "@/lib/auth";
-import { validateScriptPath } from "@/lib/script-validation";
 import type { SessionData } from "@/lib/auth";
 
 jest.mock("@/lib/db", () => ({
@@ -32,10 +31,6 @@ jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
 }));
 
-jest.mock("@/lib/script-validation", () => ({
-  validateScriptPath: jest.fn(),
-}));
-
 const mockSession: SessionData = {
   userId: "user-123",
   email: "admin@example.com",
@@ -54,7 +49,7 @@ describe("createCaso", () => {
         {
           codigo: "CP-TEST-01",
           nombre: "Caso Test",
-          rutaScript: "tests/example.spec.ts",
+          script: "import { test } from '@playwright/test'; ...",
           responsableId: "user-456",
           proyectoId: "proyecto-1",
         },
@@ -66,19 +61,15 @@ describe("createCaso", () => {
     });
   });
 
-  it("should throw 400 when script path is invalid", async () => {
+  it("should throw 400 when script is empty", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
-    (validateScriptPath as jest.Mock).mockResolvedValue({
-      valid: false,
-      error: "Script no accesible",
-    });
 
     await expect(
       createCaso(
         {
           codigo: "CP-TEST-01",
           nombre: "Caso Test",
-          rutaScript: "invalid/path.ts",
+          script: "",
           responsableId: "user-456",
           proyectoId: "proyecto-1",
         },
@@ -86,13 +77,12 @@ describe("createCaso", () => {
       )
     ).rejects.toEqual({
       status: 400,
-      body: { error: "validation", message: "Script no accesible" },
+      body: { error: "validation", message: "script is required" },
     });
   });
 
   it("should throw 409 when codigo is duplicate in proyecto (P2002)", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
-    (validateScriptPath as jest.Mock).mockResolvedValue({ valid: true, absolutePath: "/app/scripts/tests/example.spec.ts" });
     (prisma.casoPrueba.create as jest.Mock).mockRejectedValue({ code: "P2002" });
 
     await expect(
@@ -100,7 +90,7 @@ describe("createCaso", () => {
         {
           codigo: "CP-DUP-01",
           nombre: "Caso Duplicado",
-          rutaScript: "tests/example.spec.ts",
+          script: "import { test } from '@playwright/test'; ...",
           responsableId: "user-456",
           proyectoId: "proyecto-1",
         },
@@ -118,21 +108,22 @@ describe("createCaso", () => {
       proyectoId: "proyecto-1",
       codigo: "CP-TEST-01",
       nombre: "Caso Test",
-      rutaScript: "tests/example.spec.ts",
+      script: "import { test } from '@playwright/test'; ...",
+      scriptFileName: "example.spec.ts",
       responsableId: "user-456",
       activo: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
-    (validateScriptPath as jest.Mock).mockResolvedValue({ valid: true, absolutePath: "/app/scripts/tests/example.spec.ts" });
     (prisma.casoPrueba.create as jest.Mock).mockResolvedValue(mockCreated);
 
     const result = await createCaso(
       {
         codigo: "CP-TEST-01",
         nombre: "Caso Test",
-        rutaScript: "tests/example.spec.ts",
+        script: "import { test } from '@playwright/test'; ...",
+        scriptFileName: "example.spec.ts",
         responsableId: "user-456",
         proyectoId: "proyecto-1",
       },
@@ -141,13 +132,15 @@ describe("createCaso", () => {
 
     expect(result.codigo).toBe("CP-TEST-01");
     expect(result.nombre).toBe("Caso Test");
-    expect(result.rutaScript).toBe("tests/example.spec.ts");
+    expect(result.script).toBe("import { test } from '@playwright/test'; ...");
+    expect(result.scriptFileName).toBe("example.spec.ts");
     expect(result.estado).toBe("sin ejecuciones");
     expect(prisma.casoPrueba.create).toHaveBeenCalledWith({
       data: {
         codigo: "CP-TEST-01",
         nombre: "Caso Test",
-        rutaScript: "tests/example.spec.ts",
+        script: "import { test } from '@playwright/test'; ...",
+        scriptFileName: "example.spec.ts",
         responsableId: "user-456",
         proyectoId: "proyecto-1",
       },
@@ -161,7 +154,7 @@ describe("createCaso", () => {
       createCaso(
         {
           nombre: "Caso Test",
-          rutaScript: "tests/example.spec.ts",
+          script: "import { test } from '@playwright/test'; ...",
           responsableId: "user-456",
           proyectoId: "proyecto-1",
         } as any,
@@ -180,7 +173,7 @@ describe("createCaso", () => {
       createCaso(
         {
           codigo: "CP-TEST-01",
-          rutaScript: "tests/example.spec.ts",
+          script: "import { test } from '@playwright/test'; ...",
           responsableId: "user-456",
           proyectoId: "proyecto-1",
         } as any,
@@ -205,7 +198,8 @@ describe("listCasos", () => {
         proyectoId: "proyecto-1",
         codigo: "CP-TEST-01",
         nombre: "Caso A",
-        rutaScript: "tests/a.spec.ts",
+        script: "test('a', ...)",
+        scriptFileName: "a.spec.ts",
         responsableId: "user-456",
         activo: true,
         createdAt: new Date(),
@@ -221,7 +215,8 @@ describe("listCasos", () => {
         proyectoId: "proyecto-1",
         codigo: "CP-TEST-02",
         nombre: "Caso B",
-        rutaScript: "tests/b.spec.ts",
+        script: "test('b', ...)",
+        scriptFileName: "b.spec.ts",
         responsableId: "user-456",
         activo: true,
         createdAt: new Date(),
@@ -256,7 +251,8 @@ describe("listCasos", () => {
         proyectoId: "proyecto-1",
         codigo: "CP-TEST-01",
         nombre: "Caso A",
-        rutaScript: "tests/a.spec.ts",
+        script: "test('a', ...)",
+        scriptFileName: "a.spec.ts",
         responsableId: "user-456",
         activo: true,
         createdAt: new Date(),
@@ -294,7 +290,8 @@ describe("getCasoById", () => {
       proyectoId: "proyecto-1",
       codigo: "CP-TEST-01",
       nombre: "Caso A",
-      rutaScript: "tests/a.spec.ts",
+      script: "test('a', ...)",
+      scriptFileName: "a.spec.ts",
       responsableId: "user-456",
       activo: true,
       createdAt: new Date(),
@@ -339,26 +336,21 @@ describe("updateCaso", () => {
     });
   });
 
-  it("should throw 400 when script path is invalid", async () => {
+  it("should throw 400 when script is empty on update", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
-    (validateScriptPath as jest.Mock).mockResolvedValue({
-      valid: false,
-      error: "Script no accesible",
-    });
 
     await expect(
-      updateCaso("caso-1", { rutaScript: "invalid/path.ts" }, mockSession)
+      updateCaso("caso-1", { script: "" }, mockSession)
     ).rejects.toEqual({
       status: 400,
-      body: { error: "validation", message: "Script no accesible" },
+      body: { error: "validation", message: "script is required" },
     });
   });
 
   it("should throw 409 when codigo duplicate on update (P2002)", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
-    (validateScriptPath as jest.Mock).mockResolvedValue({ valid: true });
     (prisma.casoPrueba.update as jest.Mock).mockRejectedValue({ code: "P2002" });
 
     await expect(
@@ -375,7 +367,8 @@ describe("updateCaso", () => {
       proyectoId: "proyecto-1",
       codigo: "CP-TEST-01",
       nombre: "New Name",
-      rutaScript: "tests/new.spec.ts",
+      script: "test('new', ...)",
+      scriptFileName: "new.spec.ts",
       responsableId: "user-456",
       activo: true,
       createdAt: new Date(),
@@ -383,16 +376,16 @@ describe("updateCaso", () => {
     };
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
-    (validateScriptPath as jest.Mock).mockResolvedValue({ valid: true });
     (prisma.casoPrueba.update as jest.Mock).mockResolvedValue(mockUpdated);
 
-    const result = await updateCaso("caso-1", { nombre: "New Name", rutaScript: "tests/new.spec.ts" }, mockSession);
+    const result = await updateCaso("caso-1", { nombre: "New Name", script: "test('new', ...)", scriptFileName: "new.spec.ts" }, mockSession);
 
     expect(result.nombre).toBe("New Name");
-    expect(result.rutaScript).toBe("tests/new.spec.ts");
+    expect(result.script).toBe("test('new', ...)");
+    expect(result.scriptFileName).toBe("new.spec.ts");
     expect(prisma.casoPrueba.update).toHaveBeenCalledWith({
       where: { id: "caso-1" },
-      data: { nombre: "New Name", rutaScript: "tests/new.spec.ts" },
+      data: { nombre: "New Name", script: "test('new', ...)", scriptFileName: "new.spec.ts" },
     });
   });
 

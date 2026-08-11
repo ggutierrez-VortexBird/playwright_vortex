@@ -23,10 +23,32 @@ jest.mock("@/lib/casos/actions", () => ({
   createCaso: jest.fn(),
 }));
 
+// Polyfill File.prototype.text for Jest environment
+if (!File.prototype.text) {
+  Object.defineProperty(File.prototype, "text", {
+    value: function () {
+      return Promise.resolve("mock file content");
+    },
+  });
+}
+
 const mockSession: SessionData = {
   userId: "user-123",
   email: "admin@example.com",
 };
+
+function createMockRequest(body: Record<string, string | File>): Request {
+  const formData = new Map<string, string | File>();
+  for (const [key, value] of Object.entries(body)) {
+    formData.set(key, value);
+  }
+
+  return {
+    formData: jest.fn().mockResolvedValue({
+      get: (key: string) => formData.get(key) || null,
+    }),
+  } as unknown as Request;
+}
 
 describe("POST /api/casos", () => {
   beforeEach(() => {
@@ -40,7 +62,8 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
       codigo: "CP-TEST-01",
       nombre: "Caso Test",
-      rutaScript: "tests/example.spec.ts",
+      script: "import { test } from '@playwright/test'; ...",
+      scriptFileName: "example.spec.ts",
       responsableId: "user-456",
       estado: "sin ejecuciones",
       activo: true,
@@ -49,16 +72,13 @@ describe("POST /api/casos", () => {
     };
     (createCaso as jest.Mock).mockResolvedValue(mockCreated);
 
-    const request = new Request("http://localhost/api/casos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        codigo: "CP-TEST-01",
-        nombre: "Caso Test",
-        rutaScript: "tests/example.spec.ts",
-        responsableId: "user-456",
-        proyectoId: "proyecto-1",
-      }),
+    const file = new File(["test content"], "example.spec.ts", { type: "text/typescript" });
+    const request = createMockRequest({
+      codigo: "CP-TEST-01",
+      nombre: "Caso Test",
+      scriptFile: file,
+      responsableId: "user-456",
+      proyectoId: "proyecto-1",
     });
 
     const response = await POST(request);
@@ -69,22 +89,53 @@ describe("POST /api/casos", () => {
     expect(data.estado).toBe("sin ejecuciones");
   });
 
-  it("should return 400 when script validation fails", async () => {
-    (createCaso as jest.Mock).mockRejectedValue({
-      status: 400,
-      body: { error: "validation", message: "Script no accesible" },
+  it("should return 400 when scriptFile is missing", async () => {
+    const request = createMockRequest({
+      codigo: "CP-TEST-01",
+      nombre: "Caso Test",
+      responsableId: "user-456",
+      proyectoId: "proyecto-1",
     });
 
-    const request = new Request("http://localhost/api/casos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        codigo: "CP-TEST-01",
-        nombre: "Caso Test",
-        rutaScript: "invalid/path.ts",
-        responsableId: "user-456",
-        proyectoId: "proyecto-1",
-      }),
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("validation");
+    expect(data.message).toBe("Debes seleccionar un archivo de script");
+  });
+
+  it("should return 400 when script file has invalid extension", async () => {
+    const file = new File(["test content"], "invalid.txt", { type: "text/plain" });
+    const request = createMockRequest({
+      codigo: "CP-TEST-01",
+      nombre: "Caso Test",
+      scriptFile: file,
+      responsableId: "user-456",
+      proyectoId: "proyecto-1",
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("validation");
+    expect(data.message).toBe("El archivo debe ser .spec.ts o .test.ts");
+  });
+
+  it("should return 400 when createCaso throws validation error", async () => {
+    (createCaso as jest.Mock).mockRejectedValue({
+      status: 400,
+      body: { error: "validation", message: "script is required" },
+    });
+
+    const file = new File(["test content"], "example.spec.ts", { type: "text/typescript" });
+    const request = createMockRequest({
+      codigo: "CP-TEST-01",
+      nombre: "Caso Test",
+      scriptFile: file,
+      responsableId: "user-456",
+      proyectoId: "proyecto-1",
     });
 
     const response = await POST(request);
@@ -100,16 +151,13 @@ describe("POST /api/casos", () => {
       body: { error: "conflict", message: "Código duplicado en este proyecto" },
     });
 
-    const request = new Request("http://localhost/api/casos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        codigo: "CP-DUP-01",
-        nombre: "Caso Duplicado",
-        rutaScript: "tests/example.spec.ts",
-        responsableId: "user-456",
-        proyectoId: "proyecto-1",
-      }),
+    const file = new File(["test content"], "example.spec.ts", { type: "text/typescript" });
+    const request = createMockRequest({
+      codigo: "CP-DUP-01",
+      nombre: "Caso Duplicado",
+      scriptFile: file,
+      responsableId: "user-456",
+      proyectoId: "proyecto-1",
     });
 
     const response = await POST(request);
@@ -122,16 +170,13 @@ describe("POST /api/casos", () => {
   it("should return 401 when not authenticated", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: undefined });
 
-    const request = new Request("http://localhost/api/casos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        codigo: "CP-TEST-01",
-        nombre: "Caso Test",
-        rutaScript: "tests/example.spec.ts",
-        responsableId: "user-456",
-        proyectoId: "proyecto-1",
-      }),
+    const file = new File(["test content"], "example.spec.ts", { type: "text/typescript" });
+    const request = createMockRequest({
+      codigo: "CP-TEST-01",
+      nombre: "Caso Test",
+      scriptFile: file,
+      responsableId: "user-456",
+      proyectoId: "proyecto-1",
     });
 
     const response = await POST(request);
@@ -156,7 +201,7 @@ describe("GET /api/casos", () => {
         proyectoNombre: "Proyecto Alpha",
         codigo: "CP-TEST-01",
         nombre: "Caso A",
-        rutaScript: "tests/a.spec.ts",
+        scriptFileName: "a.spec.ts",
         responsableId: "user-456",
         responsableEmail: "test@example.com",
         estado: "sin ejecuciones",
@@ -188,7 +233,7 @@ describe("GET /api/casos", () => {
         proyectoNombre: "Proyecto Alpha",
         codigo: "CP-TEST-01",
         nombre: "Caso A",
-        rutaScript: "tests/a.spec.ts",
+        scriptFileName: "a.spec.ts",
         responsableId: "user-456",
         responsableEmail: "test@example.com",
         estado: "paso",

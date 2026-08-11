@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import path from "path";
+
+const TEST_SCRIPT_PATH = path.join(__dirname, "../fixtures/test-script.spec.ts");
 
 test.describe("HU-2.3 Registrar caso de prueba con su script de Playwright", () => {
   test.beforeEach(async ({ page }) => {
@@ -47,7 +50,7 @@ test.describe("HU-2.3 Registrar caso de prueba con su script de Playwright", () 
     await page.waitForURL(new RegExp(`/proyectos/[^/]+/casos`));
   }
 
-  test("should create a new caso de prueba", async ({ page }) => {
+  test("should create a new caso de prueba with file upload", async ({ page }) => {
     // Setup: ensure espacio and proyecto exist, then navigate to proyecto casos
     await createEspacioIfNeeded(page, "Espacio para crear caso");
     await createProyectoIfNeeded(page, "Proyecto para crear caso");
@@ -61,7 +64,9 @@ test.describe("HU-2.3 Registrar caso de prueba con su script de Playwright", () 
     // Fill in the form
     await page.fill('input[id="codigo"]', "CP-E2E-01");
     await page.fill('input[id="nombre"]', "Caso E2E de prueba");
-    await page.fill('input[id="rutaScript"]', "tests/e2e/casos.spec.ts");
+
+    // Upload script file
+    await page.setInputFiles('input[type="file"]', TEST_SCRIPT_PATH);
 
     // Select responsable (first real option)
     await page.selectOption('select[id="responsable"]', { index: 1 });
@@ -76,7 +81,27 @@ test.describe("HU-2.3 Registrar caso de prueba con su script de Playwright", () 
     // Verify the caso appears in the table
     await expect(page.locator("text=CP-E2E-01")).toBeVisible();
     await expect(page.locator("text=Caso E2E de prueba")).toBeVisible();
-    await expect(page.locator("text=tests/e2e/casos.spec.ts")).toBeVisible();
+    await expect(page.locator("text=test-script.spec.ts")).toBeVisible();
+  });
+
+  test("should show validation error when uploading invalid file type", async ({ page }) => {
+    await createEspacioIfNeeded(page, "Espacio para validacion archivo");
+    await createProyectoIfNeeded(page, "Proyecto para validacion archivo");
+
+    await page.click("button:has-text('+ Nuevo Caso')");
+
+    await page.fill('input[id="codigo"]', "CP-INVALID-01");
+    await page.fill('input[id="nombre"]', "Caso con archivo inválido");
+
+    // Try to upload a .txt file
+    const invalidFile = path.join(__dirname, "../fixtures/invalid-file.txt");
+    await page.setInputFiles('input[type="file"]', invalidFile);
+
+    await page.selectOption('select[id="responsable"]', { index: 1 });
+    await page.click('button[type="submit"]:has-text("Crear Caso")');
+
+    // Should show validation error
+    await expect(page.locator("text=El archivo debe ser .spec.ts o .test.ts")).toBeVisible();
   });
 
   test("should show validation error when creating without codigo", async ({ page }) => {
@@ -87,7 +112,7 @@ test.describe("HU-2.3 Registrar caso de prueba con su script de Playwright", () 
 
     // Try to submit without filling codigo (but fill other required fields)
     await page.fill('input[id="nombre"]', "Caso sin codigo");
-    await page.fill('input[id="rutaScript"]', "tests/e2e/missing.spec.ts");
+    await page.setInputFiles('input[type="file"]', TEST_SCRIPT_PATH);
     await page.selectOption('select[id="responsable"]', { index: 1 });
     await page.click('button[type="submit"]:has-text("Crear Caso")');
 

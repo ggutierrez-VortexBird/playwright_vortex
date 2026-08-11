@@ -101,18 +101,19 @@ model Proyecto {
 }
 
 model CasoPrueba {
-  id            String   @id @default(uuid())
-  proyectoId    String
-  codigo        String
-  nombre        String
-  rutaScript    String
-  responsableId String
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+  id             String   @id @default(uuid())
+  proyectoId     String
+  codigo         String
+  nombre         String
+  script         String   @db.Text
+  scriptFileName String?
+  responsableId  String
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
 
-  proyecto    Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
-  responsable Usuario   @relation("CasoPruebaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  proyecto    Proyecto    @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+  responsable Usuario     @relation("CasoPruebaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
   ejecuciones Ejecucion[]
 
   @@unique([proyectoId, codigo])

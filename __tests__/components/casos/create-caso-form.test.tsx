@@ -19,17 +19,16 @@ jest.mock("@/components/casos/responsable-select", () => ({
   ),
 }));
 
-jest.mock("@/components/casos/script-select", () => ({
-  ScriptSelect: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-    <select
-      data-testid="script-select"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">Selecciona un script</option>
-      <option value="tests/login.spec.ts">login.spec.ts</option>
-      <option value="tests/dup.spec.ts">dup.spec.ts</option>
-    </select>
+jest.mock("@/components/casos/script-file-input", () => ({
+  ScriptFileInput: ({ onChange }: { onChange: (file: File | null) => void }) => (
+    <input
+      data-testid="script-file-input"
+      type="file"
+      onChange={(e) => {
+        const file = e.target.files?.[0] || null;
+        onChange(file);
+      }}
+    />
   ),
 }));
 
@@ -42,7 +41,7 @@ describe("CreateCasoForm", () => {
     render(<CreateCasoForm proyectoId="proyecto-1" onSuccess={jest.fn()} />);
     expect(screen.getByLabelText(/código/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
-    expect(screen.getByTestId("script-select")).toBeInTheDocument();
+    expect(screen.getByTestId("script-file-input")).toBeInTheDocument();
     expect(screen.getByTestId("responsable-select")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /crear caso/i })).toBeInTheDocument();
   });
@@ -60,7 +59,10 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
+
+    const file = new File(["test content"], "login.spec.ts", { type: "text/typescript" });
+    fireEvent.change(screen.getByTestId("script-file-input"), { target: { files: [file] } });
+
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -70,14 +72,7 @@ describe("CreateCasoForm", () => {
         "/api/casos",
         expect.objectContaining({
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            codigo: "CP-01",
-            nombre: "Caso de login",
-            rutaScript: "tests/login.spec.ts",
-            responsableId: "user-1",
-            proyectoId: "proyecto-1",
-          }),
+          body: expect.any(FormData),
         })
       );
     });
@@ -92,7 +87,7 @@ describe("CreateCasoForm", () => {
       Promise.resolve({
         ok: false,
         status: 400,
-        json: () => Promise.resolve({ error: "validation", message: "Script no accesible" }),
+        json: () => Promise.resolve({ error: "validation", message: "El archivo debe ser .spec.ts o .test.ts" }),
       })
     ) as jest.Mock;
 
@@ -100,13 +95,16 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
+
+    const file = new File(["test content"], "login.spec.ts", { type: "text/typescript" });
+    fireEvent.change(screen.getByTestId("script-file-input"), { target: { files: [file] } });
+
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Script no accesible")).toBeInTheDocument();
+      expect(screen.getByText("El archivo debe ser .spec.ts o .test.ts")).toBeInTheDocument();
     });
   });
 
@@ -123,7 +121,10 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-DUP" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso dup" } });
-    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/dup.spec.ts" } });
+
+    const file = new File(["test content"], "dup.spec.ts", { type: "text/typescript" });
+    fireEvent.change(screen.getByTestId("script-file-input"), { target: { files: [file] } });
+
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -152,13 +153,30 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
+
+    const file = new File(["test content"], "login.spec.ts", { type: "text/typescript" });
+    fireEvent.change(screen.getByTestId("script-file-input"), { target: { files: [file] } });
     // Leave responsable unselected
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Debes seleccionar un responsable")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error when script file is not selected", async () => {
+    render(<CreateCasoForm proyectoId="proyecto-1" onSuccess={jest.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
+    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
+    // Leave script file unselected
+    fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Debes seleccionar un archivo de script")).toBeInTheDocument();
     });
   });
 
@@ -198,7 +216,10 @@ describe("CreateCasoForm", () => {
     fireEvent.change(screen.getByLabelText(/proyecto/i), { target: { value: "p-1" } });
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    fireEvent.change(screen.getByTestId("script-select"), { target: { value: "tests/login.spec.ts" } });
+
+    const file = new File(["test content"], "login.spec.ts", { type: "text/typescript" });
+    fireEvent.change(screen.getByTestId("script-file-input"), { target: { files: [file] } });
+
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
@@ -208,14 +229,7 @@ describe("CreateCasoForm", () => {
         "/api/casos",
         expect.objectContaining({
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            codigo: "CP-01",
-            nombre: "Caso de login",
-            rutaScript: "tests/login.spec.ts",
-            responsableId: "user-1",
-            proyectoId: "p-1",
-          }),
+          body: expect.any(FormData),
         })
       );
     });

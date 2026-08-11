@@ -30,10 +30,35 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
-
   try {
-    const caso = await createCaso(body, session);
+    const formData = await request.formData();
+    const scriptFile = formData.get("scriptFile") as File | null;
+    const codigo = formData.get("codigo") as string;
+    const nombre = formData.get("nombre") as string;
+    const responsableId = formData.get("responsableId") as string;
+    const proyectoId = formData.get("proyectoId") as string;
+
+    if (!scriptFile) {
+      return NextResponse.json(
+        { error: "validation", message: "Debes seleccionar un archivo de script" },
+        { status: 400 }
+      );
+    }
+
+    const fileName = scriptFile.name;
+    if (!fileName.endsWith(".spec.ts") && !fileName.endsWith(".test.ts")) {
+      return NextResponse.json(
+        { error: "validation", message: "El archivo debe ser .spec.ts o .test.ts" },
+        { status: 400 }
+      );
+    }
+
+    const script = await scriptFile.text();
+
+    const caso = await createCaso(
+      { codigo, nombre, script, scriptFileName: fileName, responsableId, proyectoId },
+      session
+    );
     return NextResponse.json(caso, { status: 201 });
   } catch (err: any) {
     if (err.status) {

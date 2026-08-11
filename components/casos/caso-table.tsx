@@ -21,9 +21,10 @@ function formatDate(dateString: string | null | undefined): string {
   });
 }
 
-function truncatePath(path: string, maxLen = 36): string {
-  if (path.length <= maxLen) return path;
-  return "…" + path.slice(-(maxLen - 1));
+function truncateFileName(name: string | null, maxLen = 36): string {
+  if (!name) return "—";
+  if (name.length <= maxLen) return name;
+  return "…" + name.slice(-(maxLen - 1));
 }
 
 function getEstadoPill(estado: CasoPruebaListItem["estado"]) {
@@ -112,8 +113,8 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                   <div className="font-mono text-xs text-ink-3">{caso.responsableEmail}</div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-mono text-xs text-ink-2" title={caso.rutaScript}>
-                    {truncatePath(caso.rutaScript)}
+                  <div className="font-mono text-xs text-ink-2" title={caso.scriptFileName || undefined}>
+                    {truncateFileName(caso.scriptFileName)}
                   </div>
                 </td>
                 <td className="px-4 py-3">

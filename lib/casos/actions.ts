@@ -1,13 +1,11 @@
 import { prisma } from "@/lib/db";
 import { requireSuperadmin } from "@/lib/auth";
-import { validateScriptPath } from "@/lib/script-validation";
 import type { SessionData } from "@/lib/auth";
 import type { CasoPruebaFormData, CasoPruebaListItem } from "@/types/caso";
 
 /**
  * Create a new caso de prueba within a proyecto.
  * Requires superadmin role.
- * Validates rutaScript eagerly before persistence.
  */
 export async function createCaso(
   input: CasoPruebaFormData,
@@ -15,7 +13,7 @@ export async function createCaso(
 ) {
   await requireSuperadmin(session);
 
-  const { codigo, nombre, rutaScript, responsableId, proyectoId } = input;
+  const { codigo, nombre, script, scriptFileName, responsableId, proyectoId } = input;
 
   // Validate required fields
   if (!codigo || typeof codigo !== "string" || codigo.trim() === "") {
@@ -26,8 +24,8 @@ export async function createCaso(
     throw { status: 400, body: { error: "validation", message: "nombre is required" } };
   }
 
-  if (!rutaScript || typeof rutaScript !== "string" || rutaScript.trim() === "") {
-    throw { status: 400, body: { error: "validation", message: "rutaScript is required" } };
+  if (!script || typeof script !== "string" || script.trim() === "") {
+    throw { status: 400, body: { error: "validation", message: "script is required" } };
   }
 
   if (!responsableId || typeof responsableId !== "string" || responsableId.trim() === "") {
@@ -38,18 +36,13 @@ export async function createCaso(
     throw { status: 400, body: { error: "validation", message: "proyectoId is required" } };
   }
 
-  // Validate script path eagerly
-  const scriptValidation = await validateScriptPath(rutaScript.trim());
-  if (!scriptValidation.valid) {
-    throw { status: 400, body: { error: "validation", message: scriptValidation.error || "Script no accesible" } };
-  }
-
   try {
     const caso = await prisma.casoPrueba.create({
       data: {
         codigo: codigo.trim(),
         nombre: nombre.trim(),
-        rutaScript: rutaScript.trim(),
+        script: script.trim(),
+        scriptFileName: scriptFileName?.trim() || null,
         responsableId: responsableId.trim(),
         proyectoId: proyectoId.trim(),
       },
@@ -60,7 +53,8 @@ export async function createCaso(
       proyectoId: caso.proyectoId,
       codigo: caso.codigo,
       nombre: caso.nombre,
-      rutaScript: caso.rutaScript,
+      script: caso.script,
+      scriptFileName: caso.scriptFileName,
       responsableId: caso.responsableId,
       estado: "sin ejecuciones" as const,
       activo: caso.activo,
@@ -104,7 +98,7 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
       proyectoNombre: caso.proyecto.nombre,
       codigo: caso.codigo,
       nombre: caso.nombre,
-      rutaScript: caso.rutaScript,
+      scriptFileName: caso.scriptFileName,
       responsableId: caso.responsableId,
       responsableEmail: caso.responsable.email,
       estado,
@@ -142,7 +136,8 @@ export async function getCasoById(id: string) {
     proyectoNombre: caso.proyecto.nombre,
     codigo: caso.codigo,
     nombre: caso.nombre,
-    rutaScript: caso.rutaScript,
+    script: caso.script,
+    scriptFileName: caso.scriptFileName,
     responsableId: caso.responsableId,
     responsableEmail: caso.responsable.email,
     estado,
@@ -156,7 +151,6 @@ export async function getCasoById(id: string) {
 /**
  * Update an existing caso.
  * Requires superadmin role.
- * Validates rutaScript eagerly if provided.
  */
 export async function updateCaso(
   id: string,
@@ -173,7 +167,7 @@ export async function updateCaso(
     throw { status: 404, body: { error: "not_found" } };
   }
 
-  const updateData: Partial<CasoPruebaFormData> = {};
+  const updateData: any = {};
 
   if (input.codigo !== undefined) {
     updateData.codigo = input.codigo.trim();
@@ -181,12 +175,14 @@ export async function updateCaso(
   if (input.nombre !== undefined) {
     updateData.nombre = input.nombre.trim();
   }
-  if (input.rutaScript !== undefined) {
-    const scriptValidation = await validateScriptPath(input.rutaScript.trim());
-    if (!scriptValidation.valid) {
-      throw { status: 400, body: { error: "validation", message: scriptValidation.error || "Script no accesible" } };
+  if (input.script !== undefined) {
+    if (!input.script || input.script.trim() === "") {
+      throw { status: 400, body: { error: "validation", message: "script is required" } };
     }
-    updateData.rutaScript = input.rutaScript.trim();
+    updateData.script = input.script.trim();
+  }
+  if (input.scriptFileName !== undefined) {
+    updateData.scriptFileName = input.scriptFileName?.trim() || null;
   }
   if (input.responsableId !== undefined) {
     updateData.responsableId = input.responsableId.trim();
@@ -206,7 +202,8 @@ export async function updateCaso(
       proyectoId: caso.proyectoId,
       codigo: caso.codigo,
       nombre: caso.nombre,
-      rutaScript: caso.rutaScript,
+      script: caso.script,
+      scriptFileName: caso.scriptFileName,
       responsableId: caso.responsableId,
       estado: "sin ejecuciones" as const,
       activo: caso.activo,

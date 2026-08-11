@@ -29,10 +29,32 @@ jest.mock("@/lib/casos/actions", () => ({
   deleteCaso: jest.fn(),
 }));
 
+// Polyfill File.prototype.text for Jest environment
+if (!File.prototype.text) {
+  Object.defineProperty(File.prototype, "text", {
+    value: function () {
+      return Promise.resolve("mock file content");
+    },
+  });
+}
+
 const mockSession: SessionData = {
   userId: "user-123",
   email: "admin@example.com",
 };
+
+function createMockRequest(id: string, body: Record<string, string | File>): Request {
+  const formData = new Map<string, string | File>();
+  for (const [key, value] of Object.entries(body)) {
+    formData.set(key, value);
+  }
+
+  return {
+    formData: jest.fn().mockResolvedValue({
+      get: (key: string) => formData.get(key) || null,
+    }),
+  } as unknown as Request;
+}
 
 describe("GET /api/casos/[id]", () => {
   beforeEach(() => {
@@ -47,7 +69,8 @@ describe("GET /api/casos/[id]", () => {
       proyectoNombre: "Proyecto Alpha",
       codigo: "CP-TEST-01",
       nombre: "Caso A",
-      rutaScript: "tests/a.spec.ts",
+      script: "test('a', ...)",
+      scriptFileName: "a.spec.ts",
       responsableId: "user-456",
       responsableEmail: "test@example.com",
       estado: "paso",
@@ -114,7 +137,8 @@ describe("PUT /api/casos/[id]", () => {
       proyectoId: "proyecto-1",
       codigo: "CP-TEST-01",
       nombre: "Updated Name",
-      rutaScript: "tests/updated.spec.ts",
+      script: "test('updated', ...)",
+      scriptFileName: "updated.spec.ts",
       responsableId: "user-456",
       estado: "sin ejecuciones",
       activo: true,
@@ -123,10 +147,10 @@ describe("PUT /api/casos/[id]", () => {
     };
     (updateCaso as jest.Mock).mockResolvedValue(mockUpdated);
 
-    const request = new Request("http://localhost/api/casos/caso-1", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: "Updated Name", rutaScript: "tests/updated.spec.ts" }),
+    const file = new File(["updated content"], "updated.spec.ts", { type: "text/typescript" });
+    const request = createMockRequest("caso-1", {
+      nombre: "Updated Name",
+      scriptFile: file,
     });
 
     const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
@@ -134,19 +158,64 @@ describe("PUT /api/casos/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(data.nombre).toBe("Updated Name");
-    expect(updateCaso).toHaveBeenCalledWith("caso-1", { nombre: "Updated Name", rutaScript: "tests/updated.spec.ts" }, mockSession);
+    expect(updateCaso).toHaveBeenCalledWith(
+      "caso-1",
+      expect.objectContaining({ nombre: "Updated Name", script: "mock file content", scriptFileName: "updated.spec.ts" }),
+      mockSession
+    );
   });
 
-  it("should return 400 when script validation fails", async () => {
-    (updateCaso as jest.Mock).mockRejectedValue({
-      status: 400,
-      body: { error: "validation", message: "Script no accesible" },
+  it("should return 200 when updating without new script file", async () => {
+    const mockUpdated = {
+      id: "caso-1",
+      proyectoId: "proyecto-1",
+      codigo: "CP-TEST-01",
+      nombre: "Updated Name",
+      script: "test('a', ...)",
+      scriptFileName: "a.spec.ts",
+      responsableId: "user-456",
+      estado: "sin ejecuciones",
+      activo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (updateCaso as jest.Mock).mockResolvedValue(mockUpdated);
+
+    const request = createMockRequest("caso-1", {
+      nombre: "Updated Name",
     });
 
-    const request = new Request("http://localhost/api/casos/caso-1", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rutaScript: "invalid/path.ts" }),
+    const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.nombre).toBe("Updated Name");
+    expect(updateCaso).toHaveBeenCalledWith("caso-1", { nombre: "Updated Name" }, mockSession);
+  });
+
+  it("should return 400 when script file has invalid extension", async () => {
+    const file = new File(["test content"], "invalid.txt", { type: "text/plain" });
+    const request = createMockRequest("caso-1", {
+      nombre: "Updated Name",
+      scriptFile: file,
+    });
+
+    const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("validation");
+    expect(data.message).toBe("El archivo debe ser .spec.ts o .test.ts");
+  });
+
+  it("should return 400 when updateCaso throws validation error", async () => {
+    (updateCaso as jest.Mock).mockRejectedValue({
+      status: 400,
+      body: { error: "validation", message: "script is required" },
+    });
+
+    const request = createMockRequest("caso-1", {
+      nombre: "Updated Name",
     });
 
     const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
@@ -162,10 +231,8 @@ describe("PUT /api/casos/[id]", () => {
       body: { error: "forbidden", message: "superadmin required" },
     });
 
-    const request = new Request("http://localhost/api/casos/caso-1", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: "Updated Name" }),
+    const request = createMockRequest("caso-1", {
+      nombre: "Updated Name",
     });
 
     const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
@@ -178,10 +245,8 @@ describe("PUT /api/casos/[id]", () => {
   it("should return 401 when not authenticated", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: undefined });
 
-    const request = new Request("http://localhost/api/casos/caso-1", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: "Updated Name" }),
+    const request = createMockRequest("caso-1", {
+      nombre: "Updated Name",
     });
 
     const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });

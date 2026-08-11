@@ -7,7 +7,8 @@ export interface CasoPrueba {
   proyectoId: string;
   codigo: string;
   nombre: string;
-  rutaScript: string;
+  script: string;
+  scriptFileName: string | null;
   responsableId: string;
   estado: "sin ejecuciones" | "paso" | "fallo" | "reparado" | "errorMotor";
   activo: boolean;
@@ -18,7 +19,8 @@ export interface CasoPrueba {
 export interface CasoPruebaFormData {
   codigo: string;
   nombre: string;
-  rutaScript: string;
+  script: string;
+  scriptFileName?: string | null;
   responsableId: string;
   proyectoId: string;
 }
@@ -29,7 +31,7 @@ export interface CasoPruebaListItem {
   proyectoNombre: string;
   codigo: string;
   nombre: string;
-  rutaScript: string;
+  scriptFileName: string | null;
   responsableId: string;
   responsableEmail: string;
   estado: "sin ejecuciones" | "paso" | "fallo" | "reparado" | "errorMotor";

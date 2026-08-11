@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { ResponsableSelect } from "./responsable-select";
-import { ScriptSelect } from "./script-select";
+import { ScriptFileInput } from "./script-file-input";
 
 interface EditCasoFormProps {
   caso: CasoPruebaListItem;
@@ -14,7 +14,7 @@ interface EditCasoFormProps {
 export function EditCasoForm({ caso, onSuccess, onCancel }: EditCasoFormProps) {
   const [codigo, setCodigo] = useState(caso.codigo);
   const [nombre, setNombre] = useState(caso.nombre);
-  const [rutaScript, setRutaScript] = useState(caso.rutaScript);
+  const [scriptFile, setScriptFile] = useState<File | null>(null);
   const [responsableId, setResponsableId] = useState(caso.responsableId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,15 +25,18 @@ export function EditCasoForm({ caso, onSuccess, onCancel }: EditCasoFormProps) {
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("codigo", codigo);
+      formData.append("nombre", nombre);
+      formData.append("responsableId", responsableId);
+
+      if (scriptFile) {
+        formData.append("scriptFile", scriptFile);
+      }
+
       const res = await fetch(`/api/casos/${caso.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          codigo,
-          nombre,
-          rutaScript,
-          responsableId,
-        }),
+        body: formData,
       });
 
       if (res.ok) {
@@ -95,17 +98,13 @@ export function EditCasoForm({ caso, onSuccess, onCancel }: EditCasoFormProps) {
         </div>
 
         <div>
-          <label htmlFor="edit-rutaScript" className="block text-sm font-medium text-ink">
+          <label htmlFor="edit-scriptFile" className="block text-sm font-medium text-ink">
             Script de Playwright
           </label>
-          <ScriptSelect
-            proyectoId={caso.proyectoId}
-            value={rutaScript}
-            onChange={setRutaScript}
+          <ScriptFileInput
+            fileName={caso.scriptFileName}
+            onChange={setScriptFile}
           />
-          <p className="mt-1 text-xs text-ink-3">
-            Selecciona un archivo .spec.ts o .test.ts del directorio del proyecto.
-          </p>
         </div>
 
         <div>

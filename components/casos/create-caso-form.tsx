@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ResponsableSelect } from "./responsable-select";
-import { ScriptSelect } from "./script-select";
+import { ScriptFileInput } from "./script-file-input";
 
 interface ProyectoOption {
   id: string;
@@ -22,7 +22,7 @@ export function CreateCasoForm({ proyectoId, proyectos, onSuccess, onCancel }: C
   const router = useRouter();
   const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState("");
-  const [rutaScript, setRutaScript] = useState("");
+  const [scriptFile, setScriptFile] = useState<File | null>(null);
   const [responsableId, setResponsableId] = useState("");
   const [selectedProyectoId, setSelectedProyectoId] = useState(proyectoId || "");
   const [loading, setLoading] = useState(false);
@@ -31,6 +31,11 @@ export function CreateCasoForm({ proyectoId, proyectos, onSuccess, onCancel }: C
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!scriptFile) {
+      setError("Debes seleccionar un archivo de script");
+      return;
+    }
 
     if (!responsableId) {
       setError("Debes seleccionar un responsable");
@@ -45,22 +50,22 @@ export function CreateCasoForm({ proyectoId, proyectos, onSuccess, onCancel }: C
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("codigo", codigo);
+      formData.append("nombre", nombre);
+      formData.append("scriptFile", scriptFile);
+      formData.append("responsableId", responsableId);
+      formData.append("proyectoId", selectedProyectoId);
+
       const res = await fetch("/api/casos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          codigo,
-          nombre,
-          rutaScript,
-          responsableId,
-          proyectoId: selectedProyectoId,
-        }),
+        body: formData,
       });
 
       if (res.ok) {
         setCodigo("");
         setNombre("");
-        setRutaScript("");
+        setScriptFile(null);
         setResponsableId("");
         if (!proyectoId) {
           setSelectedProyectoId("");
@@ -147,18 +152,13 @@ export function CreateCasoForm({ proyectoId, proyectos, onSuccess, onCancel }: C
         </div>
 
         <div>
-          <label htmlFor="rutaScript" className="block text-sm font-medium text-ink">
+          <label htmlFor="scriptFile" className="block text-sm font-medium text-ink">
             Script de Playwright
           </label>
-          <ScriptSelect
-            proyectoId={selectedProyectoId}
-            value={rutaScript}
-            onChange={setRutaScript}
+          <ScriptFileInput
+            onChange={setScriptFile}
             disabled={!selectedProyectoId}
           />
-          <p className="mt-1 text-xs text-ink-3">
-            Selecciona un archivo .spec.ts o .test.ts del directorio del proyecto.
-          </p>
         </div>
 
         <div>

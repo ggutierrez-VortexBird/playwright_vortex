@@ -9,7 +9,7 @@ const mockCasos: CasoPruebaListItem[] = [
     proyectoNombre: "Proyecto Alpha",
     codigo: "CP-TEST-01",
     nombre: "Caso de prueba A",
-    rutaScript: "tests/e2e/login.spec.ts",
+    scriptFileName: "login.spec.ts",
     responsableId: "user-1",
     responsableEmail: "ana@test.com",
     estado: "paso",
@@ -24,7 +24,7 @@ const mockCasos: CasoPruebaListItem[] = [
     proyectoNombre: "Proyecto Alpha",
     codigo: "CP-TEST-02",
     nombre: "Caso de prueba B",
-    rutaScript: "tests/e2e/transferencia-muy-larga.spec.ts",
+    scriptFileName: "transferencia-muy-larga.spec.ts",
     responsableId: "user-2",
     responsableEmail: "luis@test.com",
     estado: "fallo",
@@ -39,7 +39,7 @@ const mockCasos: CasoPruebaListItem[] = [
     proyectoNombre: "Proyecto Beta",
     codigo: "CP-TEST-03",
     nombre: "Caso de prueba C",
-    rutaScript: "tests/e2e/consulta.spec.ts",
+    scriptFileName: "consulta.spec.ts",
     responsableId: "user-1",
     responsableEmail: "ana@test.com",
     estado: "sin ejecuciones",
@@ -75,7 +75,7 @@ describe("CasoTable", () => {
     expect(screen.getByText("Sin ejecutar")).toBeInTheDocument();
   });
 
-  it("truncates long script paths", () => {
+  it("truncates long file names", () => {
     render(<CasoTable casos={mockCasos} />);
     const truncated = screen.getByText(/transferencia-muy-larga\.spec\.ts/);
     expect(truncated).toBeInTheDocument();

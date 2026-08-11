@@ -40,10 +40,38 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const body = await request.json();
 
   try {
-    const caso = await updateCaso(id, body, session);
+    const formData = await request.formData();
+    const scriptFile = formData.get("scriptFile") as File | null;
+
+    const updateData: any = {};
+
+    const codigo = formData.get("codigo");
+    if (codigo !== null) updateData.codigo = codigo as string;
+
+    const nombre = formData.get("nombre");
+    if (nombre !== null) updateData.nombre = nombre as string;
+
+    const responsableId = formData.get("responsableId");
+    if (responsableId !== null) updateData.responsableId = responsableId as string;
+
+    const proyectoId = formData.get("proyectoId");
+    if (proyectoId !== null) updateData.proyectoId = proyectoId as string;
+
+    if (scriptFile) {
+      const fileName = scriptFile.name;
+      if (!fileName.endsWith(".spec.ts") && !fileName.endsWith(".test.ts")) {
+        return NextResponse.json(
+          { error: "validation", message: "El archivo debe ser .spec.ts o .test.ts" },
+          { status: 400 }
+        );
+      }
+      updateData.script = await scriptFile.text();
+      updateData.scriptFileName = fileName;
+    }
+
+    const caso = await updateCaso(id, updateData, session);
     return NextResponse.json(caso);
   } catch (err: any) {
     if (err.status) {
