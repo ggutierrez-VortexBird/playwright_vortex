@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { listProyectosByEspacio, getMetrics } from "@/lib/proyectos/actions";
 import { getEspacioById } from "@/lib/espacios/actions";
 import { ProyectoGrid } from "./proyecto-grid";
+import { ScopeBar } from "@/components/ui/scope-bar";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
 interface PageProps {
@@ -80,13 +81,7 @@ export default async function ProyectosPage({ params }: PageProps) {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3">
-          <span
-            className="h-5 w-5 rounded-full"
-            style={{ backgroundColor: espacio.color }}
-          />
-          <h1 className="text-2xl font-bold text-ink">{espacio.nombre}</h1>
-        </div>
+        <ScopeBar espacioNombre={espacio.nombre} espacioColor={espacio.color} />
         <p className="mt-1 text-ink-3">Proyectos del espacio</p>
       </div>
 
@@ -95,6 +90,7 @@ export default async function ProyectosPage({ params }: PageProps) {
         <ProyectoGrid
           espacioId={espacioId}
           espacioNombre={espacio.nombre}
+          espacioColor={espacio.color}
           canEdit={canCreate}
         />
       </Suspense>

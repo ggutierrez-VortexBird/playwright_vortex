@@ -158,6 +158,8 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
                     <ProyectoCard
                       key={proyecto.id}
                       proyecto={proyecto}
+                      espacioNombre={espacio.nombre}
+                      espacioColor={espacio.color}
                       canEdit={canEdit}
                       onEdit={handleEdit}
                       onDelete={handleDelete}

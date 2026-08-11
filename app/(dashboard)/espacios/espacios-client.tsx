@@ -83,6 +83,7 @@ export function EspaciosClient({ initialEspacios }: EspaciosClientProps) {
   const [espacios, setEspacios] = useState<Espacio[]>(initialEspacios);
   const [editingEspacio, setEditingEspacio] = useState<Espacio | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const router = useRouter();
 
   async function handleDelete(espacio: Espacio) {
     if (!confirm(`¿Estás seguro de eliminar "${espacio.nombre}"?`)) {
@@ -108,7 +109,7 @@ export function EspaciosClient({ initialEspacios }: EspaciosClientProps) {
   }
 
   function handleSuccess() {
-    window.location.reload();
+    router.refresh();
   }
 
   function handleCancel() {

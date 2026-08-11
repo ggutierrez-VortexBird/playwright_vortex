@@ -9,10 +9,11 @@ import type { ProyectoWithMetrics } from "@/types/proyecto";
 interface ProyectoGridProps {
   espacioId: string;
   espacioNombre: string;
+  espacioColor: string | null;
   canEdit: boolean;
 }
 
-export function ProyectoGrid({ espacioId, espacioNombre, canEdit }: ProyectoGridProps) {
+export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }: ProyectoGridProps) {
   const [proyectos, setProyectos] = useState<ProyectoWithMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,6 +180,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, canEdit }: ProyectoGrid
               key={proyecto.id}
               proyecto={proyecto}
               espacioNombre={espacioNombre}
+              espacioColor={espacioColor}
               onEdit={canEdit ? handleEdit : undefined}
               onDelete={canEdit ? handleDelete : undefined}
               canEdit={canEdit}

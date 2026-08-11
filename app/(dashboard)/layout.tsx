@@ -1,21 +1,30 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { listEspacios, getEspacioById } from "@/lib/espacios/actions";
+import { ClientBand } from "@/components/ui/client-band";
+import { EspacioSwitcher } from "@/components/ui/espacio-switcher";
 
-export default async function DashboardLayout({
-  children,
-}: {
+interface DashboardLayoutProps {
   children: React.ReactNode;
-}) {
+  params: Promise<{ id?: string }>;
+}
+
+export default async function DashboardLayout({ children, params }: DashboardLayoutProps) {
+  const { id: espacioId } = await params;
   const session = await getSession();
 
   if (!session.userId) {
     redirect("/login");
   }
 
-  const usuario = await prisma.usuario.findUnique({
-    where: { id: session.userId },
-  });
+  const [usuario, espacios, espacio] = await Promise.all([
+    prisma.usuario.findUnique({
+      where: { id: session.userId },
+    }),
+    listEspacios(),
+    espacioId ? getEspacioById(espacioId) : null,
+  ]);
 
   if (!usuario) {
     redirect("/login");
@@ -24,6 +33,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen bg-paper">
       <aside className="sticky top-0 flex h-screen w-rail flex-col bg-ink text-surface">
+        <ClientBand espacioColor={espacio?.color ?? null} />
         <div className="border-b border-ink-2 p-4">
           <h2 className="text-lg font-semibold">Acta</h2>
           <p className="mt-0.5 text-xs text-ink-3">v0.1.0</p>
@@ -92,6 +102,7 @@ export default async function DashboardLayout({
       </aside>
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-rule bg-surface px-6 py-3">
+          <EspacioSwitcher espacios={espacios} />
           <h1 className="text-sm font-medium text-ink">Panel principal</h1>
         </header>
         <main className="flex-1 p-6">{children}</main>

@@ -5,6 +5,7 @@ import type { ProyectoWithMetrics } from "@/types/proyecto";
 interface ProyectoCardProps {
   proyecto: ProyectoWithMetrics;
   espacioNombre?: string;
+  espacioColor?: string | null;
   onEdit?: (proyecto: ProyectoWithMetrics) => void;
   onDelete?: (proyecto: ProyectoWithMetrics) => void;
   canEdit?: boolean;
@@ -13,6 +14,7 @@ interface ProyectoCardProps {
 export function ProyectoCard({
   proyecto,
   espacioNombre,
+  espacioColor,
   onEdit,
   onDelete,
   canEdit = false,
@@ -28,7 +30,10 @@ export function ProyectoCard({
   }
 
   return (
-    <div className="proj-card group rounded-lg border border-rule bg-surface p-4 transition-colors hover:border-ink-3">
+    <div
+      className="proj-card group rounded-lg border border-t-[3px] border-rule bg-surface p-4 transition-colors hover:border-ink-3"
+      style={espacioColor ? { borderTopColor: espacioColor } : undefined}
+    >
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-1">

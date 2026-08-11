@@ -53,3 +53,26 @@
     cursor: pointer;
   }
 }
+
+/* Visual identity classes for espacio color propagation */
+.client-band {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3px;
+  height: 100%;
+}
+
+.sw-mark {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: 0 0 9px;
+}
+
+.scope-bar-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 8px;
+}
