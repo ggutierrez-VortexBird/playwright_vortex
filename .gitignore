@@ -29,3 +29,9 @@ Thumbs.db
 npm-debug.log*
 
 /coverage
+
+# Runtime: archivos temporales del worker de ejecuciones (no commitear)
+runtime/
+playwright-report/
+test-results/
+.playwright/

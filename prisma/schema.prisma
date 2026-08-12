@@ -132,6 +132,7 @@ model Ejecucion {
   inicioAt     DateTime?
   finAt        DateTime?
   duracionMs   Int?
+  errorMsg     String?
   createdAt    DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
 

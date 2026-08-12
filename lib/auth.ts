@@ -35,13 +35,17 @@ export async function destroySession() {
   await session.destroy();
 }
 
+// Marker errors so route handlers can map them to HTTP responses
+export const FORBIDDEN_ERROR = new Error("FORBIDDEN");
+export const NOT_FOUND_ERROR = new Error("NOT_FOUND");
+
 /**
  * Verify that the current session user has superadmin role.
- * Throws 403 if not authorized.
+ * Throws FORBIDDEN_ERROR if not authorized.
  */
 export async function requireSuperadmin(session: SessionData): Promise<void> {
   if (!session.userId) {
-    throw { status: 403, body: { error: "forbidden", message: "superadmin required" } };
+    throw FORBIDDEN_ERROR;
   }
 
   const user = await prisma.usuario.findUnique({
@@ -50,6 +54,6 @@ export async function requireSuperadmin(session: SessionData): Promise<void> {
   });
 
   if (user?.rol !== "superadmin") {
-    throw { status: 403, body: { error: "forbidden", message: "superadmin required" } };
+    throw FORBIDDEN_ERROR;
   }
 }
