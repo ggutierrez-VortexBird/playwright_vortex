@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireSuperadmin } from "@/lib/auth";
-import type { CreateProyectoInput, UpdateProyectoInput, ProyectoWithMetrics } from "@/types/proyecto";
+import type { CreateProyectoInput, UpdateProyectoInput, ProyectoWithMetrics, ProyectoWithEspacio } from "@/types/proyecto";
 import type { SessionData } from "@/lib/auth";
 
 /**
@@ -62,6 +62,17 @@ export async function createProyecto(
 export async function listProyectosByEspacio(espacioId: string) {
   return prisma.proyecto.findMany({
     where: { espacioId, activo: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/**
+ * List all active proyectos with their espacio included.
+ */
+export async function listProyectosActivos(): Promise<ProyectoWithEspacio[]> {
+  return prisma.proyecto.findMany({
+    where: { activo: true },
+    include: { espacio: true },
     orderBy: { createdAt: "desc" },
   });
 }

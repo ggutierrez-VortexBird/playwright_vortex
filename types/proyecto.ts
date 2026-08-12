@@ -46,3 +46,14 @@ export interface ApiError {
   error: string;
   message: string;
 }
+
+export interface ProyectoWithEspacio extends Proyecto {
+  espacio: {
+    id: string;
+    nombre: string;
+    color: string;
+    activo: boolean;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+  };
+}
