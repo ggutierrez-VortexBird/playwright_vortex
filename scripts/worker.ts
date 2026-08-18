@@ -6,7 +6,8 @@ import {
   cleanupStaleScripts,
 } from '../lib/worker/script-temp'
 import { validateScript } from '../lib/worker/validate-script'
-import { runPlaywrightTest } from '../lib/worker/runner'
+import { runPlaywrightTest, EjecucionCanceladaError } from '../lib/worker/runner'
+import { tryClaimPendingExecution } from '../lib/worker/claim'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -18,20 +19,12 @@ async function main() {
 
   while (true) {
     try {
-      // Buscar ejecución pendiente
-      const job = await db.ejecucion.findFirst({
-        where: { estado: 'pendiente' },
-        orderBy: { createdAt: 'asc' },
-      })
+      // Atomic claim: si la ejecución fue cancelada entre findFirst y updateMany,
+      // tryClaimPendingExecution retorna null y seguimos al próximo poll.
+      const job = await tryClaimPendingExecution(db)
 
       if (job) {
         console.log(`[worker] Procesando ejecución ${job.id}`)
-
-        // Marcar como corriendo
-        await db.ejecucion.update({
-          where: { id: job.id },
-          data: { estado: 'corriendo', inicioAt: new Date() },
-        })
 
         // Leer caso
         const caso = await db.casoPrueba.findUnique({
@@ -71,8 +64,19 @@ async function main() {
         )
 
         try {
-          // Ejecutar
-          const result = await runPlaywrightTest(tmpPath, job.id)
+          // Ejecutar — pasamos `isAborted` para que el runner pueda
+          // detectar cancelación del usuario durante la corrida.
+          const result = await runPlaywrightTest(
+            tmpPath,
+            job.id,
+            async () => {
+              const current = await db.ejecucion.findUnique({
+                where: { id: job.id },
+                select: { estado: true },
+              })
+              return current?.estado === 'cancelado'
+            }
+          )
 
           // Determinar estado final basado en los pasos:
           // - Si hay algún paso con 'fallo' y sin selfHeal, el resultado es 'fallo'
@@ -96,6 +100,16 @@ async function main() {
             },
           })
         } catch (e: unknown) {
+          // Si fue cancelada por el usuario, el estado ya es 'cancelado' en BD
+          // (puesto por detenerEjecucion). Solo aseguramos finAt.
+          if (e instanceof EjecucionCanceladaError) {
+            await db.ejecucion.update({
+              where: { id: job.id },
+              data: { finAt: new Date() },
+            })
+            console.log(`[worker] Ejecución ${job.id} cancelada por el usuario`)
+            continue
+          }
           const message = e instanceof Error ? e.message : String(e)
           await db.ejecucion.update({
             where: { id: job.id },

@@ -62,7 +62,7 @@ export function EditCasoForm({ caso, onSuccess, onCancel }: EditCasoFormProps) {
   }
 
   return (
-    <div className="rounded-lg border border-rule bg-surface p-6">
+    <div className="card p-6">
       <h2 className="mb-4 text-lg font-semibold text-ink">Editar Caso de Prueba</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>

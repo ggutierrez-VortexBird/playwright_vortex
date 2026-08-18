@@ -53,9 +53,10 @@ export default async function ProyectoCasosPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-ink">{proyecto.nombre}</h1>
-        <p className="mt-1 text-ink-3">Casos de prueba del proyecto</p>
+      <div className="topbar -mx-6 -mt-6 rounded-none">
+        <h2>{proyecto.nombre}</h2>
+        <span className="sub">{proyecto.ambiente} · Casos de prueba</span>
+        <span className="spacer" />
       </div>
 
       {/* Casos with Suspense */}

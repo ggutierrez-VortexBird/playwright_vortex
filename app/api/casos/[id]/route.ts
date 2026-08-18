@@ -62,12 +62,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (scriptFile) {
       const fileName = scriptFile.name;
       const lowerName = fileName.toLowerCase();
-      const isValidExt = [".spec.ts", ".test.ts", ".spec.js", ".test.js", ".ts", ".js"].some((ext) =>
+      const isValidExt = [".spec.ts", ".test.ts", ".spec.js", ".test.js"].some((ext) =>
         lowerName.endsWith(ext)
       );
       if (!isValidExt) {
         return NextResponse.json(
-          { error: "validation", message: "El archivo debe ser .ts o .js" },
+          { error: "validation", message: "El archivo debe ser .spec.ts, .test.ts, .spec.js o .test.js" },
           { status: 400 }
         );
       }

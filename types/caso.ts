@@ -38,6 +38,8 @@ export interface CasoPruebaListItem {
   activo: boolean;
   fechaUltimaEjecucion: string | null;
   pasosCount: number | null;
+  ultimaEjecucionId: string | null;
+  primerPasoFallidoNumero: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

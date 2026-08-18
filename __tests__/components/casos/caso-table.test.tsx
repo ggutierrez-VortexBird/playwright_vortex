@@ -18,6 +18,8 @@ const mockCasos: CasoPruebaListItem[] = [
     updatedAt: "2026-08-05T00:00:00Z",
     fechaUltimaEjecucion: "2026-08-05T10:30:00Z",
     pasosCount: 5,
+    ultimaEjecucionId: "ejec-1",
+    primerPasoFallidoNumero: null,
   },
   {
     id: "caso-2",
@@ -34,6 +36,8 @@ const mockCasos: CasoPruebaListItem[] = [
     updatedAt: "2026-08-04T00:00:00Z",
     fechaUltimaEjecucion: null,
     pasosCount: 3,
+    ultimaEjecucionId: null,
+    primerPasoFallidoNumero: 2,
   },
   {
     id: "caso-3",
@@ -50,6 +54,8 @@ const mockCasos: CasoPruebaListItem[] = [
     updatedAt: "2026-08-03T00:00:00Z",
     fechaUltimaEjecucion: null,
     pasosCount: null,
+    ultimaEjecucionId: null,
+    primerPasoFallidoNumero: null,
   },
 ];
 
@@ -74,7 +80,7 @@ describe("CasoTable", () => {
   it("renders estado pills with correct labels", () => {
     render(<CasoTable casos={mockCasos} />);
     expect(screen.getByText("Aprobado")).toBeInTheDocument();
-    expect(screen.getByText("Falló")).toBeInTheDocument();
+    expect(screen.getByText("Falló en el paso 2")).toBeInTheDocument();
     expect(screen.getByText("Sin ejecutar")).toBeInTheDocument();
   });
 

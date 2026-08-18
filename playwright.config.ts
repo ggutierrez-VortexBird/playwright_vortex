@@ -6,13 +6,16 @@ const jsonReporterPath = path.resolve(__dirname, 'scripts', 'my-reporter.js')
 
 export default defineConfig({
   testDir: './runtime/ejecuciones',
-  timeout: 5 * 60 * 1000, // 5 minutes per execution
+  timeout: 3 * 60 * 1000, // 10 minutes per execution
   retries: 0,
   workers: 1,
-  // Reporter custom que emite JSON por stdout, más el list reporter para humanos
+  // Reporter custom que emite JSON por stdout.
+  // El reporter 'list' solo se activa en terminal interactiva (TTY);
+  // cuando el runner ejecuta con stdio en pipes, isTTY es false y
+  // evitamos que el buffer de stdout se sature con updates de progreso.
   reporter: [
     [jsonReporterPath],
-    ['list'],
+    ...(process.stdout.isTTY ? [['list'] as const] : []),
   ],
   use: {
     headless: true,

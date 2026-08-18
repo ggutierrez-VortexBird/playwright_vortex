@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import {
-  dispararEjecucion,
-  YA_EXISTE_EJECUCION_EN_CURSO_ERROR,
-} from '@/lib/ejecuciones/actions'
+import { dispararEjecucion } from '@/lib/ejecuciones/actions'
+import { YA_EXISTE_EJECUCION_EN_CURSO_ERROR } from '@/lib/ejecuciones/errors'
 import { FORBIDDEN_ERROR, NOT_FOUND_ERROR } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {

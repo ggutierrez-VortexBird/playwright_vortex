@@ -48,7 +48,8 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="rounded bg-ink px-4 py-2 text-surface hover:bg-ink-2 disabled:opacity-50"
+        className="btn btn-primary"
+        style={{ padding: "8px 16px" }}
       >
         {isPending ? "Iniciando sesión..." : "Iniciar sesión"}
       </button>

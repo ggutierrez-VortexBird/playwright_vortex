@@ -35,3 +35,17 @@ runtime/
 playwright-report/
 test-results/
 .playwright/
+
+# Fixtures: scripts de prueba generados manualmente (no commitear)
+fixtures/
+
+# Debug scripts: scripts one-off creados durante el desarrollo (no commitear)
+scripts/check-ejecucion.ts
+scripts/cleanup-and-seed-simple.ts
+scripts/cleanup-test-cases.ts
+scripts/create-ejecucion-bad-ext.ts
+scripts/create-ejecucion-invalid-script.ts
+scripts/create-pending-ejecucion.ts
+scripts/create-two-concurrent.ts
+scripts/debug-ejecucion.ts
+scripts/seed-test-script.ts

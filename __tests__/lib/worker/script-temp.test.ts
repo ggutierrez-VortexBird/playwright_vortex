@@ -1,99 +1,127 @@
 // __tests__/lib/worker/script-temp.test.ts
-// RED test — testing functionality that doesn't exist yet
-// These tests verify AC-3, AC-7 (script temp file writing and cleanup)
+// Tests for HU-3 Motor de Ejecución Playwright — AC-3, AC-7
+// (script temp file writing and cleanup)
+//
+// Detalle clave: `fs/promises` es un módulo de Node.js que expone tanto
+// propiedades nombradas (writeFile, mkdir, etc.) como un `default` export.
+// El código bajo test (`import fs from 'fs/promises'`) recibe el `default`,
+// que es un objeto DISTINTO del namespace. Por eso `jest.mock` no funciona
+// consistentemente con `next/jest` — la solución es `jest.spyOn` sobre
+// `(fsPromises as any).default` (el objeto que ve el código bajo test).
 
-import * as fs from "fs/promises";
-import * as path from "path";
-import * as os from "os";
+import * as fsPromises from "fs/promises";
+import { writeTempScript, cleanupTempScript, cleanupStaleScripts } from "@/lib/worker/script-temp";
 
-jest.mock("fs/promises");
+const fs = (fsPromises as any).default as {
+  writeFile: jest.Mock;
+  unlink: jest.Mock;
+  readdir: jest.Mock;
+  stat: jest.Mock;
+  mkdir: jest.Mock;
+};
 
-describe("writeTempScript", () => {
+describe("writeTempScript (AC-3)", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.spyOn(fs, "mkdir").mockResolvedValue(undefined as any);
+    jest.spyOn(fs, "writeFile").mockResolvedValue(undefined as any);
   });
 
-  it("escribe archivo temporal con extensión .spec.ts", async () => {
-    // This test will fail until writeTempScript is implemented
-    const { writeTempScript } = require("@/lib/worker/script-temp");
-
-    (fs.mkdir as jest.Mock).mockResolvedValue(undefined as any);
-    (fs.writeFile as jest.Mock).mockResolvedValue(undefined as any);
-
-    const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
-    const tmpPath = await writeTempScript("ejec-1", script, "test.spec.ts");
-
-    expect(tmpPath).toContain("playwright-vortex");
-    expect(tmpPath).toContain("ejec-1");
-    expect(tmpPath).toEndWith(".spec.ts");
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  it("sanitiza el nombre del archivo eliminando caracteres peligrosos", async () => {
-    const { writeTempScript } = require("@/lib/worker/script-temp");
+  it("escribe el script y retorna una ruta con extensión .spec.ts", async () => {
+    const tmpPath = await writeTempScript(
+      'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});',
+      "test.spec.ts"
+    );
 
-    (fs.mkdir as jest.Mock).mockResolvedValue(undefined as any);
-    (fs.writeFile as jest.Mock).mockResolvedValue(undefined as any);
+    expect(tmpPath).toMatch(/runtime[\\/]ejecuciones[\\/]/);
+    expect(tmpPath).toMatch(/\.spec\.ts$/);
+    expect(fs.writeFile).toHaveBeenCalledTimes(1);
+    expect(fs.mkdir).toHaveBeenCalledWith(
+      expect.stringMatching(/runtime[\\/]ejecuciones$/),
+      { recursive: true }
+    );
+  });
 
-    const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
-    // File name with path traversal attempt
-    const tmpPath = await writeTempScript("ejec-1", script, "../../../etc/passwd.spec.ts");
+  it("sanitiza caracteres peligrosos en el nombre del archivo (path traversal)", async () => {
+    const tmpPath = await writeTempScript(
+      "test('pasa');",
+      "../../../etc/passwd.spec.ts"
+    );
 
-    expect(tmpPath).not.toContain("..");
+    expect(tmpPath).not.toMatch(/\.\.\//);
     expect(tmpPath).not.toContain("/etc/");
-    expect(tmpPath).toContain("ejec-1");
+    expect(tmpPath).toMatch(/\.spec\.ts$/);
+    expect(tmpPath).toMatch(/runtime[\\/]ejecuciones[\\/]/);
   });
 
-  it("dos llamadas para el mismo ejecucionId no colisionan (nombres únicos)", async () => {
-    const { writeTempScript } = require("@/lib/worker/script-temp");
-
-    (fs.mkdir as jest.Mock).mockResolvedValue(undefined as any);
-    (fs.writeFile as jest.Mock).mockResolvedValue(undefined as any);
-
-    const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
-    const tmpPath1 = await writeTempScript("ejec-1", script, "test1.spec.ts");
-    const tmpPath2 = await writeTempScript("ejec-1", script, "test2.spec.ts");
+  it("dos llamadas generan paths distintos (UUID por escritura)", async () => {
+    const tmpPath1 = await writeTempScript("test1();", "test1.spec.ts");
+    const tmpPath2 = await writeTempScript("test2();", "test2.spec.ts");
 
     expect(tmpPath1).not.toBe(tmpPath2);
   });
-
-  it("fuerza extensión .spec.ts aunque el filename original sea diferente", async () => {
-    const { writeTempScript } = require("@/lib/worker/script-temp");
-
-    (fs.mkdir as jest.Mock).mockResolvedValue(undefined as any);
-    (fs.writeFile as jest.Mock).mockResolvedValue(undefined as any);
-
-    const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
-    const tmpPath = await writeTempScript("ejec-1", script, "test.ts"); // .ts not .spec.ts
-
-    expect(tmpPath).toEndWith(".spec.ts");
-  });
 });
 
-describe("cleanupTempScript", () => {
+describe("cleanupTempScript (AC-3)", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.spyOn(fs, "unlink").mockResolvedValue(undefined as any);
   });
 
-  it("elimina el archivo temporal", async () => {
-    const { cleanupTempScript } = require("@/lib/worker/script-temp");
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
-    (fs.unlink as jest.Mock).mockResolvedValue(undefined as any);
-
-    const tmpPath = path.join(os.tmpdir(), "playwright-vortex", "ejec-1-test.spec.ts");
+  it("elimina el archivo temporal llamando fs.unlink", async () => {
+    const tmpPath = "C:\\runtime\\ejecuciones\\abc-test.spec.ts";
     await cleanupTempScript(tmpPath);
 
     expect(fs.unlink).toHaveBeenCalledWith(tmpPath);
   });
 
-  it("no lanza error si el archivo no existe (silently succeeds)", async () => {
-    const { cleanupTempScript } = require("@/lib/worker/script-temp");
+  it("no lanza error si el archivo no existe (ENOENT)", async () => {
+    const error = Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    fs.unlink.mockRejectedValue(error);
 
-    const error = new Error("ENOENT") as any;
-    error.code = "ENOENT";
-    (fs.unlink as jest.Mock).mockRejectedValue(error);
+    const tmpPath = "C:\\runtime\\ejecuciones\\nonexistent.spec.ts";
 
-    const tmpPath = path.join(os.tmpdir(), "playwright-vortex", "nonexistent.spec.ts");
-    // Should not throw
     await expect(cleanupTempScript(tmpPath)).resolves.toBeUndefined();
+  });
+});
+
+describe("cleanupStaleScripts (AC-3)", () => {
+  beforeEach(() => {
+    jest.spyOn(fs, "readdir").mockResolvedValue([] as any);
+    jest.spyOn(fs, "stat").mockResolvedValue({ mtimeMs: 0 } as any);
+    jest.spyOn(fs, "unlink").mockResolvedValue(undefined as any);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("borra archivos más viejos que maxAgeMs", async () => {
+    const oldMtime = Date.now() - 2 * 60 * 60 * 1000;
+    const newMtime = Date.now() - 5 * 60 * 1000;
+
+    fs.readdir.mockResolvedValue(["old.spec.ts", "new.spec.ts"] as any);
+    fs.stat
+      .mockResolvedValueOnce({ mtimeMs: oldMtime } as any)
+      .mockResolvedValueOnce({ mtimeMs: newMtime } as any);
+
+    await cleanupStaleScripts(60 * 60 * 1000);
+
+    expect(fs.unlink).toHaveBeenCalledTimes(1);
+    expect(fs.unlink).toHaveBeenCalledWith(
+      expect.stringMatching(/old\.spec\.ts$/)
+    );
+  });
+
+  it("no falla si el directorio no existe", async () => {
+    fs.readdir.mockRejectedValue(new Error("ENOENT"));
+
+    await expect(cleanupStaleScripts()).resolves.toBeUndefined();
   });
 });

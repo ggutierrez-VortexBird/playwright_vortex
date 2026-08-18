@@ -10,9 +10,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-paper p-4">
-      <div className="w-full max-w-sm rounded-lg border border-rule bg-surface p-8 shadow-sm">
+      <div className="card w-full max-w-sm p-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold text-ink">Acta</h1>
+          <h1
+            className="text-2xl font-semibold text-ink"
+            style={{ letterSpacing: "0.14em", textTransform: "uppercase" }}
+          >
+            Acta
+          </h1>
           <p className="mt-1 text-sm text-ink-3">
             Automatización de pruebas y actas de evidencia
           </p>

@@ -15,72 +15,113 @@ interface Paso {
 
 interface Props {
   ejecucionId: string
-  initialPasos: Paso[]
+  pasos: Paso[]
 }
 
-export function PasosList({ ejecucionId, initialPasos }: Props) {
-  const [pasos, setPasos] = useState<Paso[]>(initialPasos)
+export function PasosList({ ejecucionId, pasos }: Props) {
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set())
-  const prevPasosRef = useRef<Paso[]>(initialPasos)
+  const prevPasosRef = useRef<Paso[]>(pasos)
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/ejecuciones/${ejecucionId}`)
-        const data = await res.json()
-        const newPasos: Paso[] = data.pasos ?? []
+    const prevMap = new Map(prevPasosRef.current.map(p => [p.id, p]))
+    const added = pasos.filter(p => !prevMap.has(p.id))
+    const updated = pasos.filter(p => {
+      const prev = prevMap.get(p.id)
+      if (!prev) return false
+      return (
+        prev.estado !== p.estado ||
+        prev.duracionMs !== p.duracionMs ||
+        prev.errorMsg !== p.errorMsg ||
+        prev.selfHealed !== p.selfHealed ||
+        prev.descripcion !== p.descripcion
+      )
+    })
 
-        const prevIds = new Set(prevPasosRef.current.map(p => p.id))
-        const added = newPasos.filter(p => !prevIds.has(p.id))
+    const changedIds = [...added.map(p => p.id), ...updated.map(p => p.id)]
 
-        if (added.length > 0) {
-          setFreshIds(prev => {
-            const next = new Set([...prev, ...added.map(p => p.id)])
-            return next
-          })
+    if (changedIds.length > 0) {
+      setFreshIds(prev => {
+        const next = new Set([...prev, ...changedIds])
+        return next
+      })
 
-          setTimeout(() => {
-            setFreshIds(prev => {
-              const next = new Set(prev)
-              added.forEach(p => next.delete(p.id))
-              return next
-            })
-          }, 2000)
-        }
+      setTimeout(() => {
+        setFreshIds(prev => {
+          const next = new Set(prev)
+          changedIds.forEach(id => next.delete(id))
+          return next
+        })
+      }, 3000)
+    }
 
-        setPasos(newPasos)
-        prevPasosRef.current = newPasos
-      } catch {
-        // ignore polling errors
-      }
-    }, 2000)
+    prevPasosRef.current = pasos
+  }, [pasos])
 
-    return () => clearInterval(interval)
-  }, [ejecucionId])
+  if (pasos.length === 0) {
+    return (
+      <div className="card p-6 text-center text-ink-3">
+        Aún no hay pasos registrados.
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-2">
-      {pasos.map(paso => (
-        <div
-          key={paso.id}
-          className={`
-            flex items-center gap-3 p-3 border rounded
-            ${freshIds.has(paso.id) ? 'step step-fresh' : 'step'}
-            ${paso.estado === 'fallo' ? 'border-[--stamp]' : ''}
-            ${paso.estado === 'reparado' ? 'border-[--amber]' : ''}
-          `}
-        >
-          <span className="font-mono text-xs text-[--rule]">#{paso.numero}</span>
-          <span className="flex-1 text-sm">{paso.descripcion}</span>
-          <span className={`pill pill-${paso.estado === 'paso' ? 'pass' : paso.estado}`}>
-            {paso.estado}
-          </span>
-          {paso.selfHealed && <span className="pill pill-heal">heal</span>}
-          {paso.duracionMs && (
-            <span className="font-mono text-xs text-[--rule]">{paso.duracionMs}ms</span>
-          )}
-        </div>
-      ))}
+    <div className="ledger">
+      {pasos.map(paso => {
+        const isFresh = freshIds.has(paso.id)
+        const failClass = paso.estado === 'fallo' ? 'fail' : ''
+        const healClass = paso.estado === 'reparado' || paso.selfHealed ? 'heal' : ''
+        const pillVariant =
+          paso.estado === 'fallo'
+            ? 'p-fail'
+            : paso.estado === 'reparado' || paso.selfHealed
+              ? 'p-heal'
+              : paso.estado === 'errorMotor'
+                ? 'p-idle'
+                : 'p-pass'
+        return (
+          <div
+            key={paso.id}
+            data-testid={`paso-${paso.numero}`}
+            data-fresh={isFresh}
+            data-estado={paso.estado}
+            className={`rstep${failClass ? ` ${failClass}` : ''}${healClass ? ` ${healClass}` : ''}${isFresh ? ' new' : ''}`}
+          >
+            <div className="no">
+              {paso.numero.toString().padStart(2, '0')}
+            </div>
+            <div>
+              <div className="desc">{paso.descripcion}</div>
+              {paso.errorMsg && (
+                <div className="desc-meta" style={{ color: 'var(--stamp)' }}>
+                  {paso.errorMsg}
+                </div>
+              )}
+              {paso.selfHealed && (
+                <div className="desc-meta" style={{ color: 'var(--amber)' }}>
+                  reparado — el selector principal cambió, se usó el respaldo
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <span className={`pill ${pillVariant}`}>
+                {paso.estado === 'paso'
+                  ? 'Conforme'
+                  : paso.estado === 'fallo'
+                    ? 'No conforme'
+                    : paso.estado === 'reparado'
+                      ? 'Reparado'
+                      : paso.estado === 'errorMotor'
+                        ? 'Error motor'
+                        : paso.estado}
+              </span>
+              <span className="dur">
+                {paso.duracionMs != null ? `${(paso.duracionMs / 1000).toFixed(1)}s` : '—'}
+              </span>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

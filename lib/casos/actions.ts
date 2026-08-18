@@ -3,6 +3,24 @@ import { requireSuperadmin } from "@/lib/auth";
 import type { SessionData } from "@/lib/auth";
 import type { CasoPruebaFormData, CasoPruebaListItem } from "@/types/caso";
 
+const ALLOWED_SCRIPT_EXTENSIONS = [".spec.ts", ".test.ts", ".spec.js", ".test.js"];
+
+function validateScriptFileName(fileName: string | null | undefined): string | null {
+  if (!fileName) return null;
+  const lower = fileName.toLowerCase();
+  const isValid = ALLOWED_SCRIPT_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  if (!isValid) {
+    throw {
+      status: 400,
+      body: {
+        error: "validation",
+        message: `Extensión inválida. Debe ser ${ALLOWED_SCRIPT_EXTENSIONS.join(" o ")}`,
+      },
+    };
+  }
+  return fileName.trim();
+}
+
 /**
  * Create a new caso de prueba within a proyecto.
  * Requires superadmin role.
@@ -36,13 +54,15 @@ export async function createCaso(
     throw { status: 400, body: { error: "validation", message: "proyectoId is required" } };
   }
 
+  const validatedFileName = validateScriptFileName(scriptFileName);
+
   try {
     const caso = await prisma.casoPrueba.create({
       data: {
         codigo: codigo.trim(),
         nombre: nombre.trim(),
         script: script.trim(),
-        scriptFileName: scriptFileName?.trim() || null,
+        scriptFileName: validatedFileName,
         responsableId: responsableId.trim(),
         proyectoId: proyectoId.trim(),
       },
@@ -85,7 +105,7 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
       proyecto: { select: { nombre: true } },
       responsable: { select: { email: true } },
       ejecuciones: {
-        include: { pasos: { select: { id: true } } },
+        include: { pasos: { select: { id: true, numero: true, estado: true } } },
         orderBy: { finAt: "desc" },
         take: 1,
       },
@@ -97,6 +117,9 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
     const estado = computeEstado(caso.ejecuciones);
     const fechaUltimaEjecucion = computeFechaUltimaEjecucion(caso.ejecuciones);
     const pasosCount = caso.ejecuciones[0]?.pasos.length ?? null;
+    const ultimaEjecucionId = caso.ejecuciones[0]?.id ?? null;
+    const primerPasoFallido = caso.ejecuciones[0]?.pasos.find(p => p.estado === 'fallo');
+    const primerPasoFallidoNumero = primerPasoFallido?.numero ?? null;
     return {
       id: caso.id,
       proyectoId: caso.proyectoId,
@@ -110,6 +133,8 @@ export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem
       activo: caso.activo,
       fechaUltimaEjecucion,
       pasosCount,
+      ultimaEjecucionId,
+      primerPasoFallidoNumero,
       createdAt: caso.createdAt,
       updatedAt: caso.updatedAt,
     };
@@ -188,7 +213,7 @@ export async function updateCaso(
     updateData.script = input.script.trim();
   }
   if (input.scriptFileName !== undefined) {
-    updateData.scriptFileName = input.scriptFileName?.trim() || null;
+    updateData.scriptFileName = validateScriptFileName(input.scriptFileName);
   }
   if (input.responsableId !== undefined) {
     updateData.responsableId = input.responsableId.trim();

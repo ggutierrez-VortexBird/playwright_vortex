@@ -22,6 +22,7 @@ enum EjecucionEstado {
   fallo
   reparado
   errorMotor
+  cancelado
 }
 
 enum PasoEjecucionEstado {

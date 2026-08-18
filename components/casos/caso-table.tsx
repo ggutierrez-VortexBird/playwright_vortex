@@ -28,88 +28,83 @@ function truncateFileName(name: string | null, maxLen = 36): string {
   return "…" + name.slice(-(maxLen - 1));
 }
 
-function getEstadoPill(estado: CasoPruebaListItem["estado"]) {
+function getEstadoPill(estado: CasoPruebaListItem["estado"], primerPasoFallidoNumero?: number | null) {
   const map: Record<
     CasoPruebaListItem["estado"],
-    { label: string; classes: string }
+    { label: string; variant: string; tone: string }
   > = {
     "sin ejecuciones": {
       label: "Sin ejecutar",
-      classes: "text-ink-3 border-rule bg-paper",
+      variant: "p-idle",
+      tone: "var(--ink-3)",
     },
     paso: {
       label: "Aprobado",
-      classes: "text-seal border-emerald-200 bg-emerald-50",
+      variant: "p-pass",
+      tone: "var(--seal)",
     },
     fallo: {
-      label: "Falló",
-      classes: "text-stamp border-red-200 bg-red-50",
+      label: primerPasoFallidoNumero != null
+        ? `Falló en el paso ${primerPasoFallidoNumero}`
+        : "Falló",
+      variant: "p-fail",
+      tone: "var(--stamp)",
     },
     reparado: {
       label: "Reparado",
-      classes: "text-amber border-amber-200 bg-amber-50",
+      variant: "p-heal",
+      tone: "var(--amber)",
     },
     errorMotor: {
       label: "Error motor",
-      classes: "text-client border-orange-200 bg-orange-50",
+      variant: "p-idle",
+      tone: "var(--client)",
     },
   };
-  return map[estado];
+  // Fallback for unknown estados (e.g. "pendiente", "corriendo") coming from
+  // legacy rows, API/DB drift, or future states not yet mapped. Without this
+  // guard, reading `pill.classes` (now `pill.variant`) would throw
+  // "Cannot read properties of undefined".
+  return map[estado] ?? {
+    label: estado,
+    variant: "p-idle",
+    tone: "var(--ink-3)",
+  };
 }
 
 export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTableProps) {
   if (casos.length === 0) {
     return (
-      <div className="rounded-lg border border-rule bg-surface p-8 text-center">
+      <div className="card p-8 text-center">
         <p className="text-ink-3">No hay casos de prueba</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-rule bg-surface">
-      <table className="w-full border-collapse">
+    <div className="card overflow-hidden">
+      <table className="table-mockup">
         <thead>
           <tr>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Código
-            </th>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Nombre
-            </th>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Responsable
-            </th>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Script
-            </th>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Estado
-            </th>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Última ejecución
-            </th>
-            <th className="px-4 py-3 text-left font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Pasos
-            </th>
-            <th className="px-4 py-3 text-right font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-              Ejecutar
-            </th>
-            {canEdit && (
-              <th className="px-4 py-3 text-right font-mono text-[10.5px] font-medium uppercase tracking-wider text-ink-3 border-b border-rule">
-                Acciones
-              </th>
-            )}
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Responsable</th>
+            <th>Script</th>
+            <th>Estado</th>
+            <th>Última ejecución</th>
+            <th>Pasos</th>
+            <th className="text-right">Ejecutar</th>
+            {canEdit && <th className="text-right">Acciones</th>}
           </tr>
         </thead>
         <tbody>
           {casos.map((caso) => {
-            const pill = getEstadoPill(caso.estado);
+            const pill = getEstadoPill(caso.estado, caso.primerPasoFallidoNumero);
             return (
               <CasoRow
                 key={caso.id}
                 caso={caso}
-                pillClasses={pill.classes}
+                pillVariant={pill.variant}
                 pillLabel={pill.label}
                 canEdit={canEdit}
                 onEdit={onEdit}
@@ -132,16 +127,22 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
 
 interface CasoRowProps {
   caso: CasoPruebaListItem;
-  pillClasses: string;
+  pillVariant: string;
   pillLabel: string;
   canEdit: boolean;
   onEdit?: (caso: CasoPruebaListItem) => void;
   onDelete?: (caso: CasoPruebaListItem) => void;
 }
 
-function CasoRow({ caso, pillClasses, pillLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoRow({ caso, pillVariant, pillLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleRowClick() {
+    if (caso.ultimaEjecucionId) {
+      window.location.href = `/ejecuciones/${caso.ultimaEjecucionId}`;
+    }
+  }
 
   async function handleEjecutar() {
     setRunning(true);
@@ -178,42 +179,37 @@ function CasoRow({ caso, pillClasses, pillLabel, canEdit, onEdit, onDelete }: Ca
     }
   }
 
+  const hasEjecucion = !!caso.ultimaEjecucionId;
+
   return (
-    <tr
-      className="group border-b border-rule-soft last:border-b-0 hover:bg-[#F7FAFB]"
+    <tr 
+      className={`group${hasEjecucion ? ' cursor-pointer hover:bg-rule-soft' : ''}`}
+      onClick={handleRowClick}
     >
-      <td className="px-4 py-3">
-        <div className="font-mono text-xs text-ink-2">{caso.codigo}</div>
+      <td>
+        <div className="tmeta">{caso.codigo}</div>
       </td>
-      <td className="px-4 py-3">
-        <div className="text-sm font-medium text-ink">{caso.nombre}</div>
+      <td>
+        <div className="tname">{caso.nombre}</div>
       </td>
-      <td className="px-4 py-3">
-        <div className="font-mono text-xs text-ink-3">{caso.responsableEmail}</div>
+      <td>
+        <div className="tmeta">{caso.responsableEmail}</div>
       </td>
-      <td className="px-4 py-3">
-        <div className="font-mono text-xs text-ink-2" title={caso.scriptFileName || undefined}>
+      <td>
+        <div className="tmeta" title={caso.scriptFileName || undefined}>
           {truncateFileName(caso.scriptFileName)}
         </div>
       </td>
-      <td className="px-4 py-3">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-medium ${pillClasses}`}
-        >
-          {pillLabel}
-        </span>
+      <td>
+        <span className={`pill ${pillVariant}`}>{pillLabel}</span>
       </td>
-      <td className="px-4 py-3">
-        <div className="font-mono text-xs text-ink-3">
-          {formatDate(caso.fechaUltimaEjecucion)}
-        </div>
+      <td>
+        <div className="tmeta">{formatDate(caso.fechaUltimaEjecucion)}</div>
       </td>
-      <td className="px-4 py-3">
-        <div className="font-mono text-xs text-ink-3">
-          {caso.pasosCount ?? 0}
-        </div>
+      <td>
+        <div className="tmeta">{caso.pasosCount ?? 0}</div>
       </td>
-      <td className="px-4 py-3">
+      <td>
         <div className="flex flex-col items-end gap-1">
           <button
             onClick={(e) => {
@@ -222,17 +218,21 @@ function CasoRow({ caso, pillClasses, pillLabel, canEdit, onEdit, onDelete }: Ca
             }}
             disabled={running}
             aria-label={`Ejecutar caso ${caso.codigo}`}
-            className="inline-flex items-center gap-1.5 rounded border border-client bg-client px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-client/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn"
+            style={{
+              borderColor: "var(--client)",
+              color: "var(--client)",
+              padding: "4px 10px",
+              fontSize: 12,
+            }}
           >
-            {running ? "⏳ Lanzando…" : "▶ Ejecutar"}
+            {running ? "Lanzando…" : "Ejecutar"}
           </button>
-          {error && (
-            <span className="font-mono text-[10px] text-stamp">{error}</span>
-          )}
+          {error && <span className="tmeta" style={{ color: "var(--stamp)" }}>{error}</span>}
         </div>
       </td>
       {canEdit && (
-        <td className="px-4 py-3">
+        <td>
           <div className="flex justify-end gap-2">
             {onEdit && (
               <button

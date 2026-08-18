@@ -30,9 +30,11 @@ export async function listEjecuciones(proyectoId?: string) {
     include: {
       casoPrueba: {
         include: {
-          proyecto: true,
-        }
-      }
+          proyecto: {
+            include: { espacio: true },
+          },
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })

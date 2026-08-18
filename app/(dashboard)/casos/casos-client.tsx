@@ -87,20 +87,21 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
   const proyectoNames = Array.from(casosByProyecto.keys()).sort();
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-ink">Casos de prueba</h1>
-          <p className="mt-1 text-ink-3">Todos los casos de prueba activos</p>
-        </div>
+    <div className="flex flex-col gap-6">
+      {/* Topbar — mockup style */}
+      <div className="topbar -mx-6 -mt-6 rounded-none">
+        <h2>Casos de prueba</h2>
+        <span className="sub">
+          {casos.length} caso{casos.length !== 1 ? "s" : ""} · {proyectoNames.length} proyecto{proyectoNames.length !== 1 ? "s" : ""}
+        </span>
+        <span className="spacer" />
         {canEdit && (
           <button
             onClick={() => {
               setShowForm(true);
               setEditingCaso(null);
             }}
-            className="rounded-md bg-client px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-client/90"
+            className="btn btn-primary"
           >
             + Nuevo Caso
           </button>

@@ -39,7 +39,11 @@ export default async function CasosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ScopeBar espacioNombre="Casos" />
+      <div className="topbar -mx-6 -mt-6 rounded-none">
+        <h2>Casos de prueba</h2>
+        <ScopeBar espacioNombre="Todos los casos" />
+        <span className="spacer" />
+      </div>
       <CasosClient
         casosIniciales={casos}
         canEdit={canEdit}

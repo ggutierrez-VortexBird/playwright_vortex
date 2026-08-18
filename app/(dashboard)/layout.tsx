@@ -14,7 +14,18 @@ interface DashboardLayoutProps {
   params: Promise<{ id?: string }>;
 }
 
-export default async function DashboardLayout({ children, params }: DashboardLayoutProps) {
+const NAV_ITEMS = [
+  { href: "/proyectos", label: "Proyectos", color: "var(--seal)" },
+  { href: "/espacios", label: "Espacios", color: "var(--client)" },
+  { href: "/casos", label: "Casos", color: "var(--amber)" },
+  { href: "/ejecuciones", label: "Ejecuciones", color: "var(--param)" },
+  { href: "/credenciales", label: "Credenciales", color: "var(--client)" },
+];
+
+export default async function DashboardLayout({
+  children,
+  params,
+}: DashboardLayoutProps) {
   const { id: espacioId } = await params;
   const session = await getSession();
 
@@ -38,81 +49,58 @@ export default async function DashboardLayout({ children, params }: DashboardLay
   return (
     <ProjectProvider>
       <div className="flex min-h-screen bg-paper">
-        <aside className="sticky top-0 flex h-screen w-rail flex-col bg-ink text-surface">
+        {/* Rail — mockup dark sidebar */}
+        <aside className="rail">
           <ClientBand espacioColor={espacio?.color ?? null} />
-          <div className="border-b border-ink-2 p-4">
-            <h2 className="text-lg font-semibold">Acta</h2>
-            <p className="mt-0.5 text-xs text-ink-3">v0.1.0</p>
+          <div className="brand">
+            <h1>Acta</h1>
+            <p>Automatización de pruebas</p>
           </div>
-          <nav className="flex-1 p-3">
-            <ul className="space-y-1 text-sm">
-              <li>
-                <a
-                  href="/proyectos"
-                  className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-seal" />
-                  Proyectos
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/espacios"
-                  className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-client" />
-                  Espacios
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/casos"
-                  className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber" />
-                  Casos
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/ejecuciones"
-                  className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-param" />
-                  Ejecuciones
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/credenciales"
-                  className="flex items-center gap-2 rounded px-3 py-2 hover:bg-ink-2"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-client" />
-                  Credenciales
-                </a>
-              </li>
-            </ul>
+          <nav className="nav">
+            {NAV_ITEMS.map((item) => (
+              <a key={item.href} href={item.href}>
+                <span className="dot" style={{ color: item.color }} />
+                {item.label}
+              </a>
+            ))}
           </nav>
-          <div className="border-t border-ink-2 p-3">
+          <div className="border-t border-white/10 px-5 py-3">
             <ProyectoSwitcher proyectos={proyectos} />
           </div>
-          <div className="border-t border-ink-2 p-3 text-xs text-ink-3">
-            <p className="truncate">{usuario.email}</p>
-            <p className="mt-1 capitalize">{usuario.rol}</p>
+          <div className="rail-foot">
+            <div className="truncate" style={{ color: "#9FB2C2" }}>
+              {usuario.email}
+            </div>
+            <div style={{ marginTop: 2 }}>{usuario.rol}</div>
+            <div style={{ marginTop: 10, color: "#7D91A3" }}>
+              Ambiente QA
+              <br />
+              Playwright 1.62.1
+            </div>
             <form action="/api/logout" method="post" className="mt-3">
               <button
                 type="submit"
-                className="w-full rounded bg-stamp px-3 py-1.5 text-center text-surface hover:opacity-90"
+                className="btn btn-stop w-full"
+                style={{
+                  justifyContent: "center",
+                  fontSize: 11,
+                  padding: "6px 10px",
+                  borderRadius: 4,
+                }}
               >
                 Cerrar sesión
               </button>
             </form>
           </div>
         </aside>
+
+        {/* Main — topbar + body */}
         <div className="flex flex-1 flex-col">
-          <header className="flex items-center justify-between border-b border-rule bg-surface px-6 py-3">
+          <header className="topbar">
+            <h2>Acta</h2>
             <EspacioSwitcher espacios={espacios} />
             <ScopeBarWithContext />
+            <span className="spacer" />
           </header>
           <main className="flex-1 p-6">{children}</main>
         </div>

@@ -8,7 +8,7 @@ interface ScriptFileInputProps {
   disabled?: boolean;
 }
 
-const ALLOWED_EXTENSIONS = [".spec.ts", ".test.ts", ".spec.js", ".test.js", ".ts", ".js"];
+const ALLOWED_EXTENSIONS = [".spec.ts", ".test.ts", ".spec.js", ".test.js"];
 
 function isValidScriptFile(name: string): boolean {
   const lower = name.toLowerCase();

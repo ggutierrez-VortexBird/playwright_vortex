@@ -94,7 +94,7 @@ export function CreateCasoForm({ proyectoId, proyectos, onSuccess, onCancel }: C
   }
 
   return (
-    <div className="rounded-lg border border-rule bg-surface p-6">
+    <div className="card p-6">
       <h2 className="mb-4 text-lg font-semibold text-ink">Nuevo Caso de Prueba</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {!proyectoId && proyectos && proyectos.length > 0 && (

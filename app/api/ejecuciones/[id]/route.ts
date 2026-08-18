@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getEjecucionConPasos } from '@/lib/ejecuciones/queries'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const ejecucion = await getEjecucionConPasos(params.id)
+  const { id } = await params
+  const ejecucion = await getEjecucionConPasos(id)
 
   if (!ejecucion) {
     return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
@@ -18,6 +21,11 @@ export async function GET(
     finAt: ejecucion.finAt,
     duracionMs: ejecucion.duracionMs,
     errorMsg: ejecucion.errorMsg,
+    casoPruebaId: ejecucion.casoPrueba.id,
+    casoPrueba: {
+      nombre: ejecucion.casoPrueba.nombre,
+      codigo: ejecucion.casoPrueba.codigo,
+    },
     pasos: ejecucion.pasos.map(p => ({
       id: p.id,
       numero: p.numero,

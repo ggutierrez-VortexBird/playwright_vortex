@@ -5,8 +5,9 @@ export function validateScript(script: string, scriptFileName: string | null): {
   }
 
   if (scriptFileName) {
-    if (!scriptFileName.endsWith('.spec.ts') && !scriptFileName.endsWith('.test.ts')) {
-      return { valid: false, error: `Extensión inválida. Debe ser .spec.ts o .test.ts` }
+    const lower = scriptFileName.toLowerCase();
+    if (!lower.endsWith('.spec.ts') && !lower.endsWith('.test.ts') && !lower.endsWith('.spec.js') && !lower.endsWith('.test.js')) {
+      return { valid: false, error: `Extensión inválida. Debe ser .spec.ts, .test.ts, .spec.js o .test.js` }
     }
   }
 

@@ -14,7 +14,13 @@ const config = {
     // Mock iron-session (ESM-only) to prevent uncrypto parse error
     "^iron-session$": "<rootDir>/__mocks__/iron-session.js",
   },
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/", "<rootDir>/e2e/"],
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/e2e/",
+    "<rootDir>/runtime/",
+    "<rootDir>/fixtures/",
+  ],
 };
 
 export default createJestConfig(config);
