@@ -4,8 +4,11 @@ import * as path from 'path'
 // Custom reporter que emite eventos JSON por stdout para que el worker los parsee
 const jsonReporterPath = path.resolve(__dirname, 'scripts', 'my-reporter.js')
 
+const isRunner = process.env.PLAYWRIGHT_VORTEX_RUNNER === '1'
+
 export default defineConfig({
   testDir: './runtime/ejecuciones',
+  outputDir: process.env.PLAYWRIGHT_VORTEX_OUTPUT_DIR,
   timeout: 3 * 60 * 1000, // 10 minutes per execution
   retries: 0,
   workers: 1,
@@ -21,8 +24,8 @@ export default defineConfig({
     headless: true,
     viewport: { width: 1280, height: 720 },
     ignoreHTTPSErrors: true,
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    screenshot: isRunner ? 'on' : 'only-on-failure',
+    video: isRunner ? 'on' : 'retain-on-failure',
   },
   projects: [
     {

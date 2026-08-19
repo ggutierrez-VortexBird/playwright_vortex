@@ -2,6 +2,7 @@
 import { spawn } from 'child_process'
 import { prisma } from '@/lib/db'
 import * as path from 'path'
+import * as fs from 'fs'
 import { killProcessTree } from './kill-tree'
 
 interface StepEvent {
@@ -46,7 +47,10 @@ export async function runPlaywrightTest(
   scriptPath: string,
   ejecucionId: string,
   isAborted?: () => Promise<boolean> | boolean
-): Promise<{ passed: boolean; durationMs: number }> {
+): Promise<{ passed: boolean; durationMs: number; outputDir: string }> {
+  const outputDir = path.resolve(process.cwd(), 'runtime', 'ejecuciones', 'output', ejecucionId)
+  fs.mkdirSync(outputDir, { recursive: true })
+
   return new Promise((resolve, reject) => {
     const startTime = Date.now()
     let pasoNumero = 0
@@ -83,7 +87,7 @@ export async function runPlaywrightTest(
       cwd: path.resolve(process.cwd(), 'runtime', 'ejecuciones'),
       stdio: ['ignore', 'pipe', 'pipe'],
       // shell: false — sin CMD intermedio en Windows
-      env: { ...process.env, FORCE_COLOR: '0', PLAYWRIGHT_VORTEX_RUNNER: '1' },
+      env: { ...process.env, FORCE_COLOR: '0', PLAYWRIGHT_VORTEX_RUNNER: '1', PLAYWRIGHT_VORTEX_OUTPUT_DIR: outputDir },
     })
 
     let stdout = ''
@@ -218,9 +222,9 @@ export async function runPlaywrightTest(
       }
 
       if (code === 0) {
-        resolve({ passed: true, durationMs })
+        resolve({ passed: true, durationMs, outputDir })
       } else if (code === 1) {
-        resolve({ passed: false, durationMs })
+        resolve({ passed: false, durationMs, outputDir })
       } else {
         reject(new Error(`Playwright exited with code ${code}: ${stderr.slice(-200)}`))
       }

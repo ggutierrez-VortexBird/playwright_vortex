@@ -85,6 +85,28 @@ describe("runPlaywrightTest — state mapping (AC-11)", () => {
     expect(prisma.pasoEjecucion.create).toHaveBeenCalledTimes(2);
   });
 
+  it("inyecta PLAYWRIGHT_VORTEX_OUTPUT_DIR en el env del spawn", async () => {
+    mockProcess({ exitCode: 0 });
+    (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({});
+
+    const { runPlaywrightTest } = await import("@/lib/worker/runner");
+    const result = await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1");
+
+    expect(result.outputDir).toBeDefined();
+    expect(spawn).toHaveBeenCalledWith(
+      "node",
+      expect.any(Array),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PLAYWRIGHT_VORTEX_OUTPUT_DIR: expect.any(String),
+        }),
+      })
+    );
+    const spawnCall = (spawn as jest.Mock).mock.calls[0];
+    const env = spawnCall[2].env;
+    expect(env.PLAYWRIGHT_VORTEX_OUTPUT_DIR).toContain("ejec-1");
+  });
+
   it("inserta paso con estado 'fallo' cuando el reporter emite estado 'fallo' con errorMsg", async () => {
     mockProcess({
       stdoutData:

@@ -37,6 +37,14 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
           errorMsg: p.errorMsg,
           createdAt: p.createdAt.toISOString(),
         })),
+        artefactos: ejecucion.artefactos.map(a => ({
+          id: a.id,
+          tipo: a.tipo,
+          nombre: a.nombre,
+          pasoEjecucionId: a.pasoEjecucionId,
+          bytes: a.bytes,
+          createdAt: a.createdAt.toISOString(),
+        })),
       }}
     />
   )

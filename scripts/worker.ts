@@ -7,6 +7,7 @@ import {
 } from '../lib/worker/script-temp'
 import { validateScript } from '../lib/worker/validate-script'
 import { runPlaywrightTest, EjecucionCanceladaError } from '../lib/worker/runner'
+import { collectArtifacts } from '../lib/worker/artifacts'
 import { tryClaimPendingExecution } from '../lib/worker/claim'
 
 const POLL_INTERVAL_MS = 5000
@@ -88,6 +89,13 @@ async function main() {
           const hasUnhealedFailure = pasos.some(
             (p) => p.estado === 'fallo' && !p.selfHealed
           )
+
+          // Recolectar artefactos (video/capturas) generados por Playwright
+          try {
+            await collectArtifacts(job.id, result.outputDir)
+          } catch (collectErr) {
+            console.error(`[worker] Error recolectando artefactos para ${job.id}:`, collectErr)
+          }
 
           const finalEstado = hasUnhealedFailure ? 'fallo' : 'paso'
 

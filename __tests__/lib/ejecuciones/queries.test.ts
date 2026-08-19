@@ -103,6 +103,79 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     expect(result!.casoPrueba.proyecto.nombre).toBe("Login Proyecto");
     expect(result!.casoPrueba.proyecto.espacio.nombre).toBe("Espacio Login");
   });
+
+  it("incluye artefactos ordenados por createdAt asc", async () => {
+    const mockEjecucion = {
+      id: "ejec-1",
+      casoPruebaId: "caso-1",
+      estado: "paso",
+      casoPrueba: {
+        id: "caso-1",
+        nombre: "Caso Test",
+        codigo: "CP-01",
+        proyectoId: "proyecto-1",
+        proyecto: {
+          id: "proyecto-1",
+          nombre: "Proyecto Alpha",
+          espacioId: "esp-1",
+          espacio: { id: "esp-1", nombre: "Espacio A" },
+        },
+      },
+      pasos: [],
+      artefactos: [
+        { id: "art-1", tipo: "video", nombre: "video.webm", path: "/storage/artefactos/ejec-1/video.webm", sha256: "abc", bytes: 1024, createdAt: new Date("2026-08-12T10:00:00Z") },
+        { id: "art-2", tipo: "captura", nombre: "screenshot.png", path: "/storage/artefactos/ejec-1/screenshot.png", sha256: "def", bytes: 512, createdAt: new Date("2026-08-12T10:01:00Z") },
+      ],
+    };
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue(mockEjecucion);
+
+    const result = await getEjecucionConPasos("ejec-1");
+
+    expect(result).not.toBeNull();
+    expect(result!.artefactos).toHaveLength(2);
+    expect(result!.artefactos[0].id).toBe("art-1");
+    expect(result!.artefactos[1].id).toBe("art-2");
+    expect(result!.artefactos[0].tipo).toBe("video");
+
+    // Verify the query includes artefactos ordered by createdAt
+    expect(prisma.ejecucion.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          artefactos: expect.objectContaining({
+            orderBy: { createdAt: "asc" },
+          }),
+        }),
+      })
+    );
+  });
+
+  it("retorna artefactos vacíos cuando la ejecución no tiene evidencia", async () => {
+    const mockEjecucion = {
+      id: "ejec-1",
+      casoPruebaId: "caso-1",
+      estado: "paso",
+      casoPrueba: {
+        id: "caso-1",
+        nombre: "Caso Test",
+        codigo: "CP-01",
+        proyectoId: "proyecto-1",
+        proyecto: {
+          id: "proyecto-1",
+          nombre: "Proyecto Alpha",
+          espacioId: "esp-1",
+          espacio: { id: "esp-1", nombre: "Espacio A" },
+        },
+      },
+      pasos: [],
+      artefactos: [],
+    };
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue(mockEjecucion);
+
+    const result = await getEjecucionConPasos("ejec-1");
+
+    expect(result).not.toBeNull();
+    expect(result!.artefactos).toEqual([]);
+  });
 });
 
 describe("listEjecuciones (AC-4)", () => {

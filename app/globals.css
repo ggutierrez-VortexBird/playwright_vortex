@@ -452,6 +452,15 @@
   .video .bar i.done {
     background: var(--stamp);
   }
+  .video .bar i.chapter {
+    transition: width 0.3s ease;
+  }
+  .shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+  }
   .shots {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

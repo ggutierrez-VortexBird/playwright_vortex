@@ -36,6 +36,9 @@ playwright-report/
 test-results/
 .playwright/
 
+# Artefactos de ejecución (videos y capturas) — generados por el worker
+storage/artefactos/
+
 # Fixtures: scripts de prueba generados manualmente (no commitear)
 fixtures/
 

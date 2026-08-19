@@ -157,25 +157,30 @@ model PasoEjecucion {
   errorMsg    String?
   createdAt   DateTime            @default(now()) @db.Timestamptz(6)
 
-  ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  ejecucion  Ejecucion   @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  artefactos Artefacto[]
 
   @@unique([ejecucionId, numero])
   @@index([ejecucionId])
 }
 
 model Artefacto {
-  id          String        @id @default(uuid())
-  ejecucionId String
-  tipo        ArtefactoTipo
-  path        String
-  sha256      String
-  bytes       Int
-  createdAt   DateTime      @default(now()) @db.Timestamptz(6)
+  id              String        @id @default(uuid())
+  ejecucionId     String
+  pasoEjecucionId String?
+  tipo            ArtefactoTipo
+  nombre          String
+  path            String
+  sha256          String
+  bytes           Int
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
 
-  ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  ejecucion     Ejecucion      @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  pasoEjecucion PasoEjecucion? @relation(fields: [pasoEjecucionId], references: [id], onDelete: SetNull)
 
   @@index([ejecucionId])
   @@index([tipo])
+  @@index([pasoEjecucionId])
 }
 
 // ============================================================

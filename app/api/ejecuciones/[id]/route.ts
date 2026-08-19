@@ -35,6 +35,14 @@ export async function GET(
       selfHealed: p.selfHealed,
       errorMsg: p.errorMsg,
       createdAt: p.createdAt,
+    })),
+    artefactos: ejecucion.artefactos.map(a => ({
+      id: a.id,
+      tipo: a.tipo,
+      nombre: a.nombre,
+      pasoEjecucionId: a.pasoEjecucionId,
+      bytes: a.bytes,
+      createdAt: a.createdAt,
     }))
   })
 }

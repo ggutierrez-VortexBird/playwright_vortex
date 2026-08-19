@@ -24,6 +24,15 @@ interface CasoPrueba {
   codigo: string
 }
 
+interface Artefacto {
+  id: string
+  tipo: string
+  nombre: string
+  pasoEjecucionId: string | null
+  bytes: number
+  createdAt: string
+}
+
 interface Ejecucion {
   id: string
   estado: string
@@ -34,6 +43,7 @@ interface Ejecucion {
   casoPruebaId: string
   casoPrueba: CasoPrueba
   pasos: Paso[]
+  artefactos: Artefacto[]
 }
 
 interface Props {
@@ -70,6 +80,21 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
   const canReRun = ['paso', 'fallo', 'reparado', 'errorMotor', 'cancelado'].includes(
     ejecucion.estado
   )
+
+  const videoArtefacto = ejecucion.artefactos.find((a) => a.tipo === 'video')
+  const totalDuracionMs = ejecucion.pasos.reduce((sum, p) => sum + (p.duracionMs ?? 0), 0)
+
+  const shotsByPaso: Record<string, Artefacto> = {}
+  const unmappedShots: Artefacto[] = []
+  for (const a of ejecucion.artefactos) {
+    if (a.tipo === 'captura') {
+      if (a.pasoEjecucionId) {
+        shotsByPaso[a.pasoEjecucionId] = a
+      } else {
+        unmappedShots.push(a)
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -137,38 +162,53 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         <div className="flex flex-col gap-4">
           <div className="card p-4">
             <div className="eyebrow mb-2">Video de la ejecución</div>
-            <div className="video">
-              <div className="ann">
-                {ejecucion.estado === 'fallo'
-                  ? 'Fallo · verificación'
-                  : isRunning
-                    ? 'En curso'
+            {isRunning && ejecucion.artefactos.length === 0 ? (
+              <div className="video" data-testid="generando-evidencia">
+                <div className="ann">En curso</div>
+                <div className="flex items-center justify-center text-white/70 text-sm">
+                  Generando evidencia
+                </div>
+              </div>
+            ) : videoArtefacto ? (
+              <div className="video">
+                <div className="ann">
+                  {ejecucion.estado === 'fallo'
+                    ? 'Fallo · verificación'
                     : 'Paso destacado'}
-              </div>
-              <div
-                style={{
-                  color: '#fff',
-                  fontFamily:
-                    'var(--font-ibm-plex-mono), SFMono-Regular, Menlo, Consolas, monospace',
-                  fontSize: 11,
-                  opacity: 0.55,
-                }}
-              >
-                {ejecucionLabel}
-              </div>
-              <div className="bar">
-                <i
-                  className="done"
-                  style={{
-                    width: `${Math.min(100, Math.round((ejecucion.duracionMs ?? 0) / 120))}%`,
-                  }}
+                </div>
+                <video
+                  data-testid="video-player"
+                  src={`/api/artefactos/${videoArtefacto.id}`}
+                  controls
+                  className="w-full h-full object-contain"
                 />
-                <i style={{ width: '12%' }} />
-                <i style={{ width: '20%' }} />
-                <i style={{ width: '14%' }} />
-                <i style={{ width: '12%' }} />
+                {totalDuracionMs > 0 && (
+                  <div className="bar">
+                    {ejecucion.pasos.map((p) => (
+                      <i
+                        key={p.id}
+                        data-testid="chapter-bar"
+                        className={`chapter ${p.estado === 'fallo' ? 'done' : ''}`}
+                        style={{
+                          width: `${Math.round(((p.duracionMs ?? 0) / totalDuracionMs) * 100)}%`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="video">
+                <div className="ann">
+                  {ejecucion.estado === 'fallo'
+                    ? 'Fallo · verificación'
+                    : 'Sin video'}
+                </div>
+                <div className="flex items-center justify-center text-white/70 text-sm">
+                  No hay video disponible
+                </div>
+              </div>
+            )}
           </div>
           <div className="card">
             <div className="ledger-head">
@@ -176,30 +216,52 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
               <span className="tmeta">{ejecucion.pasos.length}</span>
             </div>
             <div className="shots">
-              {ejecucion.pasos.slice(0, 6).map(p => (
-                <div
-                  key={p.id}
-                  className="shot"
-                  style={
-                    p.estado === 'fallo'
-                      ? {
-                          outline: '2px solid var(--stamp)',
-                          outlineOffset: '-2px',
-                        }
-                      : undefined
-                  }
-                >
-                  <span>
-                    {p.numero.toString().padStart(2, '0')}
-                  </span>
-                </div>
-              ))}
+              {ejecucion.pasos.slice(0, 6).map((p) => {
+                const shot = shotsByPaso[p.id]
+                return (
+                  <div
+                    key={p.id}
+                    className="shot"
+                    style={
+                      p.estado === 'fallo'
+                        ? {
+                            outline: '2px solid var(--stamp)',
+                            outlineOffset: '-2px',
+                          }
+                        : undefined
+                    }
+                  >
+                    {shot ? (
+                      <img
+                        src={`/api/artefactos/${shot.id}`}
+                        alt={`Captura paso ${p.numero}`}
+                        className="w-full h-full object-cover rounded-[4px]"
+                      />
+                    ) : (
+                      <span>{p.numero.toString().padStart(2, '0')}</span>
+                    )}
+                  </div>
+                )
+              })}
               {Array.from({ length: Math.max(0, 3 - ejecucion.pasos.length) }).map(
                 (_, i) => (
                   <div key={`empty-${i}`} className="shot" />
                 )
               )}
             </div>
+            {unmappedShots.length > 0 && (
+              <div className="shots border-t border-[var(--rule)] mt-2 pt-2">
+                {unmappedShots.map((shot) => (
+                  <div key={shot.id} className="shot">
+                    <img
+                      src={`/api/artefactos/${shot.id}`}
+                      alt="Captura"
+                      className="w-full h-full object-cover rounded-[4px]"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

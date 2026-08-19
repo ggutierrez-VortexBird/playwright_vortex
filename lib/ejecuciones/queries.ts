@@ -14,6 +14,9 @@ export async function getEjecucionConPasos(id: string) {
       },
       pasos: {
         orderBy: { numero: 'asc' }
+      },
+      artefactos: {
+        orderBy: { createdAt: 'asc' }
       }
     }
   })
