@@ -624,7 +624,6 @@
     position: sticky;
     top: 0;
     height: 100vh;
-    position: relative;
   }
   .rail .brand {
     padding: 22px 20px 18px;
