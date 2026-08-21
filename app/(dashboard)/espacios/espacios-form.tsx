@@ -6,7 +6,7 @@ import type { Espacio } from "@/types/espacio";
 
 interface EspaciosFormProps {
   espacio?: Espacio;
-  onSuccess: () => void;
+  onSuccess: (espacio: Espacio, isEdit: boolean) => void;
   onCancel?: () => void;
 }
 
@@ -40,9 +40,11 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
         throw new Error(data.message || "Error al guardar");
       }
 
+      const created: Espacio = await res.json();
+
       setNombre("");
       setColor("#C9822F");
-      onSuccess();
+      onSuccess(created, isEditing);
     } catch (err: any) {
       setError(err.message);
     } finally {

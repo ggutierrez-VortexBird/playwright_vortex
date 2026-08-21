@@ -15,8 +15,8 @@ interface DashboardLayoutProps {
 }
 
 const NAV_ITEMS = [
-  { href: "/proyectos", label: "Proyectos", color: "var(--seal)" },
   { href: "/espacios", label: "Espacios", color: "var(--client)" },
+  { href: "/proyectos", label: "Proyectos", color: "var(--seal)" },
   { href: "/casos", label: "Casos", color: "var(--amber)" },
   { href: "/ejecuciones", label: "Ejecuciones", color: "var(--param)" },
   { href: "/credenciales", label: "Credenciales", color: "var(--client)" },
@@ -98,8 +98,8 @@ export default async function DashboardLayout({
         <div className="flex flex-1 flex-col">
           <header className="topbar">
             <h2>Acta</h2>
-            <EspacioSwitcher espacios={espacios} />
             <ScopeBarWithContext />
+            <EspacioSwitcher espacios={espacios} />
             <span className="spacer" />
           </header>
           <main className="flex-1 p-6">{children}</main>
