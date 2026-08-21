@@ -176,6 +176,106 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     expect(result).not.toBeNull();
     expect(result!.artefactos).toEqual([]);
   });
+
+  it("incluye subacciones anidadas dentro de cada paso (HU-4.5)", async () => {
+    const mockEjecucion = {
+      id: "ejec-1",
+      casoPruebaId: "caso-1",
+      estado: "paso",
+      casoPrueba: {
+        id: "caso-1",
+        nombre: "Caso Test",
+        codigo: "CP-01",
+        proyectoId: "proyecto-1",
+        proyecto: {
+          id: "proyecto-1",
+          nombre: "Proyecto Alpha",
+          espacioId: "esp-1",
+          espacio: { id: "esp-1", nombre: "Espacio A" },
+        },
+      },
+      pasos: [
+        {
+          id: "paso-1",
+          numero: 1,
+          descripcion: "Primer paso",
+          estado: "paso",
+          duracionMs: 100,
+          selfHealed: false,
+          errorMsg: null,
+          resultadoEsperado: "Debe cargar",
+          resultadoObtenido: "Cargó OK",
+          errorCount: 0,
+          logs: null,
+          createdAt: new Date(),
+          subacciones: [
+            { id: "sub-1", numero: 1, descripcion: "Sub-paso 1", estado: "paso", duracionMs: 50, tipo: "action", errorMsg: null, logs: null },
+          ],
+        },
+      ],
+      artefactos: [],
+    };
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue(mockEjecucion);
+
+    const result = await getEjecucionConPasos("ejec-1");
+
+    expect(result).not.toBeNull();
+    expect(result!.pasos).toHaveLength(1);
+    expect(result!.pasos[0].subacciones).toHaveLength(1);
+    expect(result!.pasos[0].subacciones[0].descripcion).toBe("Sub-paso 1");
+
+    // Verify the query includes subacciones in the pasos include
+    expect(prisma.ejecucion.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          pasos: expect.objectContaining({
+            include: expect.objectContaining({
+              subacciones: expect.any(Object),
+            }),
+          }),
+        }),
+      })
+    );
+  });
+
+  it("incluye nuevos campos de entorno y aserciones en la ejecución (HU-4.5)", async () => {
+    const mockEjecucion = {
+      id: "ejec-1",
+      casoPruebaId: "caso-1",
+      estado: "paso",
+      entorno: "Producción",
+      navegador: "Chrome 115",
+      sistemaOperativo: "Linux (Ubuntu)",
+      nodoEjecucion: "192.168.1.104",
+      asercionesTotal: 124,
+      asercionesOk: 118,
+      asercionesFail: 6,
+      casoPrueba: {
+        id: "caso-1",
+        nombre: "Caso Test",
+        codigo: "CP-01",
+        proyectoId: "proyecto-1",
+        proyecto: {
+          id: "proyecto-1",
+          nombre: "Proyecto Alpha",
+          espacioId: "esp-1",
+          espacio: { id: "esp-1", nombre: "Espacio A" },
+        },
+      },
+      pasos: [],
+      artefactos: [],
+    };
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue(mockEjecucion);
+
+    const result = await getEjecucionConPasos("ejec-1");
+
+    expect(result).not.toBeNull();
+    expect(result!.entorno).toBe("Producción");
+    expect(result!.navegador).toBe("Chrome 115");
+    expect(result!.asercionesTotal).toBe(124);
+    expect(result!.asercionesOk).toBe(118);
+    expect(result!.asercionesFail).toBe(6);
+  });
 });
 
 describe("listEjecuciones (AC-4)", () => {

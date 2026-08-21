@@ -127,18 +127,26 @@ model CasoPrueba {
 // ============================================================
 
 model Ejecucion {
-  id           String          @id @default(uuid())
-  casoPruebaId String
-  estado       EjecucionEstado
-  inicioAt     DateTime?
-  finAt        DateTime?
-  duracionMs   Int?
-  errorMsg     String?
-  createdAt    DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime        @updatedAt @db.Timestamptz(6)
+  id               String          @id @default(uuid())
+  casoPruebaId     String
+  estado           EjecucionEstado
+  inicioAt         DateTime?
+  finAt            DateTime?
+  duracionMs       Int?
+  errorMsg         String?
+  entorno          String?
+  navegador        String?
+  sistemaOperativo String?
+  nodoEjecucion    String?
+  asercionesTotal  Int             @default(0)
+  asercionesOk     Int             @default(0)
+  asercionesFail   Int             @default(0)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime        @updatedAt @db.Timestamptz(6)
 
   casoPrueba CasoPrueba      @relation(fields: [casoPruebaId], references: [id], onDelete: Restrict)
   pasos      PasoEjecucion[]
+  subacciones PasoSubaccion[]
   artefactos Artefacto[]
   acta       Acta?
 
@@ -147,21 +155,50 @@ model Ejecucion {
 }
 
 model PasoEjecucion {
-  id          String              @id @default(uuid())
-  ejecucionId String
-  numero      Int
-  descripcion String
-  estado      PasoEjecucionEstado
-  duracionMs  Int?
-  selfHealed  Boolean             @default(false)
-  errorMsg    String?
-  createdAt   DateTime            @default(now()) @db.Timestamptz(6)
+  id                String              @id @default(uuid())
+  ejecucionId       String
+  numero            Int
+  descripcion       String
+  estado            PasoEjecucionEstado
+  duracionMs        Int?
+  selfHealed        Boolean             @default(false)
+  errorMsg          String?
+  resultadoEsperado String?
+  resultadoObtenido String?
+  errorCount        Int                 @default(0)
+  logs              Json?
+  createdAt         DateTime            @default(now()) @db.Timestamptz(6)
 
-  ejecucion  Ejecucion   @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  ejecucion  Ejecucion      @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
   artefactos Artefacto[]
+  subacciones PasoSubaccion[]
 
   @@unique([ejecucionId, numero])
   @@index([ejecucionId])
+}
+
+model PasoSubaccion {
+  id                  String              @id @default(uuid())
+  ejecucionId         String
+  pasoEjecucionId     String
+  numero              Int
+  tipo                String              @default("other")
+  descripcion         String
+  estado              PasoEjecucionEstado
+  duracionMs          Int?
+  errorMsg            String?
+  logs                Json?
+  capturaActualId     String?
+  capturaReferenciaId String?
+  createdAt           DateTime            @default(now()) @db.Timestamptz(6)
+
+  ejecucion         Ejecucion   @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  pasoEjecucion     PasoEjecucion @relation(fields: [pasoEjecucionId], references: [id], onDelete: Cascade)
+  capturaActual     Artefacto?  @relation("CapturaActual", fields: [capturaActualId], references: [id])
+  capturaReferencia Artefacto?  @relation("CapturaReferencia", fields: [capturaReferenciaId], references: [id])
+
+  @@index([ejecucionId])
+  @@index([pasoEjecucionId])
 }
 
 model Artefacto {
@@ -173,10 +210,13 @@ model Artefacto {
   path            String
   sha256          String
   bytes           Int
+  metadata        Json?
   createdAt       DateTime      @default(now()) @db.Timestamptz(6)
 
-  ejecucion     Ejecucion      @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
-  pasoEjecucion PasoEjecucion? @relation(fields: [pasoEjecucionId], references: [id], onDelete: SetNull)
+  ejecucion         Ejecucion      @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  pasoEjecucion     PasoEjecucion? @relation(fields: [pasoEjecucionId], references: [id], onDelete: SetNull)
+  capturasActuales  PasoSubaccion[] @relation("CapturaActual")
+  capturasReferencia PasoSubaccion[] @relation("CapturaReferencia")
 
   @@index([ejecucionId])
   @@index([tipo])

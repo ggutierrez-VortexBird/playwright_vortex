@@ -22,6 +22,13 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
         finAt: ejecucion.finAt ? ejecucion.finAt.toISOString() : null,
         duracionMs: ejecucion.duracionMs,
         errorMsg: ejecucion.errorMsg,
+        entorno: ejecucion.entorno,
+        navegador: ejecucion.navegador,
+        sistemaOperativo: ejecucion.sistemaOperativo,
+        nodoEjecucion: ejecucion.nodoEjecucion,
+        asercionesTotal: ejecucion.asercionesTotal,
+        asercionesOk: ejecucion.asercionesOk,
+        asercionesFail: ejecucion.asercionesFail,
         casoPruebaId: ejecucion.casoPrueba.id,
         casoPrueba: {
           nombre: ejecucion.casoPrueba.nombre,
@@ -35,7 +42,27 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
           duracionMs: p.duracionMs,
           selfHealed: p.selfHealed,
           errorMsg: p.errorMsg,
+          resultadoEsperado: p.resultadoEsperado,
+          resultadoObtenido: p.resultadoObtenido,
+          errorCount: p.errorCount,
+          logs: p.logs,
           createdAt: p.createdAt.toISOString(),
+          subacciones: p.subacciones.map(s => ({
+            id: s.id,
+            numero: s.numero,
+            descripcion: s.descripcion,
+            estado: s.estado,
+            duracionMs: s.duracionMs,
+            tipo: s.tipo,
+            errorMsg: s.errorMsg,
+            logs: s.logs,
+            capturaActual: s.capturaActual
+              ? { id: s.capturaActual.id, tipo: s.capturaActual.tipo, nombre: s.capturaActual.nombre, bytes: s.capturaActual.bytes }
+              : null,
+            capturaReferencia: s.capturaReferencia
+              ? { id: s.capturaReferencia.id, tipo: s.capturaReferencia.tipo, nombre: s.capturaReferencia.nombre, bytes: s.capturaReferencia.bytes }
+              : null,
+          })),
         })),
         artefactos: ejecucion.artefactos.map(a => ({
           id: a.id,

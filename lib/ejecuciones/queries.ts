@@ -13,7 +13,16 @@ export async function getEjecucionConPasos(id: string) {
         }
       },
       pasos: {
-        orderBy: { numero: 'asc' }
+        orderBy: { numero: 'asc' },
+        include: {
+          subacciones: {
+            orderBy: { numero: 'asc' },
+            include: {
+              capturaActual: true,
+              capturaReferencia: true,
+            },
+          },
+        },
       },
       artefactos: {
         orderBy: { createdAt: 'asc' }

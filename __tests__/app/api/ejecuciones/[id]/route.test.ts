@@ -123,4 +123,83 @@ describe("GET /api/ejecuciones/[id]", () => {
     const body = await readJson(res) as any;
     expect(body.artefactos).toEqual([]);
   });
+
+  it("expone subacciones y nuevos campos de paso en la respuesta (HU-4.5)", async () => {
+    const mockEjecucion = {
+      id: "ejec-1",
+      estado: "fallo",
+      inicioAt: new Date("2026-08-12T10:00:00Z"),
+      finAt: new Date("2026-08-12T10:02:00Z"),
+      duracionMs: 120000,
+      errorMsg: null,
+      entorno: "Producción",
+      navegador: "Chrome 115",
+      sistemaOperativo: "Linux (Ubuntu)",
+      nodoEjecucion: "192.168.1.104",
+      asercionesTotal: 124,
+      asercionesOk: 118,
+      asercionesFail: 6,
+      casoPrueba: {
+        id: "caso-1",
+        nombre: "Login test",
+        codigo: "CP-LOGIN-01",
+        proyecto: {
+          id: "proy-1",
+          nombre: "Login Proyecto",
+          espacio: { id: "esp-1", nombre: "Espacio Login" },
+        },
+      },
+      pasos: [
+        {
+          id: "paso-1",
+          numero: 1,
+          descripcion: "Navegar",
+          estado: "fallo",
+          duracionMs: 1000,
+          selfHealed: false,
+          errorMsg: "Timeout",
+          resultadoEsperado: "Debe cargar",
+          resultadoObtenido: "Timeout 30000ms",
+          errorCount: 1,
+          logs: null,
+          createdAt: new Date(),
+          subacciones: [
+            {
+              id: "sub-1",
+              numero: 1,
+              descripcion: "Sub-paso navegar",
+              estado: "fallo",
+              duracionMs: 500,
+              tipo: "action",
+              errorMsg: null,
+              logs: null,
+              capturaActual: null,
+              capturaReferencia: null,
+            },
+          ],
+        },
+      ],
+      artefactos: [],
+    };
+    (getEjecucionConPasos as jest.Mock).mockResolvedValue(mockEjecucion);
+
+    const res = await GET(
+      {} as unknown as Request,
+      { params: Promise.resolve({ id: "ejec-1" }) }
+    );
+
+    expect(res.status).toBe(200);
+    const body = await readJson(res) as any;
+    expect(body.entorno).toBe("Producción");
+    expect(body.navegador).toBe("Chrome 115");
+    expect(body.asercionesTotal).toBe(124);
+    expect(body.asercionesOk).toBe(118);
+    expect(body.asercionesFail).toBe(6);
+    expect(body.pasos).toHaveLength(1);
+    expect(body.pasos[0].resultadoEsperado).toBe("Debe cargar");
+    expect(body.pasos[0].resultadoObtenido).toBe("Timeout 30000ms");
+    expect(body.pasos[0].errorCount).toBe(1);
+    expect(body.pasos[0].subacciones).toHaveLength(1);
+    expect(body.pasos[0].subacciones[0].descripcion).toBe("Sub-paso navegar");
+  });
 });

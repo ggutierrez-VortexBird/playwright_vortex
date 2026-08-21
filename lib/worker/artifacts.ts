@@ -100,15 +100,16 @@ export async function collectArtifacts(
       const stats = fs.statSync(sourcePath)
       const bytes = stats.size
 
-      // Mover archivo
-      fs.renameSync(sourcePath, destPath)
+      // Mover archivo con retry para Windows EPERM/EBUSY
+      moveWithRetry(sourcePath, destPath)
 
       // Determinar tipo
       const tipo: ArtefactoTipo = fileName.endsWith('.webm') ? 'video' : 'captura'
 
+      // Detectar fase de captura
+      const phase = detectPhase(fileName)
+
       // Heurística para mapear pasoEjecucionId
-      // Playwright guarda el video principal como "video.webm" (primer video de la primera página)
-      // y videos adicionales como "video-1.webm", "video-2.webm", etc.
       let pasoEjecucionId: string | null = null
       const stepMatch = fileName.match(/step-(\d+)/i)
       if (stepMatch) {
@@ -119,7 +120,9 @@ export async function collectArtifacts(
         }
       }
 
-      await prisma.artefacto.create({
+      const metadata = phase ? { phase } : undefined
+
+      const artefacto = await prisma.artefacto.create({
         data: {
           ejecucionId,
           pasoEjecucionId,
@@ -128,11 +131,75 @@ export async function collectArtifacts(
           path: destPath,
           sha256,
           bytes,
+          metadata,
         },
       })
+
+      // Si es captura con fase, intentar vincular a PasoSubaccion
+      if (phase && pasoEjecucionId) {
+        await linkCaptureToSubaccion(ejecucionId, pasoEjecucionId, artefacto.id, phase)
+      }
     } catch (err) {
       console.error(`[artifacts] Error procesando ${sourcePath}:`, err)
       // Continuar con el siguiente archivo
     }
+  }
+}
+
+function detectPhase(fileName: string): 'captura-actual' | 'captura-referencia' | null {
+  const lower = fileName.toLowerCase()
+  if (lower.includes('actual')) return 'captura-actual'
+  if (lower.includes('reference') || lower.includes('expected')) return 'captura-referencia'
+  return null
+}
+
+function moveWithRetry(sourcePath: string, destPath: string, maxRetries = 3): void {
+  let lastErr: Error | undefined
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      fs.renameSync(sourcePath, destPath)
+      return
+    } catch (err: any) {
+      lastErr = err
+      const retryable = err.code === 'EPERM' || err.code === 'EBUSY'
+      if (!retryable || attempt === maxRetries - 1) {
+        throw err
+      }
+      // Exponential backoff: 100ms, 200ms, 400ms
+      const delay = 100 * Math.pow(2, attempt)
+      const start = Date.now()
+      while (Date.now() - start < delay) {
+        // busy-wait sync delay
+      }
+    }
+  }
+  if (lastErr) throw lastErr
+}
+
+async function linkCaptureToSubaccion(
+  ejecucionId: string,
+  pasoEjecucionId: string,
+  artefactoId: string,
+  phase: 'captura-actual' | 'captura-referencia'
+): Promise<void> {
+  try {
+    const subaccion = await prisma.pasoSubaccion.findFirst({
+      where: { ejecucionId, pasoEjecucionId },
+      orderBy: { numero: 'asc' },
+      select: { id: true },
+    })
+
+    if (!subaccion) return
+
+    const updateData = phase === 'captura-actual'
+      ? { capturaActualId: artefactoId }
+      : { capturaReferenciaId: artefactoId }
+
+    await prisma.pasoSubaccion.update({
+      where: { id: subaccion.id },
+      data: updateData,
+    })
+  } catch (err) {
+    console.error('[artifacts] Error linking capture to subaccion:', err)
   }
 }

@@ -16,11 +16,18 @@ function mockEjecucion(overrides: Record<string, unknown> = {}) {
     finAt: "2026-08-12T10:02:00.000Z",
     duracionMs: 120000,
     errorMsg: null,
+    entorno: "Producción",
+    navegador: "Chrome 115",
+    sistemaOperativo: "Linux (Ubuntu)",
+    nodoEjecucion: "192.168.1.104",
+    asercionesTotal: 124,
+    asercionesOk: 118,
+    asercionesFail: 6,
     casoPruebaId: "caso-1",
     casoPrueba: { nombre: "Login test", codigo: "CP-01" },
     pasos: [
-      { id: "paso-1", numero: 1, descripcion: "Navegar", estado: "paso", duracionMs: 1000, selfHealed: false, errorMsg: null, createdAt: "2026-08-12T10:00:00.000Z" },
-      { id: "paso-2", numero: 2, descripcion: "Click", estado: "paso", duracionMs: 2000, selfHealed: false, errorMsg: null, createdAt: "2026-08-12T10:00:01.000Z" },
+      { id: "paso-1", numero: 1, descripcion: "Navegar", estado: "paso", duracionMs: 1000, selfHealed: false, errorMsg: null, resultadoEsperado: null, resultadoObtenido: null, errorCount: 0, logs: null, createdAt: "2026-08-12T10:00:00.000Z", subacciones: [] },
+      { id: "paso-2", numero: 2, descripcion: "Click", estado: "paso", duracionMs: 2000, selfHealed: false, errorMsg: null, resultadoEsperado: null, resultadoObtenido: null, errorCount: 0, logs: null, createdAt: "2026-08-12T10:00:01.000Z", subacciones: [] },
     ],
     artefactos: [] as any[],
     ...overrides,
@@ -49,32 +56,22 @@ describe("EjecucionDetalleClient", () => {
     expect(video).toHaveAttribute("src", "/api/artefactos/art-1");
   });
 
-  it("renderiza capturas vinculadas a pasos", () => {
-    const ejecucion = mockEjecucion({
-      estado: "paso",
-      artefactos: [
-        { id: "art-2", tipo: "captura", nombre: "screenshot.png", pasoEjecucionId: "paso-1", bytes: 512, createdAt: "2026-08-12T10:01:00.000Z" },
-      ],
-    });
+  it("renderiza accordion de pasos en lugar de lista plana", () => {
+    const ejecucion = mockEjecucion();
     render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
-
-    const img = screen.getByAltText("Captura paso 1");
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", "/api/artefactos/art-2");
+    expect(screen.getByText("Navegar")).toBeInTheDocument();
+    expect(screen.getByText("Click")).toBeInTheDocument();
+    expect(screen.getByText("Pasos ejecutados")).toBeInTheDocument();
   });
 
-  it("muestra capturas no mapeadas en galería genérica", () => {
-    const ejecucion = mockEjecucion({
-      estado: "paso",
-      artefactos: [
-        { id: "art-3", tipo: "captura", nombre: "unmapped.png", pasoEjecucionId: null, bytes: 256, createdAt: "2026-08-12T10:01:00.000Z" },
-      ],
-    });
+  it("renderiza detalles de entorno y aserciones en columna derecha", () => {
+    const ejecucion = mockEjecucion();
     render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
-
-    const img = screen.getByAltText("Captura");
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", "/api/artefactos/art-3");
+    expect(screen.getByText("Producción")).toBeInTheDocument();
+    expect(screen.getByText("Chrome 115")).toBeInTheDocument();
+    expect(screen.getByText("124")).toBeInTheDocument();
+    expect(screen.getByText("118")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
   });
 
   it("renderiza barra de capítulos con ancho proporcional a duración", () => {

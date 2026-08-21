@@ -10,10 +10,16 @@ import * as crypto from "crypto";
 jest.mock("@/lib/db", () => ({
   prisma: {
     artefacto: {
-      create: jest.fn(),
+      create: jest.fn().mockImplementation((args: any) =>
+        Promise.resolve({ id: `art-${args.data.nombre}`, ...args.data })
+      ),
     },
     pasoEjecucion: {
       findMany: jest.fn(),
+    },
+    pasoSubaccion: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
     },
   },
 }));
@@ -161,6 +167,85 @@ describe("collectArtifacts", () => {
     await collectArtifacts("ejec-1", "/tmp/output/ejec-1");
 
     // Should still create the second artifact even though first failed
+    expect(prisma.artefacto.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("detecta fase captura-actual y crea Artefacto con metadata.phase", async () => {
+    (fs.readdirSync as jest.Mock).mockReturnValue(["step-2-actual.png"]);
+    (prisma.pasoEjecucion.findMany as jest.Mock).mockResolvedValue([
+      { id: "paso-1", numero: 1, descripcion: "Primer paso" },
+      { id: "paso-2", numero: 2, descripcion: "Segundo paso" },
+    ]);
+    mockHash("hash-actual");
+    mockReadStream(Buffer.from("fake-actual"));
+
+    await collectArtifacts("ejec-1", "/tmp/output/ejec-1");
+
+    expect(prisma.artefacto.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          nombre: "step-2-actual.png",
+          metadata: expect.objectContaining({ phase: "captura-actual" }),
+        }),
+      })
+    );
+  });
+
+  it("detecta fase captura-referencia y actualiza FK en PasoSubaccion", async () => {
+    (fs.readdirSync as jest.Mock).mockReturnValue(["step-1-reference.png"]);
+    (prisma.pasoEjecucion.findMany as jest.Mock).mockResolvedValue([
+      { id: "paso-1", numero: 1, descripcion: "Primer paso" },
+    ]);
+    (prisma.pasoSubaccion.findFirst as jest.Mock).mockResolvedValue({
+      id: "sub-1",
+      pasoEjecucionId: "paso-1",
+      numero: 1,
+    });
+    mockHash("hash-ref");
+    mockReadStream(Buffer.from("fake-reference"));
+
+    await collectArtifacts("ejec-1", "/tmp/output/ejec-1");
+
+    expect(prisma.artefacto.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({ phase: "captura-referencia" }),
+        }),
+      })
+    );
+    expect(prisma.pasoSubaccion.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "sub-1" },
+        data: { capturaReferenciaId: expect.any(String) },
+      })
+    );
+  });
+
+  it("salta archivo gracefully cuando renameSync falla (Windows EPERM)", async () => {
+    (fs.readdirSync as jest.Mock).mockReturnValue(["step-1-actual.png"]);
+    (prisma.pasoEjecucion.findMany as jest.Mock).mockResolvedValue([]);
+    mockHash("hash-actual");
+    mockReadStream(Buffer.from("fake-actual"));
+    let renameCalls = 0;
+    (fs.renameSync as jest.Mock).mockImplementation(() => {
+      renameCalls++;
+      if (renameCalls === 1) {
+        const err: any = new Error("EPERM");
+        err.code = "EPERM";
+        throw err;
+      }
+      if (renameCalls === 2) {
+        const err: any = new Error("EBUSY");
+        err.code = "EBUSY";
+        throw err;
+      }
+      // 3rd call succeeds
+    });
+
+    await collectArtifacts("ejec-1", "/tmp/output/ejec-1");
+
+    // Should retry and eventually succeed or skip gracefully
+    expect(fs.renameSync).toHaveBeenCalledTimes(3);
     expect(prisma.artefacto.create).toHaveBeenCalledTimes(1);
   });
 });

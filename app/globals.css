@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -795,6 +797,26 @@
     color: var(--ink-2);
     font-weight: 600;
   }
+}
+
+/* ---------- accordion panel (HU-4.5) ---------- */
+.accordion-panel {
+  font-family: 'Inter', sans-serif;
+}
+.accordion-panel .mono {
+  font-family: 'Fira Code', monospace;
+}
+
+/* ---------- scrollbar tokens (HU-4.5) ---------- */
+.steps-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.steps-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.steps-scroll::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 10px;
 }
 
 /* ---------- a11y / reduced motion ---------- */

@@ -121,9 +121,8 @@ test.describe.serial("HU-3 — Motor de ejecución Playwright", () => {
       page.locator(".pill:has-text('corriendo'), .p-running:has-text('corriendo')")
     ).toBeVisible({ timeout: 30000 });
 
-    // AC-10: newly added step should have highlight class .step.new
-    // The step should appear in the ledger
-    const pasosLocator = page.locator(".ledger .rstep, .ledger .step");
+    // AC-10: newly added step should appear in the accordion
+    const pasosLocator = page.locator("[data-purpose='step-row']");
     await expect(pasosLocator.first()).toBeVisible({ timeout: 30000 });
 
     // AC-3: wait for final state (paso or fallo)
@@ -231,7 +230,7 @@ test.describe.serial("HU-3 — Motor de ejecución Playwright", () => {
     ).toBeVisible({ timeout: 60000 });
 
     // AC-8: should see zero steps or exactly one error step (no false test steps)
-    const steps = page.locator(".ledger .rstep, .ledger .step");
+    const steps = page.locator("[data-purpose='step-row']");
     const stepCount = await steps.count();
 
     // Should be 0 or 1 (the error step) — not fake test steps
@@ -279,10 +278,63 @@ test("step 3", async ({ page }) => { await page.waitForTimeout(100); });
     await page.waitForURL(/\/ejecuciones\/[a-z0-9-]+/, { timeout: 5000 });
 
     // Wait for the first step to appear
-    await expect(page.locator(".ledger .rstep:has-text('step 1'), .ledger .step:has-text('step 1')")).toBeVisible({ timeout: 30000 });
+    await expect(page.locator("[data-purpose='step-row']:has-text('step 1')")).toBeVisible({ timeout: 30000 });
 
     // Count steps at different intervals - they should increase as polling fetches new steps
-    const initialCount = await page.locator(".ledger .rstep, .ledger .step").count();
+    const initialCount = await page.locator("[data-purpose='step-row']").count();
     expect(initialCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test("accordion permite expandir y colapsar pasos — AC-5", async ({ page }) => {
+    const espacioNombre = "Espacio Acc-" + Date.now();
+    const proyectoNombre = "Proyecto Acc-" + Date.now();
+    const casoCodigo = "CP-ACC-" + Date.now();
+
+    await createEspacioIfNeeded(page, espacioNombre);
+    await createProyectoIfNeeded(page, proyectoNombre);
+
+    const proyectoId = page.url().split("/proyectos/")[1].split("/casos")[0];
+
+    const multiStepScript = `
+import { test, expect } from "@playwright/test";
+test("step 1", async ({ page }) => { await page.goto("/"); });
+test("step 2", async ({ page }) => { await page.waitForTimeout(100); });
+    `.trim();
+
+    await page.request.post("/api/casos", {
+      data: {
+        codigo: casoCodigo,
+        nombre: "Caso Accordion Test",
+        script: multiStepScript,
+        scriptFileName: "acc-test.spec.ts",
+        proyectoId: proyectoId,
+        responsableId: "user-123",
+      },
+    });
+
+    await page.reload();
+
+    const rowLocator = page.locator(`tr:has-text("${casoCodigo}")`);
+    const rowEjecutarButton = rowLocator.locator(`button:has-text("Ejecutar")`);
+    await rowEjecutarButton.click();
+
+    await page.waitForURL(/\/ejecuciones\/[a-z0-9-]+/, { timeout: 5000 });
+
+    // Wait for final state
+    await expect(
+      page.locator(".pill:has-text('paso'), .p-pass:has-text('paso'), .pill:has-text('falló'), .p-fail:has-text('falló'), .pill:has-text('fallo'), .p-fail:has-text('fallo')")
+    ).toBeVisible({ timeout: 120000 });
+
+    // Wait for accordion step rows
+    const firstStep = page.locator("[data-purpose='step-row']").first();
+    await expect(firstStep).toBeVisible({ timeout: 10000 });
+
+    // Expand first step
+    await firstStep.click();
+    await expect(page.locator("text=Detalles Técnicos")).toBeVisible();
+
+    // Collapse first step
+    await firstStep.click();
+    await expect(page.locator("text=Detalles Técnicos")).not.toBeVisible();
   });
 });
