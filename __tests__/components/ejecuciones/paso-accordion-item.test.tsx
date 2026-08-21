@@ -87,52 +87,77 @@ describe("PasoAccordionItem", () => {
     expect(screen.getByText(/Timeout/)).toBeInTheDocument();
   });
 
-  it("muestra capturas cuando la subacción las tiene", () => {
+  // ============================================================
+  // FIX HU-4.5: sub-pasos dentro del panel
+  // ============================================================
+
+  it("renders sub-pasos section inside expanded panel", () => {
     const paso = makePaso({
       subacciones: [
-        {
-          id: "sub-1",
-          numero: 1,
-          descripcion: "Sub click",
-          estado: "fallo",
-          duracionMs: 100,
-          tipo: "action",
-          errorMsg: null,
-          logs: null,
-          capturaActual: { id: "art-1", tipo: "captura", nombre: "actual.png", bytes: 1024 },
-          capturaReferencia: null,
-        },
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
       ],
     });
     render(<PasoAccordionItem paso={paso} expanded={true} onToggle={jest.fn()} />);
-    expect(screen.getByAltText(/Captura actual/i)).toBeInTheDocument();
+    const panel = document.getElementById("panel-paso-1");
+    expect(panel).not.toBeNull();
+    expect(panel).toHaveTextContent(/Sub-pasos \(1\)/);
   });
 
-  it("muestra fallback 'Evidencia no disponible' cuando la imagen falla al cargar", () => {
+  it("does not render sub-pasos when collapsed", () => {
     const paso = makePaso({
       subacciones: [
-        {
-          id: "sub-1",
-          numero: 1,
-          descripcion: "Sub click",
-          estado: "fallo",
-          duracionMs: 100,
-          tipo: "action",
-          errorMsg: null,
-          logs: null,
-          capturaActual: { id: "art-1", tipo: "captura", nombre: "actual.png", bytes: 1024 },
-          capturaReferencia: { id: "art-2", tipo: "captura", nombre: "ref.png", bytes: 1024 },
-        },
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
+      ],
+    });
+    render(<PasoAccordionItem paso={paso} expanded={false} onToggle={jest.fn()} />);
+    expect(screen.queryByText(/Sub-pasos/)).not.toBeInTheDocument();
+  });
+
+  it("does not render sub-pasos section when paso has no subacciones", () => {
+    render(<PasoAccordionItem paso={makePaso({ subacciones: [] })} expanded={true} onToggle={jest.fn()} />);
+    expect(screen.queryByText(/Sub-pasos/)).not.toBeInTheDocument();
+  });
+
+  it("calls onToggleSubaccion with sub-id when sub-paso header clicked", () => {
+    const onToggleSubaccion = jest.fn();
+    const paso = makePaso({
+      subacciones: [
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
+      ],
+    });
+    render(
+      <PasoAccordionItem
+        paso={paso}
+        expanded={true}
+        onToggle={jest.fn()}
+        expandedSubaccionId={null}
+        onToggleSubaccion={onToggleSubaccion}
+      />
+    );
+    const subHeader = screen.getByTestId("subaccion-item").querySelector("button")!;
+    fireEvent.click(subHeader);
+    expect(onToggleSubaccion).toHaveBeenCalledWith("sub-1");
+  });
+
+  it("renders correct number of sub-pasos", () => {
+    const paso = makePaso({
+      subacciones: [
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
+        { id: "sub-2", numero: 2, descripcion: "sub-2", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
+        { id: "sub-3", numero: 3, descripcion: "sub-3", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
       ],
     });
     render(<PasoAccordionItem paso={paso} expanded={true} onToggle={jest.fn()} />);
-    const actualImg = screen.getByAltText(/Captura actual/i);
-    fireEvent.error(actualImg);
-    expect(screen.getByText("Evidencia no disponible")).toBeInTheDocument();
+    expect(screen.getAllByTestId("subaccion-item")).toHaveLength(3);
+  });
 
-    const refImg = screen.getByAltText(/Referencia esperada/i);
-    fireEvent.error(refImg);
-    const fallbacks = screen.getAllByText("Evidencia no disponible");
-    expect(fallbacks.length).toBe(2);
+  it("does not render grouped captures section anymore", () => {
+    const paso = makePaso({
+      subacciones: [
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "fallo", duracionMs: 100, tipo: "action", errorMsg: null, logs: null, capturaActual: { id: "art-1", tipo: "captura", nombre: "a.png", bytes: 1024 } },
+      ],
+    });
+    render(<PasoAccordionItem paso={paso} expanded={true} onToggle={jest.fn()} />);
+    expect(screen.queryByText(/Capturas de evidencia/)).not.toBeInTheDocument();
   });
 });

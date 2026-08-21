@@ -78,4 +78,35 @@ describe("PasoSubaccionItem", () => {
     const fallbacks = screen.getAllByText("Evidencia no disponible");
     expect(fallbacks.length).toBe(2);
   });
+
+  // ============================================================
+  // FIX HU-4.5: pill de estado en el header
+  // ============================================================
+
+  it("renders status pill 'Conforme' when estado is paso", () => {
+    render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "paso" })} expanded={false} onToggle={jest.fn()} />);
+    const pill = screen.getByText("Conforme");
+    expect(pill).toBeInTheDocument();
+    expect(pill).toHaveClass("bg-green-50");
+    expect(pill).toHaveClass("text-green-700");
+    expect(pill).toHaveClass("border-green-200");
+  });
+
+  it("renders status pill 'No conforme' when estado is fallo", () => {
+    render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "fallo" })} expanded={false} onToggle={jest.fn()} />);
+    const pill = screen.getByText("No conforme");
+    expect(pill).toBeInTheDocument();
+    expect(pill).toHaveClass("bg-red-50");
+    expect(pill).toHaveClass("text-red-700");
+    expect(pill).toHaveClass("border-red-200");
+  });
+
+  it("renders status pill 'Reparado' when estado is reparado", () => {
+    render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "reparado" })} expanded={false} onToggle={jest.fn()} />);
+    const pill = screen.getByText("Reparado");
+    expect(pill).toBeInTheDocument();
+    expect(pill).toHaveClass("bg-amber-50");
+    expect(pill).toHaveClass("text-amber-700");
+    expect(pill).toHaveClass("border-amber-200");
+  });
 });

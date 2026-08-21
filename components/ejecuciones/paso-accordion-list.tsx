@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { PasoAccordionItem } from './paso-accordion-item'
-import { PasoSubaccionItem } from './paso-subaccion-item'
 
 interface Subaccion {
   id: string
@@ -63,7 +62,8 @@ export function PasoAccordionList({ pasos, defaultExpandedId, onExpandedChange }
       onExpandedChange?.(next)
       return next
     })
-    setExpandedSubaccionId(null)
+    // No resetear expandedSubaccionId: el estado del sub-paso se preserva
+    // entre toggle del paso padre.
   }, [onExpandedChange])
 
   const handleToggleSubaccion = useCallback((subId: string) => {
@@ -73,25 +73,14 @@ export function PasoAccordionList({ pasos, defaultExpandedId, onExpandedChange }
   return (
     <div className="flex flex-col" data-purpose="steps-list">
       {pasos.map((paso) => (
-        <div key={paso.id}>
-          <PasoAccordionItem
-            paso={paso}
-            expanded={expandedPasoId === paso.id}
-            onToggle={() => handleTogglePaso(paso.id)}
-          />
-          {expandedPasoId === paso.id && (paso.subacciones ?? []).length > 0 && (
-            <div className="px-6 py-3 bg-[#fafafa] border-b border-gray-100 space-y-2">
-              {paso.subacciones.map((sub) => (
-                <PasoSubaccionItem
-                  key={sub.id}
-                  subaccion={sub}
-                  expanded={expandedSubaccionId === sub.id}
-                  onToggle={() => handleToggleSubaccion(sub.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <PasoAccordionItem
+          key={paso.id}
+          paso={paso}
+          expanded={expandedPasoId === paso.id}
+          onToggle={() => handleTogglePaso(paso.id)}
+          expandedSubaccionId={expandedSubaccionId}
+          onToggleSubaccion={handleToggleSubaccion}
+        />
       ))}
     </div>
   )

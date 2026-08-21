@@ -47,6 +47,24 @@ function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
+function statusLabel(estado: string): string {
+  switch (estado) {
+    case 'paso': return 'Conforme'
+    case 'fallo': return 'No conforme'
+    case 'reparado': return 'Reparado'
+    default: return estado
+  }
+}
+
+function statusClasses(estado: string): string {
+  switch (estado) {
+    case 'paso': return 'bg-green-50 text-green-700 border-green-200'
+    case 'fallo': return 'bg-red-50 text-red-700 border-red-200'
+    case 'reparado': return 'bg-amber-50 text-amber-700 border-amber-200'
+    default: return 'bg-gray-50 text-gray-700 border-gray-200'
+  }
+}
+
 export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Props) {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -85,6 +103,9 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
         )}
         <span className="text-[10px] uppercase tracking-wider text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded">
           {subaccion.tipo}
+        </span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusClasses(subaccion.estado)}`}>
+          {statusLabel(subaccion.estado)}
         </span>
         <span className="text-xs text-gray-400 mono">{formatDuration(subaccion.duracionMs)}</span>
       </button>

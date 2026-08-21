@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
+import { PasoSubaccionItem } from './paso-subaccion-item'
 
 interface Subaccion {
   id: string
@@ -35,26 +36,8 @@ interface Props {
   paso: Paso
   expanded: boolean
   onToggle: () => void
-}
-
-function SafeArtefactoImage({ src, alt, borderClass }: { src: string; alt: string; borderClass: string }) {
-  const [error, setError] = useState(false)
-  return (
-    <div className={`aspect-video bg-gray-100 rounded-lg ${borderClass} overflow-hidden shadow-sm relative`}>
-      {error ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <span className="text-xs text-gray-500">Evidencia no disponible</span>
-        </div>
-      ) : (
-        <img
-          src={src}
-          alt={alt}
-          className="object-cover w-full h-full"
-          onError={() => setError(true)}
-        />
-      )}
-    </div>
-  )
+  expandedSubaccionId?: string | null
+  onToggleSubaccion?: (id: string) => void
 }
 
 function formatDuration(ms: number | null): string {
@@ -80,7 +63,7 @@ function statusClasses(estado: string): string {
   }
 }
 
-export function PasoAccordionItem({ paso, expanded, onToggle }: Props) {
+export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionId, onToggleSubaccion }: Props) {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -169,40 +152,20 @@ export function PasoAccordionItem({ paso, expanded, onToggle }: Props) {
             </div>
           </div>
 
-          {/* Captures */}
-          {(paso.subacciones ?? []).some((s) => s.capturaActual || s.capturaReferencia) && (
-            <div>
-              <h5 className="text-xs font-bold text-gray-800 mb-3 uppercase tracking-wider">Capturas de evidencia</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Sub-pasos (dentro del panel) */}
+          {(paso.subacciones ?? []).length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h5 className="text-xs font-bold text-gray-800 mb-3 uppercase tracking-wider">
+                Sub-pasos ({paso.subacciones.length})
+              </h5>
+              <div className="space-y-2">
                 {paso.subacciones.map((sub) => (
-                  <div key={sub.id} className="space-y-4">
-                    {sub.capturaActual && (
-                      <div className="group/img relative">
-                        <p className="mb-2 text-xs font-medium text-red-700 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                          Captura actual (Error)
-                        </p>
-                        <SafeArtefactoImage
-                          src={`/api/artefactos/${sub.capturaActual.id}`}
-                          alt="Captura actual del error"
-                          borderClass="border border-red-200"
-                        />
-                      </div>
-                    )}
-                    {sub.capturaReferencia && (
-                      <div className="group/img relative">
-                        <p className="mb-2 text-xs font-medium text-green-700 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
-                          Referencia esperada (Éxito)
-                        </p>
-                        <SafeArtefactoImage
-                          src={`/api/artefactos/${sub.capturaReferencia.id}`}
-                          alt="Referencia esperada"
-                          borderClass="border border-green-200"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <PasoSubaccionItem
+                    key={sub.id}
+                    subaccion={sub}
+                    expanded={expandedSubaccionId === sub.id}
+                    onToggle={() => onToggleSubaccion?.(sub.id)}
+                  />
                 ))}
               </div>
             </div>

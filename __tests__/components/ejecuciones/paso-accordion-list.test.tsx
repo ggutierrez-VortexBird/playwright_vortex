@@ -1,5 +1,5 @@
 // __tests__/components/ejecuciones/paso-accordion-list.test.tsx
-// TDD RED/GREEN/TRIANGULATE for HU-4.5 PasoAccordionList
+// TDD RED/GREEN/TRIANGULATE for HU-4.5 PasoAccordionList + fix sub-pasos dentro panel
 
 import { render, screen, fireEvent } from "@testing-library/react";
 import { PasoAccordionList } from "@/components/ejecuciones/paso-accordion-list";
@@ -20,6 +20,33 @@ function makePasos(count: number, estados?: string[]) {
     createdAt: "2026-08-20T10:00:00Z",
     subacciones: [],
   }));
+}
+
+function makePasosConSubs(pasoId: string, subs: Array<{ id: string; numero: number; descripcion: string }>) {
+  return [{
+    id: pasoId,
+    numero: 1,
+    descripcion: "Step 1",
+    estado: "paso",
+    duracionMs: 100,
+    selfHealed: false,
+    errorMsg: null,
+    resultadoEsperado: null,
+    resultadoObtenido: null,
+    errorCount: 0,
+    logs: null,
+    createdAt: "2026-08-20T10:00:00Z",
+    subacciones: subs.map((s) => ({
+      id: s.id,
+      numero: s.numero,
+      descripcion: s.descripcion,
+      estado: "paso",
+      duracionMs: 100,
+      tipo: "action",
+      errorMsg: null,
+      logs: null,
+    })),
+  }];
 }
 
 describe("PasoAccordionList", () => {
@@ -75,5 +102,43 @@ describe("PasoAccordionList", () => {
     const buttons = screen.getAllByRole("button");
     expect(buttons[0]).toHaveAttribute("aria-expanded", "true");
     expect(buttons[1]).toHaveAttribute("aria-expanded", "false");
+  });
+
+  // ============================================================
+  // FIX HU-4.5: sub-pasos dentro del panel
+  // ============================================================
+
+  it("does not render sub-pasos outside the panel anymore", () => {
+    const pasos = makePasosConSubs("paso-1", [
+      { id: "sub-1", numero: 1, descripcion: "sub-1" },
+      { id: "sub-2", numero: 2, descripcion: "sub-2" },
+    ]);
+    render(<PasoAccordionList pasos={pasos as any} />);
+    const panel = document.getElementById("panel-paso-1");
+    expect(panel).not.toBeNull();
+    const allSubs = screen.getAllByTestId("subaccion-item");
+    // Todos los sub-pasos deben estar dentro del panel
+    allSubs.forEach((sub) => {
+      expect(panel!.contains(sub)).toBe(true);
+    });
+    // Y NO debe haber sub-pasos fuera (es decir, la cantidad dentro === cantidad total)
+    expect(allSubs.length).toBe(2);
+  });
+
+  it("passes expandedSubaccionId to the expanded PasoAccordionItem", () => {
+    const pasos = makePasosConSubs("paso-1", [
+      { id: "sub-1", numero: 1, descripcion: "sub-1" },
+      { id: "sub-2", numero: 2, descripcion: "sub-2" },
+    ]);
+    render(<PasoAccordionList pasos={pasos as any} />);
+    // Paso 1 ya está expandido por default; clickeamos sub-2 para expandirlo
+    const subs = screen.getAllByTestId("subaccion-item");
+    const sub2Button = subs[1].querySelector("button")!;
+    fireEvent.click(sub2Button);
+    // El sub-2 debe tener aria-expanded=true (porque está dentro del subaccion-item expandido)
+    expect(sub2Button).toHaveAttribute("aria-expanded", "true");
+    // El sub-1 debe tener aria-expanded=false
+    const sub1Button = subs[0].querySelector("button")!;
+    expect(sub1Button).toHaveAttribute("aria-expanded", "false");
   });
 });
