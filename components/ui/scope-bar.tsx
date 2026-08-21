@@ -21,7 +21,7 @@ export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeB
           aria-hidden="true"
         />
       )}
-      <span>{espacioNombre} · {proyectoNombre}</span>
+      <span>{proyectoNombre}</span>
     </div>
   );
 }

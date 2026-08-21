@@ -98,8 +98,8 @@ export default async function DashboardLayout({
         <div className="flex flex-1 flex-col">
           <header className="topbar">
             <h2>Acta</h2>
-            <EspacioSwitcher espacios={espacios} />
             <ScopeBarWithContext />
+            <EspacioSwitcher espacios={espacios} />
             <span className="spacer" />
           </header>
           <main className="flex-1 p-6">{children}</main>
