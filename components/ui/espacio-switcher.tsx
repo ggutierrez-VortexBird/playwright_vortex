@@ -29,7 +29,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded px-3 py-1.5 text-sm text-ink hover:bg-rule-soft"
+        className="flex items-center gap-2 rounded px-3 py-1.5 text-sm text-white hover:bg-white/10"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
@@ -42,7 +42,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
             <span>{activeEspacio.nombre}</span>
           </>
         ) : (
-          <span className="text-ink-3">Seleccionar espacio</span>
+          <span className="text-white">Seleccionar espacio</span>
         )}
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -62,11 +62,11 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-48 rounded border border-rule bg-surface py-1 shadow-lg"
+          className="absolute left-0 top-full z-50 mt-1 min-w-48 rounded border border-white/20 bg-ink py-1 shadow-lg"
           role="listbox"
         >
           {espacios.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-ink-3">
+            <div className="px-3 py-2 text-sm text-white/60">
               No hay espacios creados
             </div>
           ) : (
@@ -75,7 +75,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
                 key={espacio.id}
                 type="button"
                 onClick={() => handleSelectEspacio(espacio.id)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-rule-soft"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10"
                 role="option"
                 aria-selected={espacio.id === activeEspacioIdFromUrl}
               >

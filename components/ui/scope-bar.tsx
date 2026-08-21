@@ -13,7 +13,7 @@ export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeB
   }
 
   return (
-    <div className="scope-bar flex items-center gap-2 text-sm font-medium text-ink">
+    <div className="scope-bar flex items-center gap-2 text-sm font-medium text-white">
       {espacioColor && (
         <i
           className="scope-bar-icon"

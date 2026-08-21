@@ -35,18 +35,14 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
         <div
           key={espacio.id}
           className="group relative flex flex-col rounded-lg border border-rule bg-surface p-4 transition-colors hover:border-ink-3"
+          style={{ borderLeftWidth: "4px", borderLeftColor: espacio.color }}
         >
-          <div className="flex items-center gap-3">
-            <span
-              className="h-4 w-4 flex-shrink-0 rounded-full"
-              style={{ backgroundColor: espacio.color }}
-            />
-            <span className="truncate font-medium text-ink">{espacio.nombre}</span>
-          </div>
+          <span className="truncate font-medium text-ink">{espacio.nombre}</span>
           <div className="mt-3 flex items-center gap-1 border-t border-rule-soft pt-3">
             <button
               onClick={() => handleViewProyectos(espacio.id)}
-              className="rounded p-1.5 text-ink-3 hover:bg-rule-soft hover:text-client"
+              className="rounded p-1.5 text-ink-3 hover:bg-rule-soft"
+              style={{ color: "rgb(243, 155, 43)" }}
               title="Ver proyectos"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -59,7 +55,8 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
                 e.stopPropagation();
                 onEdit(espacio);
               }}
-              className="rounded p-1.5 text-ink-3 hover:bg-rule-soft hover:text-ink"
+              className="rounded p-1.5 hover:bg-rule-soft"
+              style={{ color: "rgb(28, 173, 199)" }}
               title="Editar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -71,7 +68,8 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
                 e.stopPropagation();
                 onDelete(espacio);
               }}
-              className="rounded p-1.5 text-ink-3 hover:bg-red-50 hover:text-stamp"
+              className="rounded p-1.5 hover:bg-red-50"
+              style={{ color: "#DC2626" }}
               title="Eliminar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -178,7 +176,8 @@ export function EspaciosClient({ initialEspacios }: EspaciosClientProps) {
       <div className="flex justify-end">
         <button
           onClick={openCreateModal}
-          className="rounded bg-ink px-4 py-2 text-surface hover:bg-ink-2"
+          className="rounded px-4 py-2 text-black hover:opacity-90"
+          style={{ background: "linear-gradient(90deg, rgb(250, 182, 98), rgb(243, 155, 43))" }}
         >
           + Crear espacio
         </button>

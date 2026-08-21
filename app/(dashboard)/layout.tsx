@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { listEspacios, getEspacioById } from "@/lib/espacios/actions";
@@ -53,7 +54,13 @@ export default async function DashboardLayout({
         <aside className="rail">
           <ClientBand espacioColor={espacio?.color ?? null} />
           <div className="brand">
-            <h1>Acta</h1>
+            <Image
+              src="/icons/logo.svg"
+              alt="QAtheApp"
+              width={260}
+              height={75}
+              priority
+            />
             <p>Automatización de pruebas</p>
           </div>
           <nav className="nav">
@@ -80,12 +87,15 @@ export default async function DashboardLayout({
             <form action="/api/logout" method="post" className="mt-3">
               <button
                 type="submit"
-                className="btn btn-stop w-full"
+                className="btn w-full"
                 style={{
                   justifyContent: "center",
                   fontSize: 11,
                   padding: "6px 10px",
                   borderRadius: 4,
+                  background: "linear-gradient(90deg, rgb(250, 182, 98), rgb(243, 155, 43))",
+                  borderColor: "rgb(243, 155, 43)",
+                  color: "#000",
                 }}
               >
                 Cerrar sesión
@@ -96,8 +106,10 @@ export default async function DashboardLayout({
 
         {/* Main — topbar + body */}
         <div className="flex flex-1 flex-col">
-          <header className="topbar">
-            <h2>Acta</h2>
+          <header
+            className="topbar"
+            style={{ background: "var(--ink)", color: "#fff" }}
+          >
             <ScopeBarWithContext />
             <EspacioSwitcher espacios={espacios} />
             <span className="spacer" />
