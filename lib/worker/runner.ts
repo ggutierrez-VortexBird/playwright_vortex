@@ -3,6 +3,7 @@ import { spawn } from 'child_process'
 import { prisma } from '@/lib/db'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as crypto from 'crypto'
 import { killProcessTree } from './kill-tree'
 import { capLogs, LogEntry } from './log-cap'
 
@@ -60,6 +61,13 @@ export interface AssertionEvent {
   ok: boolean
 }
 
+export interface CapturaTestEvent {
+  type: 'captura-test'
+  parentTestId: number
+  capturaActualPath: string | null
+  capturaReferenciaPath: string | null
+}
+
 export interface EndEvent {
   type: 'end'
   estado: 'paso' | 'fallo' | 'reparado' | 'errorMotor'
@@ -75,6 +83,7 @@ export type ReporterEvent =
   | SubstepEvent
   | LogEvent
   | AssertionEvent
+  | CapturaTestEvent
   | EndEvent
 
 const VALID_TYPES = new Set([
@@ -83,6 +92,7 @@ const VALID_TYPES = new Set([
   'substep',
   'log',
   'assertion',
+  'captura-test',
   'end',
 ])
 
@@ -96,9 +106,12 @@ interface RunnerState {
   substepCounters: Map<number, number>
   logBuffers: Map<number, LogEntry[]>
   substepLogBuffers: Map<string, LogEntry[]>
+  pendingSubsteps: Map<number, SubstepEvent[]>  // Buffer for substeps that arrive before their parent step
   assertionCounters: { total: number; ok: number; fail: number }
   envCaptured: boolean
   pendingInserts: Promise<unknown>[]
+  /** Cursor para distribución de capturas por orden de ejecución */
+  capturaCursor: { pasoEjecucionId: string | null; substepNumero: number }
 }
 
 function createRunnerState(ejecucionId: string): RunnerState {
@@ -108,9 +121,11 @@ function createRunnerState(ejecucionId: string): RunnerState {
     substepCounters: new Map(),
     logBuffers: new Map(),
     substepLogBuffers: new Map(),
+    pendingSubsteps: new Map(),
     assertionCounters: { total: 0, ok: 0, fail: 0 },
     envCaptured: false,
     pendingInserts: [],
+    capturaCursor: { pasoEjecucionId: null, substepNumero: 0 },
   }
 }
 
@@ -191,17 +206,81 @@ async function handleStepEvent(state: RunnerState, event: StepEvent): Promise<vo
       errorCount: event.errorCount ?? 0,
       logs: logs ? (logs as unknown as Prisma.InputJsonValue) : undefined,
     },
+  }).then(async () => {
+    // After step is inserted, process any buffered substeps for this step
+    const bufferedSubsteps = state.pendingSubsteps.get(numero)
+    if (bufferedSubsteps && bufferedSubsteps.length > 0) {
+      state.pendingSubsteps.delete(numero)
+      for (const substepEvent of bufferedSubsteps) {
+        // Use event.numero directly since it was already calculated when the event arrived
+        await handleSubstepEvent(state, substepEvent, substepEvent.numero)
+      }
+    }
   }).catch((e) => {
     console.error('[runner] Error inserting paso:', e)
   })
   state.pendingInserts.push(insertPromise)
 }
 
-async function handleSubstepEvent(state: RunnerState, event: SubstepEvent): Promise<void> {
+/**
+ * Asegura que existe un Artefacto para el path dado y retorna su id.
+ * Si ya existe (mismo sha256), retorna el id existente.
+ */
+async function ensureArtefacto(
+  ejecucionId: string,
+  filePath: string,
+  nombre: string,
+  tipo: 'captura'
+): Promise<string | null> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`[runner] Capture file not found: ${filePath}`)
+      return null
+    }
+
+    const stats = fs.statSync(filePath)
+    const bytes = stats.size
+
+    // SHA256
+    const hash = crypto.createHash('sha256')
+    const stream = fs.createReadStream(filePath)
+    await new Promise<void>((resolve, reject) => {
+      stream.on('data', (chunk: string | Buffer) => {
+        if (typeof chunk === 'string') hash.update(chunk, 'utf-8')
+        else hash.update(chunk)
+      })
+      stream.on('end', () => resolve())
+      stream.on('error', (err: Error) => reject(err))
+    })
+    const sha256 = hash.digest('hex')
+
+    // Buscar si ya existe
+    const existing = await prisma.artefacto.findFirst({
+      where: { ejecucionId, sha256 },
+      select: { id: true },
+    })
+    if (existing) return existing.id
+
+    // Crear
+    const artefacto = await prisma.artefacto.create({
+      data: { ejecucionId, tipo, nombre, path: filePath, sha256, bytes },
+    })
+    return artefacto.id
+  } catch (err) {
+    console.error(`[runner] Error ensureArtefacto ${filePath}:`, err)
+    return null
+  }
+}
+
+async function handleSubstepEvent(state: RunnerState, event: SubstepEvent, forceNumero?: number): Promise<void> {
   const parentNumero = event.parentTestId
-  const prev = state.substepCounters.get(parentNumero) ?? 0
-  const substepNumero = prev + 1
-  state.substepCounters.set(parentNumero, substepNumero)
+  // Use forceNumero (from buffer) if provided, otherwise calculate and increment counter
+  const substepNumero = forceNumero ?? (() => {
+    const prev = state.substepCounters.get(parentNumero) ?? 0
+    const num = prev + 1
+    state.substepCounters.set(parentNumero, num)
+    return num
+  })()
 
   // Find the actual PasoEjecucion ID by numero + ejecucionId
   const paso = await prisma.pasoEjecucion.findFirst({
@@ -210,11 +289,36 @@ async function handleSubstepEvent(state: RunnerState, event: SubstepEvent): Prom
   }).catch(() => null)
 
   if (!paso) {
-    console.warn(`[runner] PasoEjecucion not found for parentTestId=${parentNumero}`)
+    // Buffer the substep to process later when the parent step arrives
+    const pending = state.pendingSubsteps.get(parentNumero) ?? []
+    pending.push(event)
+    state.pendingSubsteps.set(parentNumero, pending)
     return
   }
 
   const logs = state.substepLogBuffers.get(`${parentNumero}:${substepNumero}`) ?? null
+
+  // Procesar capturas (paths vienen del reporter)
+  let capturaActualId: string | null = null
+  let capturaReferenciaId: string | null = null
+
+  if (event.capturaActualPath) {
+    capturaActualId = await ensureArtefacto(
+      state.ejecucionId,
+      event.capturaActualPath,
+      path.basename(event.capturaActualPath),
+      'captura'
+    )
+  }
+
+  if (event.capturaReferenciaPath) {
+    capturaReferenciaId = await ensureArtefacto(
+      state.ejecucionId,
+      event.capturaReferenciaPath,
+      path.basename(event.capturaReferenciaPath),
+      'captura'
+    )
+  }
 
   const insertPromise = prisma.pasoSubaccion.create({
     data: {
@@ -226,7 +330,9 @@ async function handleSubstepEvent(state: RunnerState, event: SubstepEvent): Prom
       estado: event.estado,
       duracionMs: event.duracionMs,
       errorMsg: event.errorMsg ?? null,
-      logs: logs ? (logs as unknown as Prisma.InputJsonValue) : undefined,
+      logs: logs ? (logs as Prisma.JsonValue) : undefined,
+      capturaActualId,
+      capturaReferenciaId,
     },
   }).catch((e) => {
     console.error('[runner] Error inserting substep:', e)
@@ -259,6 +365,80 @@ async function handleAssertionEvent(state: RunnerState, event: AssertionEvent): 
   } else {
     state.assertionCounters.fail++
   }
+}
+
+/**
+ * Maneja el evento captura-test: vincula las capturas de nivel test
+ * (screenshot: 'on') al siguiente substep disponible por orden de ejecución.
+ * No sobrescribe capturas ya existentes.
+ */
+async function handleCapturaTestEvent(state: RunnerState, event: CapturaTestEvent): Promise<void> {
+  // Encontrar el paso por numero (parentTestId = testCounter = pasoNumero)
+  const paso = await prisma.pasoEjecucion.findFirst({
+    where: { ejecucionId: state.ejecucionId, numero: event.parentTestId },
+    select: { id: true },
+  }).catch(() => null)
+
+  if (!paso) {
+    console.warn(`[runner] captura-test: no se encontró paso numero ${event.parentTestId}`)
+    return
+  }
+
+  // Buscar el siguiente substep sin capturaActualId, a partir del cursor
+  const subaccion = await prisma.pasoSubaccion.findFirst({
+    where: {
+      ejecucionId: state.ejecucionId,
+      pasoEjecucionId: paso.id,
+      capturaActualId: null,
+    },
+    orderBy: { numero: 'asc' },
+    select: { id: true },
+  }).catch(() => null)
+
+  if (!subaccion) {
+    console.warn(`[runner] captura-test: no se encontró substep sin captura para paso ${paso.id}`)
+    return
+  }
+
+  // Crear los artefactos si hay paths
+  let capturaActualId: string | null = null
+  let capturaReferenciaId: string | null = null
+
+  if (event.capturaActualPath) {
+    capturaActualId = await ensureArtefacto(
+      state.ejecucionId,
+      event.capturaActualPath,
+      path.basename(event.capturaActualPath),
+      'captura'
+    )
+  }
+
+  if (event.capturaReferenciaPath) {
+    capturaReferenciaId = await ensureArtefacto(
+      state.ejecucionId,
+      event.capturaReferenciaPath,
+      path.basename(event.capturaReferenciaPath),
+      'captura'
+    )
+  }
+
+  // Actualizar el substep con las capturas (si aún no tiene)
+  if (capturaActualId || capturaReferenciaId) {
+    const updateData: { capturaActualId?: string | null; capturaReferenciaId?: string | null } = {}
+    if (capturaActualId) updateData.capturaActualId = capturaActualId
+    if (capturaReferenciaId) updateData.capturaReferenciaId = capturaReferenciaId
+
+    const updatePromise = prisma.pasoSubaccion.update({
+      where: { id: subaccion.id },
+      data: updateData,
+    }).catch((e) => {
+      console.error('[runner] Error vinculando captura-test a substep:', e)
+    })
+    state.pendingInserts.push(updatePromise)
+  }
+
+  // Actualizar cursor
+  state.capturaCursor = { pasoEjecucionId: paso.id, substepNumero: subaccion.numero }
 }
 
 async function handleEndEvent(state: RunnerState, event: EndEvent): Promise<void> {
@@ -367,6 +547,9 @@ export async function runPlaywrightTest(
             break
           case 'assertion':
             handleAssertionEvent(state, event)
+            break
+          case 'captura-test':
+            state.pendingInserts.push(handleCapturaTestEvent(state, event))
             break
           case 'end':
             state.pendingInserts.push(handleEndEvent(state, event))

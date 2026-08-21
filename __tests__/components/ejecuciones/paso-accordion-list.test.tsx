@@ -126,10 +126,24 @@ describe("PasoAccordionList", () => {
   });
 
   it("passes expandedSubaccionId to the expanded PasoAccordionItem", () => {
-    const pasos = makePasosConSubs("paso-1", [
-      { id: "sub-1", numero: 1, descripcion: "sub-1" },
-      { id: "sub-2", numero: 2, descripcion: "sub-2" },
-    ]);
+    const pasos = [{
+      id: "paso-1",
+      numero: 1,
+      descripcion: "Step 1",
+      estado: "paso" as const,
+      duracionMs: 100,
+      selfHealed: false,
+      errorMsg: null,
+      resultadoEsperado: null,
+      resultadoObtenido: null,
+      errorCount: 0,
+      logs: null,
+      createdAt: "2026-08-20T10:00:00Z",
+      subacciones: [
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null, capturaActual: { id: "art-1", tipo: "captura", nombre: "a.png", bytes: 1024 } },
+        { id: "sub-2", numero: 2, descripcion: "sub-2", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null, capturaActual: { id: "art-2", tipo: "captura", nombre: "b.png", bytes: 1024 } },
+      ],
+    }];
     render(<PasoAccordionList pasos={pasos as any} />);
     // Paso 1 ya está expandido por default; clickeamos sub-2 para expandirlo
     const subs = screen.getAllByTestId("subaccion-item");

@@ -6,6 +6,11 @@
 // Los eventos 'log' se emiten vía fixture global (ver lib/fixtures/log-capture.ts)
 //
 // NOTA: Playwright Reporter API requiere una Clase.
+//
+// HU-4.6: Captura TODAS las categorías de TestStep de Playwright:
+// expect, test.step, pw:api, hook, fixture, test.attach
+// Además hace walk recursivo en step.steps[] para capturar sub-steps anidados.
+// Las categorías 'fixture' y 'test.attach' se skippean (ruido/no relevantes).
 
 class JsonReporter {
   constructor() {
@@ -32,7 +37,7 @@ class JsonReporter {
   }
 
   onStepEnd(test, result, step) {
-    // Emit assertion events for expect steps
+    // emit assertion event for expect steps (accounting de ok/fail)
     if (step.category === 'expect') {
       this.assertionCounters.total++
       const ok = !step.error
@@ -46,12 +51,33 @@ class JsonReporter {
         ok,
       }
       this._emit(assertionEvent)
+      // También emitimos substep para que aparezca en el acordeón
+      this._emitSubstep(test, step)
+      // Walk recursivo por si hay steps anidados
+      this._walkStepSteps(test, step)
       return
     }
 
-    // Skip non-substep categories
-    if (step.category !== 'test.step') return
+    // Skip 'fixture' (metadata interno) y 'test.attach' (metadata de attachment)
+    if (step.category === 'fixture' || step.category === 'test.attach') return
 
+    // hook, pw:api, test.step → emitimos substep
+    this._emitSubstep(test, step)
+    // Walk recursivo por si hay steps anidados
+    this._walkStepSteps(test, step)
+  }
+
+  // Walk recursivo por step.steps[] (sub-steps anidados de Playwright)
+  _walkStepSteps(test, step) {
+    if (!step.steps || step.steps.length === 0) return
+    for (const childStep of step.steps) {
+      this._emitSubstep(test, childStep)
+      this._walkStepSteps(test, childStep)
+    }
+  }
+
+  // Helper para emitir un evento substep
+  _emitSubstep(test, step) {
     const parentTestId = this.testCounter
     const prev = this.substepCounters.get(parentTestId) ?? 0
     const numero = prev + 1
@@ -59,19 +85,71 @@ class JsonReporter {
 
     const estado = step.error ? 'fallo' : 'paso'
 
+    // Extraer captura actual y referencia de los attachments
+    const { capturaActualPath, capturaReferenciaPath } = this._extractCapturePaths(step.attachments || [])
+
     const substepEvent = {
       type: 'substep',
       parentTestId,
       numero,
-      tipo: this._classifyStepType(step.title),
+      tipo: this._classifyStepType(step.category, step.title),
       descripcion: step.title,
       estado,
       duracionMs: step.duration,
       errorMsg: step.error ? this._extractErrorMsg(step.error) : null,
-      capturaActualPath: null,
-      capturaReferenciaPath: null,
+      capturaActualPath,
+      capturaReferenciaPath,
     }
     this._emit(substepEvent)
+  }
+
+  // Extrae captura actual y referencia de los attachments de un step
+  // toHaveScreenshot genera: foo-actual.png, foo-expected.png, foo-diff.png
+  _extractCapturePaths(attachments) {
+    // Aceptar tanto contentType de imagen como extensiones de archivo .png/.webp
+    // Playwright a veces no setea contentType correctamente en attachments
+    const imageAttachments = attachments.filter(a => {
+      if (a.path && /\.(png|webp)$/i.test(a.path)) return true
+      if (a.contentType?.startsWith('image/')) return true
+      return false
+    })
+
+    if (imageAttachments.length === 0) {
+      return { capturaActualPath: null, capturaReferenciaPath: null }
+    }
+
+    // Buscar por nombre de attachment (name) y por path
+    // toHaveScreenshot naming: foo-actual.png, foo-expected.png, foo-diff.png
+    const actual = imageAttachments.find(a =>
+      /actual/i.test(a.name) || (a.path && /actual/i.test(a.path))
+    )
+    const expected = imageAttachments.find(a =>
+      /expected|reference/i.test(a.name) || (a.path && /expected|reference/i.test(a.path))
+    )
+
+    // Si encontramos actual+expected, usar ambos
+    if (actual && expected) {
+      return {
+        capturaActualPath: actual.path ?? null,
+        capturaReferenciaPath: expected.path ?? null,
+      }
+    }
+
+    // Caso contrario usar el primero como actual, segundo como referencia
+    return {
+      capturaActualPath: imageAttachments[0].path ?? null,
+      capturaReferenciaPath: imageAttachments.length > 1 ? (imageAttachments[1].path ?? null) : null,
+    }
+  }
+
+  // Clasifica el tipo de step según categoría y título
+  _classifyStepType(category, title) {
+    if (category === 'hook') return 'setup'
+    if (category === 'expect') return 'assertion'
+    const t = (title || '').toLowerCase()
+    if (t.includes('navigate') || t.includes('goto') || t.includes('visit')) return 'navigate'
+    if (t.includes('click') || t.includes('fill') || t.includes('type') || t.includes('press') || t.includes('select') || t.includes('check')) return 'action'
+    return 'other'
   }
 
   onTestEnd(test, result) {
@@ -110,6 +188,25 @@ class JsonReporter {
       errorCount,
     }
     this._emit(event)
+
+    // Emitir evento captura-test con las imágenes de nivel test (screenshot: 'on')
+    // Estas capturas vienen en result.attachments, no en step.attachments
+    const testAttachments = (result.attachments || []).filter(a => {
+      if (a.path && /\.(png|webp)$/i.test(a.path)) return true
+      if (a.contentType?.startsWith('image/')) return true
+      return false
+    })
+
+    if (testAttachments.length > 0) {
+      const capturaPaths = this._extractCapturePaths(testAttachments)
+      const capturaTestEvent = {
+        type: 'captura-test',
+        parentTestId: this.testCounter,
+        capturaActualPath: capturaPaths.capturaActualPath,
+        capturaReferenciaPath: capturaPaths.capturaReferenciaPath,
+      }
+      this._emit(capturaTestEvent)
+    }
   }
 
   onEnd(result) {
@@ -160,15 +257,6 @@ class JsonReporter {
     if (!error) return null
     if (typeof error === 'string') return error
     return error.message ?? error.toString?.() ?? null
-  }
-
-  _classifyStepType(title) {
-    const t = (title || '').toLowerCase()
-    if (t.includes('assert') || t.includes('expect') || t.includes('verify')) return 'assertion'
-    if (t.includes('navigate') || t.includes('goto') || t.includes('visit')) return 'navigate'
-    if (t.includes('setup') || t.includes('before') || t.includes('after')) return 'setup'
-    if (t.includes('click') || t.includes('fill') || t.includes('type') || t.includes('press') || t.includes('select')) return 'action'
-    return 'other'
   }
 }
 

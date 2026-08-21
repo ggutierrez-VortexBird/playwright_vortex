@@ -122,7 +122,7 @@ describe("PasoAccordionItem", () => {
     const onToggleSubaccion = jest.fn();
     const paso = makePaso({
       subacciones: [
-        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null },
+        { id: "sub-1", numero: 1, descripcion: "sub-1", estado: "paso", duracionMs: 100, tipo: "action", errorMsg: null, logs: null, capturaActual: { id: "art-1", tipo: "captura", nombre: "a.png", bytes: 1024 } },
       ],
     });
     render(

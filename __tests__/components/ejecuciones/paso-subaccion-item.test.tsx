@@ -20,18 +20,37 @@ function makeSubaccion(overrides: Partial<Parameters<typeof PasoSubaccionItem>[0
   };
 }
 
+function makeSubaccionConCapturas(overrides: Partial<Parameters<typeof PasoSubaccionItem>[0]["subaccion"]> = {}) {
+  return {
+    ...makeSubaccion({ capturaActual: { id: "art-1", tipo: "captura", nombre: "actual.png", bytes: 1024 } }),
+    ...overrides,
+  };
+}
+
 describe("PasoSubaccionItem", () => {
   it("renderiza header con número, descripción y tipo", () => {
-    render(<PasoSubaccionItem subaccion={makeSubaccion()} expanded={false} onToggle={jest.fn()} />);
+    render(<PasoSubaccionItem subaccion={makeSubaccionConCapturas()} expanded={false} onToggle={jest.fn()} />);
     expect(screen.getByText("Click button")).toBeInTheDocument();
     expect(screen.getByText("action")).toBeInTheDocument();
   });
 
   it("llama onToggle al hacer click", () => {
     const onToggle = jest.fn();
-    render(<PasoSubaccionItem subaccion={makeSubaccion()} expanded={false} onToggle={onToggle} />);
+    render(<PasoSubaccionItem subaccion={makeSubaccionConCapturas()} expanded={false} onToggle={onToggle} />);
     fireEvent.click(screen.getByRole("button"));
     expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("no renderiza button cuando substep no tiene capturas", () => {
+    render(<PasoSubaccionItem subaccion={makeSubaccion()} expanded={false} onToggle={jest.fn()} />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("renderiza Camera icon cuando tiene capturas", () => {
+    render(<PasoSubaccionItem subaccion={makeSubaccionConCapturas()} expanded={false} onToggle={jest.fn()} />);
+    // Lucide icons render as svg; query by class prefix
+    const cameraIcon = document.querySelector('svg[class*="lucide-camera"]');
+    expect(cameraIcon).toBeInTheDocument();
   });
 
   it("muestra panel con capturas cuando expanded=true", () => {
@@ -50,21 +69,13 @@ describe("PasoSubaccionItem", () => {
     expect(screen.getByText("Element not found")).toBeInTheDocument();
   });
 
-  it("muestra logs en panel cuando expanded=true", () => {
-    const sub = makeSubaccion({
-      logs: [{ ts: "10:00:00", level: "error", msg: "click failed", source: "page" }],
-    });
-    render(<PasoSubaccionItem subaccion={sub} expanded={true} onToggle={jest.fn()} />);
-    expect(screen.getByText(/click failed/)).toBeInTheDocument();
-  });
-
   it("aplica animación write-in cuando es nuevo", () => {
     render(<PasoSubaccionItem subaccion={makeSubaccion()} expanded={false} onToggle={jest.fn()} isNew />);
     expect(screen.getByTestId("subaccion-item")).toHaveClass("new");
   });
 
   it("muestra fallback 'Evidencia no disponible' cuando la imagen falla al cargar", () => {
-    const sub = makeSubaccion({
+    const sub = makeSubaccionConCapturas({
       capturaActual: { id: "art-1", tipo: "captura", nombre: "actual.png", bytes: 1024 },
       capturaReferencia: { id: "art-2", tipo: "captura", nombre: "ref.png", bytes: 1024 },
     });

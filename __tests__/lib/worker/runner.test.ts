@@ -22,6 +22,10 @@ jest.mock("@/lib/db", () => ({
   prisma: {
     pasoEjecucion: {
       create: jest.fn(),
+      findFirst: jest.fn(),
+    },
+    pasoSubaccion: {
+      create: jest.fn(),
     },
   },
 }));
@@ -173,6 +177,40 @@ describe("runPlaywrightTest — state mapping (AC-11)", () => {
     await expect(
       runPlaywrightTest("/tmp/test.spec.ts", "ejec-1")
     ).rejects.toThrow(/Playwright exited with code 2/);
+  });
+
+  it("bufferiza substeps que llegan antes del step y los inserta cuando llega el step", async () => {
+    // El reporter emite substep ANTES de step (porque onStepEnd se llama antes de onTestEnd)
+    const stdoutData =
+      '{"type":"substep","parentTestId":1,"numero":1,"tipo":"assertion","descripcion":"expect(page).toHaveTitle","estado":"paso","duracionMs":50,"errorMsg":null}\n' +
+      '{"type":"step","numero":1,"descripcion":"Navegar a /login","estado":"paso","duracionMs":1234,"selfHealed":false,"errorMsg":null}\n'
+
+    mockProcess({
+      stdoutData,
+      exitCode: 0,
+    });
+
+    // Mock que el paso existe cuando se busca para insertar el substep
+    (prisma.pasoEjecucion.findFirst as jest.Mock).mockResolvedValue({ id: "paso-1" });
+    (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({ id: "paso-1" });
+    (prisma.pasoSubaccion.create as jest.Mock).mockResolvedValue({ id: "substep-1" });
+
+    const { runPlaywrightTest } = await import("@/lib/worker/runner");
+    await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1");
+
+    // Verificar que se creó el paso
+    expect(prisma.pasoEjecucion.create).toHaveBeenCalledTimes(1);
+    // Verificar que se creó el substep
+    expect(prisma.pasoSubaccion.create).toHaveBeenCalledTimes(1);
+    expect(prisma.pasoSubaccion.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          descripcion: "expect(page).toHaveTitle",
+          tipo: "assertion",
+          pasoEjecucionId: "paso-1",
+        }),
+      })
+    );
   });
 });
 

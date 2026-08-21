@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { Camera } from 'lucide-react'
+import { useCallback, useState, useEffect } from 'react'
 
 interface Subaccion {
   id: string
@@ -24,6 +25,14 @@ interface Props {
 
 function SafeArtefactoImage({ src, alt, borderClass }: { src: string; alt: string; borderClass: string }) {
   const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Reset error and loading states when src changes
+  useEffect(() => {
+    setError(false)
+    setLoading(true)
+  }, [src])
+
   return (
     <div className={`aspect-video bg-gray-100 rounded-lg ${borderClass} overflow-hidden shadow-sm relative`}>
       {error ? (
@@ -34,8 +43,12 @@ function SafeArtefactoImage({ src, alt, borderClass }: { src: string; alt: strin
         <img
           src={src}
           alt={alt}
-          className="object-cover w-full h-full"
-          onError={() => setError(true)}
+          className={`object-cover w-full h-full ${loading ? 'hidden' : ''}`}
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setError(true)
+            setLoading(false)
+          }}
         />
       )}
     </div>
@@ -74,84 +87,101 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
   }, [onToggle])
 
   const panelId = `subpanel-${subaccion.id}`
+  const hasCapturas = subaccion.capturaActual || subaccion.capturaReferencia
 
-  const logs: Array<{ ts: string; level: string; msg: string; source: string }> =
-    Array.isArray(subaccion.logs) ? subaccion.logs : []
+  if (hasCapturas) {
+    return (
+      <div
+        data-testid="subaccion-item"
+        className={`border border-gray-200 rounded-md overflow-hidden ${isNew ? 'new' : ''}`}
+      >
+        <button
+          type="button"
+          role="button"
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          onClick={onToggle}
+          onKeyDown={handleKeyDown}
+          className="w-full text-left px-4 py-3 flex items-center gap-3 bg-white hover:bg-gray-50 transition-colors"
+        >
+          <Camera className="w-4 h-4 text-blue-500 flex-shrink-0" />
+          <span className="text-xs font-medium text-gray-400 mono w-5">
+            {subaccion.numero}
+          </span>
+          <span className="text-sm text-gray-700 flex-1 truncate">
+            {subaccion.descripcion}
+          </span>
+          {subaccion.errorMsg && (
+            <span className="text-xs text-red-600 truncate max-w-[200px]">{subaccion.errorMsg}</span>
+          )}
+          <span className="text-[10px] uppercase tracking-wider text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded">
+            {subaccion.tipo}
+          </span>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusClasses(subaccion.estado)}`}>
+            {statusLabel(subaccion.estado)}
+          </span>
+          <span className="text-xs text-gray-400 mono">{formatDuration(subaccion.duracionMs)}</span>
+        </button>
+
+        {expanded && (
+          <div id={panelId} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
+            {(subaccion.capturaActual || subaccion.capturaReferencia) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {subaccion.capturaActual && (
+                  <div className="relative">
+                    <p className="mb-1 text-xs font-medium text-red-700 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                      Captura actual
+                    </p>
+                    <SafeArtefactoImage
+                      src={`/api/artefactos/${subaccion.capturaActual.id}`}
+                      alt="Captura actual del error"
+                      borderClass="border border-red-200"
+                    />
+                  </div>
+                )}
+                {subaccion.capturaReferencia && (
+                  <div className="relative">
+                    <p className="mb-1 text-xs font-medium text-green-700 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                      Referencia esperada
+                    </p>
+                    <SafeArtefactoImage
+                      src={`/api/artefactos/${subaccion.capturaReferencia.id}`}
+                      alt="Referencia esperada"
+                      borderClass="border border-green-200"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
       data-testid="subaccion-item"
-      className={`border border-gray-200 rounded-md overflow-hidden ${isNew ? 'new' : ''}`}
+      className={`border border-gray-200 rounded-md px-4 py-3 flex items-center gap-3 bg-gray-50 opacity-60 ${isNew ? 'new' : ''}`}
     >
-      <button
-        type="button"
-        role="button"
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        onClick={onToggle}
-        onKeyDown={handleKeyDown}
-        className="w-full text-left px-4 py-3 flex items-center gap-3 bg-white hover:bg-gray-50 transition-colors"
-      >
-        <span className="text-xs font-medium text-gray-400 mono w-5">
-          {subaccion.numero}
-        </span>
-        <span className="text-sm text-gray-700 flex-1 truncate">
-          {subaccion.descripcion}
-        </span>
-        {subaccion.errorMsg && (
-          <span className="text-xs text-red-600 truncate max-w-[200px]">{subaccion.errorMsg}</span>
-        )}
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded">
-          {subaccion.tipo}
-        </span>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusClasses(subaccion.estado)}`}>
-          {statusLabel(subaccion.estado)}
-        </span>
-        <span className="text-xs text-gray-400 mono">{formatDuration(subaccion.duracionMs)}</span>
-      </button>
-
-      {expanded && (
-        <div id={panelId} className="px-4 py-4 bg-gray-50 border-t border-gray-100 space-y-4">
-          {logs.length > 0 && (
-            <pre className="bg-gray-900 text-gray-300 p-3 rounded-md text-xs mono overflow-x-auto border border-gray-800 max-h-[200px] overflow-y-auto">
-              {logs.map((log, i) => (
-                <div key={i}>[{log.ts}] {log.level.toUpperCase()}: {log.msg}</div>
-              ))}
-            </pre>
-          )}
-
-          {(subaccion.capturaActual || subaccion.capturaReferencia) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {subaccion.capturaActual && (
-                <div className="relative">
-                  <p className="mb-1 text-xs font-medium text-red-700 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                    Captura actual
-                  </p>
-                  <SafeArtefactoImage
-                    src={`/api/artefactos/${subaccion.capturaActual.id}`}
-                    alt="Captura actual del error"
-                    borderClass="border border-red-200"
-                  />
-                </div>
-              )}
-              {subaccion.capturaReferencia && (
-                <div className="relative">
-                  <p className="mb-1 text-xs font-medium text-green-700 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
-                    Referencia esperada
-                  </p>
-                  <SafeArtefactoImage
-                    src={`/api/artefactos/${subaccion.capturaReferencia.id}`}
-                    alt="Referencia esperada"
-                    borderClass="border border-green-200"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      <span className="text-xs font-medium text-gray-400 mono w-5">
+        {subaccion.numero}
+      </span>
+      <span className="text-sm text-gray-500 flex-1 truncate">
+        {subaccion.descripcion}
+      </span>
+      {subaccion.errorMsg && (
+        <span className="text-xs text-red-600 truncate max-w-[200px]">{subaccion.errorMsg}</span>
       )}
+      <span className="text-[10px] uppercase tracking-wider text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded">
+        {subaccion.tipo}
+      </span>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusClasses(subaccion.estado)}`}>
+        {statusLabel(subaccion.estado)}
+      </span>
+      <span className="text-xs text-gray-400 mono">{formatDuration(subaccion.duracionMs)}</span>
     </div>
   )
 }

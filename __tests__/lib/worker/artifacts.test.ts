@@ -13,12 +13,14 @@ jest.mock("@/lib/db", () => ({
       create: jest.fn().mockImplementation((args: any) =>
         Promise.resolve({ id: `art-${args.data.nombre}`, ...args.data })
       ),
+      findFirst: jest.fn().mockResolvedValue(null),
+      update: jest.fn(),
     },
     pasoEjecucion: {
       findMany: jest.fn(),
     },
     pasoSubaccion: {
-      findFirst: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn(),
     },
   },
@@ -219,6 +221,52 @@ describe("collectArtifacts", () => {
         data: { capturaReferenciaId: expect.any(String) },
       })
     );
+  });
+
+  it("vincula captura automática de Playwright (test-name-1.png) al primer substep", async () => {
+    // Playwright naming: test-title-1.png, test-title-2.png (automatic screenshots)
+    (fs.readdirSync as jest.Mock).mockReturnValue(["test-navigate-to-login-1.png"]);
+    (prisma.pasoEjecucion.findMany as jest.Mock).mockResolvedValue([
+      { id: "paso-1", numero: 1, descripcion: "Navegar al login" },
+    ]);
+    (prisma.pasoSubaccion.findFirst as jest.Mock).mockResolvedValue({
+      id: "sub-1",
+      pasoEjecucionId: "paso-1",
+      numero: 1,
+      capturaActualId: null, // No tiene captura aún
+    });
+    mockHash("hash-auto-1");
+    mockReadStream(Buffer.from("fake-auto-screenshot"));
+
+    await collectArtifacts("ejec-1", "/tmp/output/ejec-1");
+
+    expect(prisma.pasoSubaccion.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "sub-1" },
+        data: { capturaActualId: expect.any(String) },
+      })
+    );
+  });
+
+  it("no sobrescribe capturaActualId si ya existe (captura automática)", async () => {
+    (fs.readdirSync as jest.Mock).mockReturnValue(["test-action-1.png"]);
+    (prisma.pasoEjecucion.findMany as jest.Mock).mockResolvedValue([
+      { id: "paso-1", numero: 1, descripcion: "Click botón" },
+    ]);
+    // Substep ya tiene captura (de toHaveScreenshot)
+    (prisma.pasoSubaccion.findFirst as jest.Mock).mockResolvedValue({
+      id: "sub-1",
+      pasoEjecucionId: "paso-1",
+      numero: 1,
+      capturaActualId: "existing-capture", // Ya tiene captura
+    });
+    mockHash("hash-auto-1");
+    mockReadStream(Buffer.from("fake-auto-screenshot"));
+
+    await collectArtifacts("ejec-1", "/tmp/output/ejec-1");
+
+    // No debe actualizar porque ya tiene captura
+    expect(prisma.pasoSubaccion.update).not.toHaveBeenCalled();
   });
 
   it("salta archivo gracefully cuando renameSync falla (Windows EPERM)", async () => {
