@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="100%" height="100%">
+  <defs>
+    <!-- Degradado Lupa -->
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    
+    <linearGradient id="handleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+
+    <!-- Degradados Texto -->
+    <linearGradient id="atheGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+
+    <linearGradient id="appGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fab662" />
+      <stop offset="100%" stop-color="#f39b2b" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(5, 5)">
+    <!-- Ícono Lupa vectorizado -->
+    <g transform="translate(5, 5)">
+      <!-- Anillo exterior -->
+      <circle cx="30" cy="30" r="22" fill="none" stroke="url(#ringGrad)" stroke-width="6" />
+      <!-- Cristal interno -->
+      <circle cx="30" cy="30" r="19" fill="#00f2ff" fill-opacity="0.08" />
+      <!-- Brillo del cristal -->
+      <path d="M 16,24 A 16,16 0 0,1 36,14" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+      <!-- Mango -->
+      <path d="M 46,46 L 60,60" stroke="url(#handleGrad)" stroke-width="6" stroke-linecap="round" />
+      <!-- Destello/Estela inferior -->
+      <path d="M 12,56 Q 38,65 68,52" fill="none" stroke="url(#atheGrad)" stroke-width="1.5" stroke-linecap="round" opacity="0.5" />
+    </g>
+
+    <!-- Texto Athe App -->
+    <text x="70" y="46" fill="url(#atheGrad)" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="700">Athe</text>
+    <text x="145" y="46" fill="url(#appGrad)" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="700">App</text>
+  </g>
+</svg>

@@ -41,7 +41,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
       setActiveProject(proyecto);
     }
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink">
+      <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-white">
         <span
           className="sw-mark"
           style={{ backgroundColor: proyecto.espacio.color }}
@@ -57,7 +57,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded px-3 py-1.5 text-sm text-ink hover:bg-rule-soft"
+        className="flex items-center gap-2 rounded px-3 py-1.5 text-sm text-white hover:bg-white/10"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
@@ -70,7 +70,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
             <span>{activeProyecto.nombre}</span>
           </>
         ) : (
-          <span className="text-ink-3">Seleccionar proyecto</span>
+          <span className="text-white/60">Seleccionar proyecto</span>
         )}
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -90,11 +90,11 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-64 rounded border border-rule bg-surface py-1 shadow-lg"
+          className="absolute left-0 top-full z-50 mt-1 min-w-64 rounded border border-white/20 bg-ink py-1 shadow-lg"
           role="listbox"
         >
           {proyectos.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-ink-3">
+            <div className="px-3 py-2 text-sm text-white/60">
               No hay proyectos activos
             </div>
           ) : (
@@ -107,7 +107,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
                   setActiveProject(proyecto);
                   router.push(`/proyectos/${proyecto.id}/casos`);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-rule-soft"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10"
                 role="option"
                 aria-selected={proyecto.id === (activeProyectoIdFromUrl ?? activeProject?.id)}
               >
@@ -116,8 +116,8 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
                   style={{ backgroundColor: proyecto.espacio.color }}
                 />
                 <span className="font-medium">{proyecto.nombre}</span>
-                <span className="text-ink-3">·</span>
-                <span className="text-ink-3 truncate">{proyecto.espacio.nombre}</span>
+                <span className="text-white/40">·</span>
+                <span className="text-white/60 truncate">{proyecto.espacio.nombre}</span>
               </button>
             ))
           )}

@@ -134,7 +134,7 @@
   }
 
   .eyebrow {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     letter-spacing: 0.13em;
     text-transform: uppercase;
@@ -145,7 +145,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     font-weight: 500;
     padding: 3px 9px;
@@ -180,7 +180,7 @@
   }
 
   .chip-param {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11.5px;
     color: var(--param);
     background: #efeef7;
@@ -189,7 +189,7 @@
     padding: 1px 6px;
   }
   .chip-secret {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11.5px;
     color: var(--ink-3);
     background: var(--paper);
@@ -264,7 +264,7 @@
     background: #f7fafb;
   }
   .step .no {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11.5px;
     font-weight: 500;
     color: var(--ink-3);
@@ -277,7 +277,7 @@
     line-height: 1.5;
   }
   .step .meta {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     color: var(--ink-3);
     margin-top: 3px;
@@ -309,7 +309,7 @@
     border-collapse: collapse;
   }
   .table-mockup th {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     letter-spacing: 0.11em;
     text-transform: uppercase;
@@ -335,7 +335,7 @@
     font-weight: 500;
   }
   .tmeta {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
   }
@@ -360,7 +360,7 @@
     flex-wrap: wrap;
   }
   .run-stat div .k {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -370,7 +370,7 @@
     font-size: 17px;
     font-weight: 600;
     margin-top: 4px;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   .rstep {
     display: grid;
@@ -383,13 +383,13 @@
     border-top: 1px solid var(--rule-soft);
   }
   .rstep .no {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11.5px;
     color: var(--ink-3);
     text-align: right;
   }
   .rstep .dur {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
   }
@@ -399,7 +399,7 @@
     line-height: 1.5;
   }
   .rstep .desc-meta {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     color: var(--ink-3);
     margin-top: 3px;
@@ -428,7 +428,7 @@
     right: 12px;
     background: rgba(168, 50, 42, 0.92);
     color: #fff;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     padding: 3px 8px;
     border-radius: 3px;
@@ -480,7 +480,7 @@
     position: absolute;
     left: 5px;
     bottom: 4px;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 9.5px;
     color: var(--ink-3);
   }
@@ -501,7 +501,7 @@
     font-size: 13.5px;
   }
   .cred-row .dt {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
     margin-top: 2px;
@@ -531,7 +531,7 @@
     border-top: 3px solid;
   }
   .pc-client {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -551,14 +551,14 @@
     background: #fafcfd;
   }
   .pc-stats .k {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 9.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-3);
   }
   .pc-stats .v {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 15px;
     font-weight: 600;
     margin-top: 3px;
@@ -566,7 +566,7 @@
   .pc-foot {
     padding: 11px 18px;
     border-top: 1px solid var(--rule-soft);
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     color: var(--ink-3);
     display: flex;
@@ -579,7 +579,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
   }
@@ -607,7 +607,7 @@
     letter-spacing: -0.01em;
   }
   .topbar .sub {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
   }
@@ -620,7 +620,7 @@
     width: var(--rail);
     flex: 0 0 var(--rail);
     background: var(--ink);
-    color: #c8d4de;
+    color: #fff;
     display: flex;
     flex-direction: column;
     position: sticky;
@@ -640,7 +640,7 @@
   }
   .rail .brand p {
     font-size: 11px;
-    color: #7d91a3;
+    color: #fff;
     margin-top: 3px;
     letter-spacing: 0.02em;
   }
@@ -658,7 +658,7 @@
     padding: 9px 12px;
     border-radius: 5px;
     font-size: 13.5px;
-    color: #a9baca;
+    color: #fff;
     text-decoration: none;
   }
   .rail .nav a:hover {
@@ -681,9 +681,9 @@
   .rail .rail-foot {
     margin-top: auto;
     padding: 16px 20px;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
-    color: #5e7286;
+    color: #fff;
     line-height: 1.6;
     border-top: 1px solid rgba(255, 255, 255, 0.09);
   }
@@ -712,7 +712,7 @@
     border-bottom: none;
   }
   .param-val {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 12px;
     color: var(--ink-2);
   }
@@ -755,14 +755,14 @@
     border-bottom: 1px solid var(--rule-soft);
   }
   .meta-grid .k {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-3);
   }
   .meta-grid .v {
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 12px;
     color: var(--ink);
     margin-top: 3px;
@@ -774,7 +774,7 @@
     background: var(--paper);
     border: 1px solid var(--rule);
     border-radius: 4px;
-    font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-2);
     line-height: 1.7;
