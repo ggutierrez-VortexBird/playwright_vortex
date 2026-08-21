@@ -806,3 +806,33 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- dialog modal ---------- */
+dialog {
+  border: none;
+  padding: 0;
+  max-width: 100%;
+  max-height: 100%;
+  background: transparent;
+  margin: auto;
+}
+
+dialog::backdrop {
+  background: rgba(19, 30, 43, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+dialog[open] {
+  animation: dialogFadeIn 0.2s ease-out;
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
