@@ -368,6 +368,20 @@ Una vez corregidos, re-correr `npm test` + manual gate con `npm run dev` para va
 
 ---
 
+## Limitaciones conocidas
+
+### W3 — Reconexión tras refresh del navegador
+
+Actualmente la WS handshake usa CAS atómico (ver CRITICAL C1 arriba): un token se marca `tokenUsado=true` al primer WS connect exitoso. Cualquier reconexión posterior con el mismo token — incluido un refresh del navegador que reabre WS — recibe close code 4001 con mensaje "token ya utilizado o no existe".
+
+El cliente UI mitiga mostrando "Token inválido o ya utilizado. Vuelve a iniciar la grabación.", pero la sesión queda muerta. Esto entra en tensión con el design.md original ("Reconexión usa el mismo token mientras la sesión esté activa") pero matchea la spec literal ("Token de un solo uso").
+
+Para soportar reconexión transparente tras refresh, se requiere refactor del `SessionEntry` para trackear el cliente activo en memoria (no en DB) y permitir reconexión mientras no haya cliente concurrente. Esto se difiere a una HU posterior (probablemente HU-G8 "Reanudar sesión").
+
+**Status**: deferred — no code changes en este fix-and-retry.
+
+---
+
 ## Próximos pasos
 
 ### Antes del MERGE (fix-and-retry)
