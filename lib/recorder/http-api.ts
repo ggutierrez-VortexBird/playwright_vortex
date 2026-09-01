@@ -22,6 +22,7 @@ import { launchSession, UrlInaccesibleError } from "./launch-session";
 import { startScreencast } from "./screencast";
 import { WS_CLOSE_URL_FAILED } from "./types";
 import type { WebSocket as WsServerSocket } from "ws";
+import type { EventoDom } from "@/lib/grabador/translator";
 
 export interface HttpApiOptions {
   port: number;
@@ -35,6 +36,8 @@ export interface HttpApiOptions {
   /** Para inyectar mocks en tests (inyectar launchSession + screencast) */
   launchSessionImpl?: typeof launchSession;
   startScreencastImpl?: typeof startScreencast;
+  /** HU-G3: handler invocado por cada DOM event reportado desde el browser. */
+  onReport?: (sessionId: string, evento: EventoDom) => void | Promise<void>;
 }
 
 interface StartBody {
@@ -129,6 +132,11 @@ async function handleStart(ctx: ApiContext, req: IncomingMessage, res: ServerRes
         sessionId: body.sessionId,
         urlInicial: body.urlInicial,
         storageState: body.storageState,
+        // HU-G3: wire the report handler so the browser-side init script
+        // can deliver captured DOM events to the recorder-worker.
+        onReport: ctx.options.onReport
+          ? (evento) => ctx.options.onReport!(body.sessionId, evento)
+          : undefined,
       });
 
       // Reemplazar entry con los reales

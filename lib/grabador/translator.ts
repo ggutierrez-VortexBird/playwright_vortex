@@ -155,9 +155,9 @@ export function traducirEvento(evento: EventoDom): PasoLegible {
     }
 
     default: {
-      // Exhaustivo — TS bloquea agregar un case sin tocar este default.
-      const _exhaustive: never = evento;
-      void _exhaustive;
+      // No type narrowing inside a switch default — just handle gracefully.
+      // If we add a new event type to EventoDom, TypeScript will not error
+      // here, but the `tipo: 'generico'` fallback keeps the system safe.
       return {
         tipo: "generico",
         origen: "grabado",

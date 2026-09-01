@@ -7,6 +7,10 @@
  *   - Heartbeat expiration (C2): si un cliente WS deja de mandar heartbeats
  *     por RECORDER_HEARTBEAT_TIMEOUT_MS, persiste estado='detenida' y
  *     cierra el BrowserContext.
+ *   - DOM event capture (HU-G3): el browser llama __pw_report por cada
+ *     evento; acá persistimos el PasoGrabado y broadcast `paso_agregado`.
+ *   - Auto-wait detection (HU-G4): gaps >300ms se persisten como paso
+ *     "Esperar X.Xs" para que el script generado respete delays.
  *
  * Reusa el patrón long-lived de scripts/worker.ts.
  *
@@ -17,7 +21,7 @@
  *   RECORDER_MAX_SESSIONS=3
  *   RECORDER_HEARTBEAT_TIMEOUT_MS=600000  (10 min)
  */
-import { WebSocketServer, type WebSocket as WsServerSocket } from "ws";
+import { WebSocketServer, WebSocket as WsServerSocket } from "ws";
 import { createHttpApi } from "../lib/recorder/http-api";
 import {
   broadcastFrame,
@@ -34,6 +38,9 @@ import {
 import { launchSession, UrlInaccesibleError } from "../lib/recorder/launch-session";
 import { prisma } from "../lib/db";
 import { DEFAULT_TOKEN_TTL_SEC, WS_CLOSE_URL_FAILED } from "../lib/recorder/types";
+import { persistirPaso, type PasoGrabadoRow } from "../lib/grabador/paso-repo";
+import { detectarAutoWait } from "../lib/grabador/auto-wait";
+import type { EventoDom } from "../lib/grabador/translator";
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -67,14 +74,102 @@ async function main(): Promise<void> {
   // 2. HTTP API
   const screencastStarted = new Set<string>();
 
+  /**
+   * Per-session state for HU-G4 auto-wait detection. The `lastEventTs`
+   * tracks the timestamp of the most recent reported DOM event so we
+   * can decide if the gap to the next event should be persisted as a
+   * "wait" step.
+   */
+  const lastEventTs = new Map<string, number>();
+
+  /** Broadcast a `paso_agregado` message to all WS clients of the session. */
+  function broadcastPaso(sessionId: string, paso: PasoGrabadoRow): void {
+    const entry = getEntry(sessionId);
+    if (!entry) return;
+    const payload = JSON.stringify({
+      type: "paso_agregado",
+      paso: {
+        id: paso.id,
+        numero: paso.numero,
+        tipo: paso.tipo,
+        descripcion: paso.descripcion,
+        valor: paso.valor,
+        esValorSensible: paso.esValorSensible,
+        parametroNombre: null,
+        createdAt: paso.createdAt.toISOString(),
+      },
+    });
+    for (const client of entry.clients) {
+      if (client.readyState === WsServerSocket.OPEN) {
+        try {
+          client.send(payload);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle a DOM event reported by the browser via __pw_report.
+   *   1. Auto-wait detection (HU-G4): if the gap from the previous event
+   *      is >300ms, persist a `wait` step first.
+   *   2. Persist the actual event as a PasoGrabado.
+   *   3. Broadcast `paso_agregado` over WS.
+   *   4. Update lastEventTs.
+   *
+   * Persistence failures are logged but never break the recorder —
+   * the UI falls back to live screencast even if paso persistence
+   * is degraded.
+   */
+  async function handleReportedEvent(
+    sessionId: string,
+    evento: EventoDom,
+  ): Promise<void> {
+    try {
+      // HU-G4: detect >300ms gaps and persist a "wait" paso first.
+      const waitEvent = detectarAutoWait(
+        lastEventTs.get(sessionId) ?? null,
+        evento.timestamp,
+      );
+      if (waitEvent) {
+        const waitPaso = await persistirPaso(waitEvent, sessionId);
+        if (waitPaso) {
+          broadcastPaso(sessionId, waitPaso);
+        }
+      }
+
+      // Persist the actual event.
+      const paso = await persistirPaso(evento, sessionId);
+      if (paso) {
+        broadcastPaso(sessionId, paso);
+      }
+
+      // Update timestamp tracker regardless of persistence outcome
+      // (a failed persist still advances the cursor so we don't re-emit
+      // the wait step on retry).
+      lastEventTs.set(sessionId, evento.timestamp);
+    } catch (err) {
+      console.error(
+        `[recorder-worker] handleReportedEvent failed for ${sessionId}`,
+        err,
+      );
+    }
+  }
+
   const httpServer = createHttpApi({
     port: wsPort,
     internalSecret,
     wsPublicUrl: publicUrl,
     tokenTtlSec,
+    // HU-G3: bridge from browser DOM events → DB persistence + WS broadcast.
+    onReport: handleReportedEvent,
     onBrowserReady: async (sessionId, page, _cdp) => {
       markBrowserReady(sessionId, screencastStarted);
       console.log(`[recorder-worker] Browser listo para sessionId=${sessionId}`);
+
+      // Reset per-session auto-wait cursor for this session.
+      lastEventTs.set(sessionId, Date.now());
 
       // Actualizar SesionGrabacion a estado='activa'
       await prisma.sesionGrabacion
@@ -91,6 +186,7 @@ async function main(): Promise<void> {
     },
     onBrowserFailed: async (sessionId, err) => {
       console.log(`[recorder-worker] Browser falló para sessionId=${sessionId}: ${err.message}`);
+      lastEventTs.delete(sessionId);
       await prisma.sesionGrabacion
         .update({
           where: { id: sessionId },

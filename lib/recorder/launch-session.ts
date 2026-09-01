@@ -3,21 +3,30 @@
  *
  *   - chromium.launchPersistentContext({ headless: true, args: [...] })
  *   - carga storageState si se pasa
- *   - page.exposeFunction('__pw_report', () => {}) — listener stub para G3
- *   - page.addInitScript con listeners DOM stub (cableado en HU-G3)
+ *   - context.exposeFunction('__pw_report', onReport) — puente browser→Node
+ *   - context.addInitScript con listeners DOM (HU-G3)
  *   - goto URL con timeout 10s; si falla, lanza error específico para que
  *     la sesión quede estado='error' con mensajeError claro.
+ *
+ * HU-G3: el init-script registra listeners de click/input/change/keydown/submit
+ * en captura (fase `true`) y llama a `window.__pw_report(payload)` con un
+ * payload que el caller (recorder-worker) persiste vía `persistirPaso`.
  *
  * NO se mockea en unit tests (requiere browser real). Se cubre con
  * test de integración 4.7 (lifecycle del worker).
  */
 import { chromium } from "playwright";
 import type { BrowserContext, CDPSession, Page } from "playwright";
+import { INIT_SCRIPT } from "@/lib/grabador/init-script";
+import type { EventoDom } from "@/lib/grabador/translator";
 
 export interface LaunchSessionInput {
   sessionId: string;
   urlInicial: string;
   storageState?: unknown;
+  /** Handler invocado cada vez que el browser reporta un evento DOM.
+   *  El recorder-worker lo wirea a persistirPaso + broadcast + auto-wait. */
+  onReport?: (evento: EventoDom) => void | Promise<void>;
 }
 
 export interface LaunchSessionResult {
@@ -56,16 +65,21 @@ export async function launchSession(input: LaunchSessionInput): Promise<LaunchSe
     viewport: { width: 1280, height: 720 },
   });
 
-  // Listener stub — G3 lo cablea al traductor de pasos
-  await context.exposeFunction("__pw_report", () => {
-    // noop en G1
-  });
+  // HU-G3: el browser-side init-script llama a window.__pw_report(payload)
+  // por cada evento DOM. Acá exponemos esa función hacia Node y la conectamos
+  // al handler del caller (recorder-worker.ts). Si no hay handler, noop.
+  await context.exposeFunction(
+    "__pw_report",
+    async (evento: EventoDom) => {
+      if (input.onReport) {
+        await input.onReport(evento);
+      }
+    },
+  );
 
-  // addInitScript con listeners DOM stub (HU-G3 los conecta)
-  await context.addInitScript(() => {
-    // marca de que el init script corrió (debugging)
-    (window as unknown as { __pw_init_ran?: boolean }).__pw_init_ran = true;
-  });
+  // HU-G3: inyecta los listeners de captura (click/input/change/keydown/submit)
+  // ANTES de que el browser ejecute cualquier script del usuario.
+  await context.addInitScript({ content: INIT_SCRIPT });
 
   const page = context.pages()[0] ?? (await context.newPage());
 
