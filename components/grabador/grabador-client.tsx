@@ -13,6 +13,13 @@ interface GrabadorClientProps {
   wsUrl: string;
   urlInicial: string;
   topbarMeta: GrabadorTopbarMeta;
+  /** When the session started (ISO string from the server). Passed to
+   *  PasoPanel to anchor the elapsed-time cronómetro to sesion.createdAt
+   *  instead of mount time. */
+  startedAt?: string;
+  /** ID de la sesion — usado por los handlers Detener / Descartar que
+   *  hacen fetch a /api/grabador/sesiones/[id]. */
+  sesionId: string;
 }
 
 type ConnState = "connecting" | "live" | "reconnecting" | "error" | "closed";
@@ -21,11 +28,14 @@ export function GrabadorClient({
   wsUrl,
   urlInicial,
   topbarMeta,
+  startedAt,
+  sesionId,
 }: GrabadorClientProps) {
   const router = useRouter();
   const [connState, setConnState] = useState<ConnState>("connecting");
   const [pageUrl, setPageUrl] = useState(urlInicial);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"detener" | "descartar" | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptRef = useRef(0);
   const heartbeatIntervalRef = useRef<number | null>(null);
@@ -115,30 +125,80 @@ export function GrabadorClient({
     };
   }, [connect]);
 
-  function handleStop() {
-    sendWsMessage({ type: "stop" });
-    if (wsRef.current) {
-      wsRef.current.close();
+  /**
+   * HU-G2 — "Detener y revisar" button.
+   * 1. PATCH /api/grabador/sesiones/[id] con estado='detenida' (best-effort:
+   *    si falla, igual navegamos para no dejar al usuario atascado).
+   * 2. Stop el WS (sends {type:'stop'} which makes the worker persist
+   *    estado='detenida' + endedAt — see ws-server.ts).
+   * 3. Navega a /casos/grabar/[sesionId]/revisar (placeholder hasta HU-G8).
+   */
+  async function handleDetener() {
+    if (busy) return;
+    setBusy("detener");
+    try {
+      // Tell the recorder-worker we're done (idempotent stop).
+      sendWsMessage({ type: "stop" });
+      if (wsRef.current) {
+        wsRef.current.close(1000, "user stopped");
+      }
+      // Persist estado='detenida' from the Next.js side too (defense in depth).
+      await fetch(
+        `/api/grabador/sesiones/${encodeURIComponent(sesionId)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ estado: "detenida" }),
+        },
+      ).catch(() => undefined);
+      router.push(`/casos/grabar/${sesionId}/revisar`);
+    } finally {
+      setBusy(null);
     }
   }
 
-  function handleDescartar() {
-    if (wsRef.current) {
-      wsRef.current.close(1000, "Descartado por el usuario");
+  /**
+   * HU-G2 — "Descartar" button.
+   * 1. Confirm with window.confirm (simple modal per spec).
+   * 2. Close the WS cleanly.
+   * 3. DELETE /api/grabador/sesiones/[id] (cascade on PasoGrabado).
+   * 4. Navega a /casos.
+   */
+  async function handleDescartar() {
+    if (busy) return;
+    const confirmed = window.confirm(
+      "¿Descartar la grabación? Se eliminarán todos los pasos capturados.",
+    );
+    if (!confirmed) return;
+    setBusy("descartar");
+    try {
+      if (wsRef.current) {
+        try {
+          wsRef.current.close(1000, "Descartado por el usuario");
+        } catch {
+          // ignore
+        }
+      }
+      await fetch(
+        `/api/grabador/sesiones/${encodeURIComponent(sesionId)}`,
+        { method: "DELETE" },
+      ).catch(() => undefined);
+      router.push("/casos");
+    } finally {
+      setBusy(null);
     }
-    router.push("/casos");
   }
 
   const isLive = connState === "live";
   const isError = connState === "error" || connState === "closed";
-  const topbarActionsDisabled = isError;
+  const topbarActionsDisabled = isError || busy !== null;
 
   return (
     <div className="-mx-6 -mt-6 flex flex-col min-h-[calc(100vh-100px)]">
       <GrabadorTopbar
         meta={topbarMeta}
         onDescartar={handleDescartar}
-        onDetener={handleStop}
+        onDetener={handleDetener}
         actionsDisabled={topbarActionsDisabled}
       />
 
@@ -166,7 +226,7 @@ export function GrabadorClient({
 
         {/* Right column: PASOS REGISTRADOS */}
         <section className="col-span-12 lg:col-span-4 flex flex-col h-[calc(100vh-200px)] min-h-[520px]">
-          <PasoPanel />
+          <PasoPanel startedAt={startedAt} />
         </section>
       </div>
 

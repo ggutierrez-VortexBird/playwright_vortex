@@ -30,6 +30,8 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
       ambiente: true,
       navegador: true,
       credencialId: true,
+      startedAt: true,
+      createdAt: true,
       credencial: {
         select: { nombre: true },
       },
@@ -69,11 +71,20 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
     credencialNombre: sesion.credencial?.nombre ?? "",
   };
 
+  // HU-G2: cronómetro anchored to sesion.startedAt (fallback createdAt).
+  // Started at the first WebSocket connect; createdAt is the DB creation
+  // timestamp if the browser hasn't connected yet.
+  const startedAtIso = (
+    sesion.startedAt ?? sesion.createdAt
+  ).toISOString();
+
   return (
     <GrabadorClient
       wsUrl={finalWsUrl}
       urlInicial={sesion.urlInicial}
       topbarMeta={topbarMeta}
+      sesionId={sesion.id}
+      startedAt={startedAtIso}
     />
   );
 }
