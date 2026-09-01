@@ -28,13 +28,7 @@ export interface InternalStartError {
 }
 
 function getRecorderUrl(): string {
-  const url = process.env.RECORDER_INTERNAL_URL;
-  if (!url) {
-    throw new Error(
-      "RECORDER_INTERNAL_URL no definida; configura el recorder-worker (default: http://localhost:3100)",
-    );
-  }
-  return url;
+  return process.env.RECORDER_INTERNAL_URL ?? "http://localhost:3100";
 }
 
 function getInternalSecret(): string {
