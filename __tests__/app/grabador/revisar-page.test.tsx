@@ -20,19 +20,33 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 // next/navigation: mock notFound + redirect
-const mockNotFound = jest.fn<void, []>(() => {
-  throw new Error("NEXT_NOT_FOUND");
-});
-const mockRedirect = jest.fn<void, [string]>((url: string) => {
-  const err = new Error(`NEXT_REDIRECT: ${url}`);
-  (err as Error & { digest?: string }).digest = `NEXT_REDIRECT;${url}`;
-  throw err;
-});
+// Use `var` so the bindings are available when jest.mock factory
+// (hoisted to the top of the file) references them.
+var mockNotFound: jest.Mock;
+var mockRedirect: jest.Mock;
 
 jest.mock("next/navigation", () => ({
-  redirect: mockRedirect,
-  notFound: mockNotFound,
+  __esModule: true,
+  redirect: (url: string) => {
+    const err = new Error(`NEXT_REDIRECT: ${url}`);
+    (err as Error & { digest?: string }).digest = `NEXT_REDIRECT;${url}`;
+    throw err;
+  },
+  notFound: () => {
+    throw new Error("NEXT_NOT_FOUND");
+  },
 }));
+
+beforeAll(() => {
+  mockNotFound = jest.fn(() => {
+    throw new Error("NEXT_NOT_FOUND");
+  });
+  mockRedirect = jest.fn((url: string) => {
+    const err = new Error(`NEXT_REDIRECT: ${url}`);
+    (err as Error & { digest?: string }).digest = `NEXT_REDIRECT;${url}`;
+    throw err;
+  });
+});
 
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),

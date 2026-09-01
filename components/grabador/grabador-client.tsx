@@ -20,6 +20,9 @@ interface GrabadorClientProps {
   /** ID de la sesion — usado por los handlers Detener / Descartar que
    *  hacen fetch a /api/grabador/sesiones/[id]. */
   sesionId: string;
+  /** Pasos pre-cargados del server (HU-G3) — el PasoPanel se suscribe
+   *  a los eventos `paso_agregado` para añadir los nuevos en vivo. */
+  initialPasos?: import("./use-pasos-en-vivo").PasoEnVivo[];
 }
 
 type ConnState = "connecting" | "live" | "reconnecting" | "error" | "closed";
@@ -30,6 +33,7 @@ export function GrabadorClient({
   topbarMeta,
   startedAt,
   sesionId,
+  initialPasos = [],
 }: GrabadorClientProps) {
   const router = useRouter();
   const [connState, setConnState] = useState<ConnState>("connecting");
@@ -73,6 +77,13 @@ export function GrabadorClient({
           setConnState("connecting");
         } else if (msg.type === "sesion_lista") {
           setConnState("live");
+        } else if (msg.type === "paso_agregado") {
+          // HU-G3: broadcast `paso_agregado` to paso-panel via window event.
+          // The recorder-worker is the single source of truth for pasos;
+          // we just forward its events to the panel.
+          window.dispatchEvent(
+            new CustomEvent("grabador-paso", { detail: msg.paso }),
+          );
         } else if (msg.type === "error") {
           setErrorMsg(msg.msg);
           setConnState("error");
@@ -226,7 +237,11 @@ export function GrabadorClient({
 
         {/* Right column: PASOS REGISTRADOS */}
         <section className="col-span-12 lg:col-span-4 flex flex-col h-[calc(100vh-200px)] min-h-[520px]">
-          <PasoPanel startedAt={startedAt} />
+          <PasoPanel
+            startedAt={startedAt}
+            sesionId={sesionId}
+            initialPasos={initialPasos}
+          />
         </section>
       </div>
 

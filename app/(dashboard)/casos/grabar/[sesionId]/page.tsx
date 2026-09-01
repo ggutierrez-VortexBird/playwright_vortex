@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { GrabadorClient } from "@/components/grabador/grabador-client";
 import type { GrabadorTopbarMeta } from "@/components/grabador/grabador-topbar";
+import type { PasoEnVivo } from "@/components/grabador/use-pasos-en-vivo";
 
 interface PageProps {
   params: Promise<{ sesionId: string }>;
@@ -34,6 +35,20 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
       createdAt: true,
       credencial: {
         select: { nombre: true },
+      },
+      // HU-G3: server-load pasos for the initial render. Live updates
+      // arrive via `paso_agregado` WS messages dispatched as window events.
+      pasos: {
+        orderBy: { numero: "asc" },
+        select: {
+          id: true,
+          numero: true,
+          tipo: true,
+          descripcion: true,
+          valor: true,
+          esValorSensible: true,
+          createdAt: true,
+        },
       },
     },
   });
@@ -78,6 +93,19 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
     sesion.startedAt ?? sesion.createdAt
   ).toISOString();
 
+  // HU-G3: hydrate the panel with the pasos persisted so far. The WS
+  // stream will keep appending new ones.
+  const initialPasos: PasoEnVivo[] = sesion.pasos.map((p) => ({
+    id: p.id,
+    numero: p.numero,
+    tipo: p.tipo,
+    descripcion: p.descripcion,
+    valor: p.valor,
+    esValorSensible: p.esValorSensible,
+    parametroNombre: null, // HU-G7 wires this
+    createdAt: p.createdAt.toISOString(),
+  }));
+
   return (
     <GrabadorClient
       wsUrl={finalWsUrl}
@@ -85,6 +113,7 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
       topbarMeta={topbarMeta}
       sesionId={sesion.id}
       startedAt={startedAtIso}
+      initialPasos={initialPasos}
     />
   );
 }

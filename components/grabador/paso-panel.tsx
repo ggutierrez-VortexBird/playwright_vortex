@@ -1,20 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  usePasosEnVivo,
+  type PasoEnVivo,
+} from "./use-pasos-en-vivo";
 
 /**
  * Right column of the EN VIVO view: "PASOS REGISTRADOS" panel.
  *
  * Visual fidelity: `fase2/mockups/grabar-test.html` lines 273-362.
  *
- * In HU-G1, step recording (HU-G3) is not implemented, so only the
- * empty-state placeholder is visible. The component still renders the
- * full card chrome (header with elapsed timer + body) so the layout
- * stays stable when G3 lands.
+ * HU-G3 (cableado en PR-2): los pasos llegan en vivo via
+ * `usePasosEnVivo(sessionId, initialPasos)`. El componente:
+ *   - Muestra el empty state inicial ("Esperando interacción…") cuando
+ *     no hay pasos.
+ *   - Renderiza cada paso con su numero, descripcion, badge
+ *     "Recién agregado" durante 3s tras aparecer.
+ *   - Auto-scroll al fondo cuando llega un paso nuevo.
  *
- * The component accepts an optional `pasos` prop so a future G3
- * implementation can plug in step rows without changing the layout.
+ * Mantiene compatibilidad con la prop legacy `pasos: PasoItem[]` para
+ * callers que solo necesitan la vista estática (tests existentes).
  */
+
 export interface PasoItem {
   /** 1-based step number. */
   numero: number;
@@ -31,11 +39,23 @@ export interface PasoItem {
 }
 
 interface PasoPanelProps {
+  /**
+   * Legacy static pasos. If provided, the panel renders these without
+   * subscribing to live events. Used by tests + the topbar storybook.
+   * If both `pasos` and `initialPasos`+`sessionId` are provided, `pasos`
+   * takes precedence (static mode).
+   */
   pasos?: PasoItem[];
+  /** Server-loaded pasos for live mode. */
+  initialPasos?: PasoEnVivo[];
+  /** Sesion ID — enables live WS event subscription. */
+  sesionId?: string;
   /** When the session started; used to compute the elapsed timer.
    *  Accepts Date or ISO string (from server-rendered pages).
    *  Defaults to "now" — the timer counts up from mount. */
   startedAt?: Date | string;
+  /** ms the "Recién agregado" badge stays visible (default 3000). */
+  recienAgregadoMs?: number;
 }
 
 function parseStartedAt(value: Date | string | undefined): Date {
@@ -51,8 +71,21 @@ function formatElapsed(seconds: number): string {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-export function PasoPanel({ pasos = [], startedAt }: PasoPanelProps) {
+export function PasoPanel({
+  pasos,
+  initialPasos = [],
+  sesionId,
+  startedAt,
+  recienAgregadoMs = 3000,
+}: PasoPanelProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Live mode when sesionId is provided AND caller hasn't forced static mode.
+  const liveMode = !pasos && Boolean(sesionId);
+  const pasosEnVivo = usePasosEnVivo(
+    sesionId ?? "",
+    liveMode ? initialPasos : [],
+  );
 
   useEffect(() => {
     const start = parseStartedAt(startedAt);
@@ -62,6 +95,66 @@ export function PasoPanel({ pasos = [], startedAt }: PasoPanelProps) {
     }, 1000);
     return () => window.clearInterval(interval);
   }, [startedAt]);
+
+  // Auto-scroll to bottom when pasos grow in live mode.
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const lastSeenCountRef = useRef<number>(liveMode ? pasosEnVivo.length : -1);
+  useEffect(() => {
+    if (!liveMode) return;
+    if (pasosEnVivo.length > lastSeenCountRef.current) {
+      // Scroll the LAST child into view smoothly.
+      const el = bodyRef.current;
+      if (el) {
+        const lastChild = el.lastElementChild;
+        if (lastChild && typeof lastChild.scrollIntoView === "function") {
+          lastChild.scrollIntoView({ behavior: "smooth", block: "end" });
+        } else {
+          el.scrollTop = el.scrollHeight;
+        }
+      }
+    }
+    lastSeenCountRef.current = pasosEnVivo.length;
+  }, [pasosEnVivo.length, liveMode]);
+
+  // Compute the set of paso IDs that should show the "Recién agregado" badge.
+  // A paso shows the badge for `recienAgregadoMs` after it appears.
+  const [recentIds, setRecentIds] = useState<Set<string>>(new Set());
+  const timeoutsRef = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (!liveMode) return;
+    const now = Date.now();
+    const newIds = new Set<string>();
+    pasosEnVivo.forEach((p, idx) => {
+      // Only the last 1 paso shows "Recién agregado" to avoid noise.
+      if (idx === pasosEnVivo.length - 1) {
+        newIds.add(p.id);
+      }
+    });
+    // Schedule timeouts to remove badges.
+    pasosEnVivo.forEach((p) => {
+      if (newIds.has(p.id) && !recentIds.has(p.id)) {
+        const t = window.setTimeout(() => {
+          setRecentIds((prev) => {
+            const next = new Set(prev);
+            next.delete(p.id);
+            return next;
+          });
+          timeoutsRef.current.delete(p.id);
+        }, recienAgregadoMs);
+        timeoutsRef.current.set(p.id, t);
+      }
+    });
+    setRecentIds(newIds);
+    return () => {
+      // Clean up timeouts on unmount or pasos change.
+      timeoutsRef.current.forEach((t) => window.clearTimeout(t));
+      timeoutsRef.current.clear();
+    };
+  }, [pasosEnVivo, liveMode, recienAgregadoMs]);
+
+  // Determine which list to render + counts.
+  const totalPasos = pasos ? pasos.length : pasosEnVivo.length;
+  const headerCount = totalPasos;
 
   return (
     <div
@@ -75,7 +168,7 @@ export function PasoPanel({ pasos = [], startedAt }: PasoPanelProps) {
         </h3>
         <div className="flex items-center gap-4">
           <span className="font-label text-xs text-m3-on-surface-variant bg-m3-surface-container-high px-2.5 py-1 rounded-full">
-            {pasos.length} {pasos.length === 1 ? "paso" : "pasos"}
+            {headerCount} {headerCount === 1 ? "paso" : "pasos"}
           </span>
           <span
             className="font-mono-code text-mono-code text-m3-primary flex items-center gap-1.5"
@@ -91,28 +184,40 @@ export function PasoPanel({ pasos = [], startedAt }: PasoPanelProps) {
       <div
         className="flex-1 overflow-y-auto p-6 flex flex-col"
         data-testid="paso-panel-body"
+        ref={bodyRef}
       >
-        {pasos.length === 0 ? (
-          <div className="mt-6 py-4 flex items-center justify-center border-2 border-dashed border-m3-outline-variant/50 rounded-lg text-m3-on-surface-variant bg-m3-surface-container-lowest">
-            <span className="text-sm">
-              Esperando interacción en el navegador...
-            </span>
-          </div>
+        {pasos ? (
+          // Static mode: legacy PasoItem[].
+          <>
+            {pasos.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <>
+                {pasos.map((paso, idx) => (
+                  <PasoRow
+                    key={`${paso.numero}-${idx}`}
+                    paso={paso}
+                    showDivider={
+                      idx < pasos.length - 1 && !pasos[idx + 1]?.esVerificacion
+                    }
+                  />
+                ))}
+                <EmptyState />
+              </>
+            )}
+          </>
+        ) : pasosEnVivo.length === 0 ? (
+          <EmptyState />
         ) : (
           <>
-            {pasos.map((paso, idx) => (
-              <PasoRow
-                key={`${paso.numero}-${idx}`}
+            {pasosEnVivo.map((paso) => (
+              <PasoRealRow
+                key={paso.id}
                 paso={paso}
-                showDivider={idx < pasos.length - 1 && !pasos[idx + 1]?.esVerificacion}
+                recienAgregado={recentIds.has(paso.id)}
               />
             ))}
-            {/* Empty state still visible while waiting for next interaction */}
-            <div className="mt-6 py-4 flex items-center justify-center border-2 border-dashed border-m3-outline-variant/50 rounded-lg text-m3-on-surface-variant bg-m3-surface-container-lowest">
-              <span className="text-sm">
-                Esperando interacción en el navegador...
-              </span>
-            </div>
+            <EmptyState />
           </>
         )}
       </div>
@@ -121,65 +226,73 @@ export function PasoPanel({ pasos = [], startedAt }: PasoPanelProps) {
 }
 
 /* ------------------------------------------------------------------ */
-/* PasoRow — single step entry. Renders inline parameter chips and    */
-/* applies the verification / active step accent per mockup lines     */
-/* 320-329 and 346-355.                                               */
+/* Empty state — mockup lines 357-359.                                */
+/* ------------------------------------------------------------------ */
+function EmptyState() {
+  return (
+    <div
+      className="mt-6 py-4 flex items-center justify-center border-2 border-dashed border-m3-outline-variant/50 rounded-lg text-m3-on-surface-variant bg-m3-surface-container-lowest"
+      data-testid="paso-empty-state"
+    >
+      <span className="text-sm">Esperando interacción en el navegador...</span>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* PasoRow (legacy) — single static step entry.                       */
 /* ------------------------------------------------------------------ */
 function PasoRow({ paso, showDivider }: { paso: PasoItem; showDivider: boolean }) {
   const numeroStr = paso.numero.toString().padStart(2, "0");
 
   if (paso.esVerificacion) {
     return (
-      <>
-        <div
-          className="flex items-start gap-4 bg-m3-secondary-container/10 -mx-4 px-4 py-3 rounded-r border-l-4 border-m3-secondary-container mb-4"
-          data-testid={`paso-verificacion-${paso.numero}`}
-        >
-          <div className="font-mono-code text-sm text-m3-secondary-container mt-0.5 w-6 text-right font-medium">
-            {numeroStr}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5 text-m3-secondary-container mb-1">
-              <span className="material-symbols-outlined text-[16px]">flag</span>
-              <span className="font-label text-[11px] font-bold uppercase tracking-wider">
-                Verificación
-              </span>
-            </div>
-            <p className="text-sm text-m3-on-surface">{paso.titulo}</p>
-          </div>
+      <div
+        className="flex items-start gap-4 bg-m3-secondary-container/10 -mx-4 px-4 py-3 rounded-r border-l-4 border-m3-secondary-container mb-4"
+        data-testid={`paso-verificacion-${paso.numero}`}
+      >
+        <div className="font-mono-code text-sm text-m3-secondary-container mt-0.5 w-6 text-right font-medium">
+          {numeroStr}
         </div>
-      </>
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5 text-m3-secondary-container mb-1">
+            <span className="material-symbols-outlined text-[16px]">flag</span>
+            <span className="font-label text-[11px] font-bold uppercase tracking-wider">
+              Verificación
+            </span>
+          </div>
+          <p className="text-sm text-m3-on-surface">{paso.titulo}</p>
+        </div>
+      </div>
     );
   }
 
   if (paso.esActivo) {
     return (
-      <>
-        <div
-          className="flex items-start gap-4 bg-m3-surface-container -mx-4 px-4 py-3 rounded-r border-l-4 border-m3-secondary-container mt-2"
-          data-testid={`paso-activo-${paso.numero}`}
-        >
-          <div className="font-mono-code text-sm text-m3-primary font-bold mt-0.5 w-6 text-right">
-            {numeroStr}
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-m3-primary font-medium">{paso.titulo}</p>
-            {paso.meta && (
-              <p className="font-mono-code text-[11px] text-m3-on-surface-variant mt-1">
-                {paso.meta}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            className="text-m3-outline hover:text-m3-error transition-colors p-1"
-            title="Eliminar paso"
-            aria-label={`Eliminar paso ${paso.numero}`}
-          >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
-          </button>
+      <div
+        className="flex items-start gap-4 bg-m3-surface-container -mx-4 px-4 py-3 rounded-r border-l-4 border-m3-secondary-container mt-2"
+        data-testid={`paso-activo-${paso.numero}`}
+      >
+        <div className="font-mono-code text-sm text-m3-primary font-bold mt-0.5 w-6 text-right">
+          {numeroStr}
         </div>
-      </>
+        <div className="flex-1">
+          <p className="text-sm text-m3-primary font-medium">{paso.titulo}</p>
+          {paso.meta && (
+            <p className="font-mono-code text-[11px] text-m3-on-surface-variant mt-1">
+              {paso.meta}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          className="text-m3-outline hover:text-m3-error transition-colors p-1"
+          title="Eliminar paso"
+          aria-label={`Eliminar paso ${paso.numero}`}
+        >
+          <span className="material-symbols-outlined text-[18px]">delete</span>
+        </button>
+      </div>
     );
   }
 
@@ -202,6 +315,97 @@ function PasoRow({ paso, showDivider }: { paso: PasoItem; showDivider: boolean }
       </div>
       {showDivider && <div className="step-divider" aria-hidden="true" />}
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* PasoRealRow — DB-shaped paso from PasoGrabado. HU-G3 visual.      */
+/* ------------------------------------------------------------------ */
+function PasoRealRow({
+  paso,
+  recienAgregado,
+}: {
+  paso: PasoEnVivo;
+  recienAgregado: boolean;
+}) {
+  const numeroStr = paso.numero.toString().padStart(2, "0");
+  const isEspera = paso.tipo === "esperar";
+  const isVerificacion = paso.tipo === "verificar";
+
+  if (isVerificacion) {
+    return (
+      <div
+        className="flex items-start gap-4 bg-m3-secondary-container/10 -mx-4 px-4 py-3 rounded-r border-l-4 border-m3-secondary-container mb-4"
+        data-testid={`paso-verificacion-${paso.id}`}
+      >
+        <div className="font-mono-code text-sm text-m3-secondary-container mt-0.5 w-6 text-right font-medium">
+          {numeroStr}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5 text-m3-secondary-container mb-1">
+            <span className="material-symbols-outlined text-[16px]">flag</span>
+            <span className="font-label text-[11px] font-bold uppercase tracking-wider">
+              Verificación
+            </span>
+          </div>
+          <p className="text-sm text-m3-on-surface">{paso.descripcion}</p>
+          {recienAgregado && (
+            <span
+              className="text-[10px] text-m3-secondary font-bold uppercase tracking-wider mt-1 inline-block"
+              data-testid={`recien-agregado-${paso.id}`}
+            >
+              Recién agregado
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex gap-3 items-start group"
+      data-testid={`paso-real-${paso.id}`}
+    >
+      <div
+        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-mono-code text-xs ${
+          isEspera
+            ? "bg-m3-surface-container text-m3-on-surface-variant"
+            : "bg-m3-surface-container-high text-m3-on-surface-variant"
+        }`}
+      >
+        {numeroStr}
+      </div>
+      <div className="flex-1 min-w-0 pt-1">
+        <p className="font-body text-body-md text-m3-on-surface leading-snug">
+          {paso.descripcion}
+        </p>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          {paso.parametroNombre && (
+            <span className="font-mono-code text-[11px] bg-m3-tertiary-container text-m3-on-tertiary-container px-1.5 py-0.5 rounded">
+              {`{{${paso.parametroNombre}}}`}
+            </span>
+          )}
+          {paso.esValorSensible && (
+            <span
+              className="material-symbols-outlined text-[14px] text-yellow-600"
+              title="Valor sensible — enmascarado"
+              aria-label="Valor sensible"
+            >
+              lock
+            </span>
+          )}
+          {recienAgregado && (
+            <span
+              className="text-[10px] text-m3-secondary font-bold uppercase tracking-wider"
+              data-testid={`recien-agregado-${paso.id}`}
+            >
+              Recién agregado
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
