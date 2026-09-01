@@ -35,7 +35,7 @@ export async function seedCredencialDemo(proyectoId: string): Promise<Credencial
       proyectoId,
       nombre: DEMO_NOMBRE,
       tipo: DEMO_TIPO,
-      valor: encryptCredencial(DEMO_STORAGE_STATE),
+      valor: encryptCredencial(DEMO_STORAGE_STATE) as unknown as Uint8Array,
     },
   })) as CredencialDemo;
 }

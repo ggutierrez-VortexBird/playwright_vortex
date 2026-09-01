@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { CasoTable } from "@/components/casos/caso-table";
 import { CreateCasoForm } from "@/components/casos/create-caso-form";
@@ -96,15 +97,38 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
         </span>
         <span className="spacer" />
         {canEdit && (
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setEditingCaso(null);
-            }}
-            className="btn btn-primary"
-          >
-            + Nuevo Caso
-          </button>
+          <>
+            <Link
+              href={`/casos/grabar/nueva${proyectoId ? `?proyectoId=${proyectoId}` : ""}`}
+              className="btn"
+              style={{
+                background: "var(--stamp)",
+                borderColor: "var(--stamp)",
+                color: "#fff",
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  display: "inline-block",
+                  animation: "stampPulse 1.6s ease-in-out infinite",
+                }}
+              />
+              Grabar caso
+            </Link>
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setEditingCaso(null);
+              }}
+              className="btn btn-primary"
+            >
+              + Nuevo Caso
+            </button>
+          </>
         )}
       </div>
 

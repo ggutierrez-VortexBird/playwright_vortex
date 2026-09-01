@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getProyectoById } from "@/lib/proyectos/actions";
@@ -57,6 +58,29 @@ export default async function ProyectoCasosPage({ params }: PageProps) {
         <h2>{proyecto.nombre}</h2>
         <span className="sub">{proyecto.ambiente} · Casos de prueba</span>
         <span className="spacer" />
+        {canEdit && (
+          <Link
+            href={`/casos/grabar/nueva?proyectoId=${proyectoId}`}
+            className="btn"
+            style={{
+              background: "var(--stamp)",
+              borderColor: "var(--stamp)",
+              color: "#fff",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#fff",
+                display: "inline-block",
+                animation: "stampPulse 1.6s ease-in-out infinite",
+              }}
+            />
+            Grabar caso
+          </Link>
+        )}
       </div>
 
       {/* Casos with Suspense */}
