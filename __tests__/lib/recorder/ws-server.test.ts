@@ -27,11 +27,13 @@ afterAll(() => {
 
 // Mock prisma — ws-server tests don't need a real DB.
 const mockUpdateMany = jest.fn();
+const mockUpdate = jest.fn();
 
 jest.mock("@/lib/db", () => ({
   prisma: {
     sesionGrabacion: {
       updateMany: (...args: unknown[]) => mockUpdateMany(...args),
+      update: (...args: unknown[]) => mockUpdate(...args),
     },
   },
 }));
@@ -293,6 +295,7 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
 
   it("user-initiated stop closes the WS and the session registry entry's timer is disarmed", async () => {
     mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+    mockUpdate.mockResolvedValueOnce({});
 
     const entry = fakeEntryWithTimer("ses-1");
     addEntry(entry);
@@ -317,6 +320,48 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
     expect(ws.send).toHaveBeenCalledWith(
       JSON.stringify({ type: "sesion_detenida" }),
     );
+
+    // W5 — user-initiated stop persists estado='detenida' + endedAt.
+    // Wait a tick for the fire-and-forget DB update.
+    await new Promise((r) => setTimeout(r, 10));
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "ses-1" },
+        data: expect.objectContaining({
+          estado: "detenida",
+          endedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("DB update failure on stop does NOT prevent WS from closing (fire-and-forget)", async () => {
+    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+    mockUpdate.mockRejectedValueOnce(new Error("DB down"));
+
+    const entry = fakeEntryWithTimer("ses-1");
+    addEntry(entry);
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    const messageHandler = ws.on.mock.calls.find((c: unknown[]) => c[0] === "message")?.[1] as
+      | ((data: unknown) => void)
+      | undefined;
+
+    // Should not throw even though DB update fails.
+    expect(() =>
+      messageHandler!(Buffer.from(JSON.stringify({ type: "stop" }))),
+    ).not.toThrow();
+
+    // WS still closed gracefully.
+    expect(ws.close).toHaveBeenCalledWith(1000, "stop");
+    // Wait for the async update to settle.
+    await new Promise((r) => setTimeout(r, 10));
   });
 });
 

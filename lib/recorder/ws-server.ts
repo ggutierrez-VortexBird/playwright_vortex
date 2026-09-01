@@ -151,6 +151,18 @@ export async function handleWsConnection(
         sendMessage(ws, { type: "sesion_reanudada" });
         break;
       case "stop":
+        // W5 — user-initiated stop persists estado='detenida' + endedAt.
+        // Fire-and-forget: failure to update DB does NOT prevent the WS
+        // from closing gracefully. The session would otherwise stay
+        // 'activa' until the next orphan cleanup at worker restart.
+        prisma.sesionGrabacion
+          .update({
+            where: { id: sessionId },
+            data: { estado: "detenida", endedAt: new Date() },
+          })
+          .catch((err) =>
+            console.error("[ws-server] DB update failed on stop", err),
+          );
         sendMessage(ws, { type: "sesion_detenida" });
         closeWs(ws, 1000, "stop");
         break;

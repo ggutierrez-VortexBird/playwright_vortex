@@ -16,6 +16,9 @@ services:
     environment:
       - PLAYWRIGHT_SCRIPTS_ROOT=/app/playwright-scripts
       - DATABASE_URL=postgresql://acta:acta@postgres:5432/acta?schema=public
+      # Apunta al servicio `recorder` del compose (HTTP interno, no el WS público).
+      - RECORDER_INTERNAL_URL=http://recorder:3100
+      - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:-dev-recorder-secret-change-me-in-prod-32chars}
     volumes:
       # Volumen nombrado para scripts de Playwright.
       # En desarrollo se puede sustituir por un bind mount si se desea editar
