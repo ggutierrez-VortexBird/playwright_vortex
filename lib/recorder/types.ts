@@ -21,8 +21,8 @@ export interface SessionEntry {
   clients: Set<WsServerSocket>;
   /** Última vez que el cliente mandó un heartbeat */
   lastHeartbeatAt: number;
-  /** Timer para expiración por inactividad */
-  heartbeatTimer: NodeJS.Timeout;
+  /** Timer para expiración por inactividad. undefined mientras no esté armado. */
+  heartbeatTimer?: NodeJS.Timeout;
   createdAt: Date;
 }
 

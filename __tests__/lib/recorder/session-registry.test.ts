@@ -47,6 +47,8 @@ import {
   detachClient,
   countEntries,
   cleanupOrphans,
+  armHeartbeatTimer,
+  disarmHeartbeatTimer,
   RegistryFullError,
   _resetForTests,
 } from "@/lib/recorder/session-registry";
@@ -205,6 +207,124 @@ describe("recorder/session-registry", () => {
       mockSesionUpdateMany.mockResolvedValue({ count: 0 });
       const count = await cleanupOrphans();
       expect(count).toBe(0);
+    });
+  });
+
+  describe("heartbeat expiration (C2)", () => {
+    it("armHeartbeatTimer fires onExpire after timeoutMs and marks entry as expired", (done) => {
+      const entry = fakeEntry("ses-1");
+      addEntry(entry);
+
+      armHeartbeatTimer("ses-1", 50, (expiredId) => {
+        try {
+          expect(expiredId).toBe("ses-1");
+          // After the timer fires, the entry's heartbeatTimer field is cleared.
+          const e = getEntry("ses-1");
+          expect(e).toBeDefined();
+          expect(e!.heartbeatTimer).toBeUndefined();
+          done();
+        } catch (err) {
+          done(err);
+        }
+      });
+    });
+
+    it("calling armHeartbeatTimer again resets the timer (heartbeat refresh)", (done) => {
+      const entry = fakeEntry("ses-1");
+      addEntry(entry);
+
+      let callCount = 0;
+      const onExpire = () => {
+        callCount++;
+      };
+
+      // Arm with 80ms timeout
+      armHeartbeatTimer("ses-1", 80, onExpire);
+      // After 40ms, reset to 80ms — total elapsed ~120ms > 80ms.
+      // Without reset, the timer would fire at ~80ms.
+      setTimeout(() => {
+        armHeartbeatTimer("ses-1", 80, onExpire);
+      }, 40);
+
+      setTimeout(() => {
+        try {
+          // Should not have fired yet because the timer was reset.
+          expect(callCount).toBe(0);
+        } catch (err) {
+          done(err);
+          return;
+        }
+      }, 100);
+
+      // After 130ms, original deadline (80ms) has passed but reset pushed it to ~120ms.
+      setTimeout(() => {
+        try {
+          // Should still not have fired yet because reset pushed it to ~120ms.
+          // After 130ms, ~120ms deadline is barely missed — could be 0 or 1 depending on
+          // timer precision. Wait until 160ms to be sure.
+        } catch (err) {
+          done(err);
+          return;
+        }
+      }, 130);
+
+      // Fire at ~160ms — well past the reset deadline of ~120ms.
+      setTimeout(() => {
+        try {
+          expect(callCount).toBe(1);
+          done();
+        } catch (err) {
+          done(err);
+        }
+      }, 160);
+    });
+
+    it("disarmHeartbeatTimer cancels a pending timer (no onExpire)", (done) => {
+      const entry = fakeEntry("ses-1");
+      addEntry(entry);
+
+      let called = false;
+      armHeartbeatTimer("ses-1", 50, () => {
+        called = true;
+      });
+      disarmHeartbeatTimer("ses-1");
+
+      setTimeout(() => {
+        try {
+          expect(called).toBe(false);
+          const e = getEntry("ses-1");
+          expect(e!.heartbeatTimer).toBeUndefined();
+          done();
+        } catch (err) {
+          done(err);
+        }
+      }, 100);
+    });
+
+    it("removeEntry clears the heartbeat timer", (done) => {
+      const entry = fakeEntry("ses-1");
+      addEntry(entry);
+
+      let called = false;
+      armHeartbeatTimer("ses-1", 50, () => {
+        called = true;
+      });
+
+      removeEntry("ses-1");
+
+      setTimeout(() => {
+        try {
+          expect(called).toBe(false);
+          done();
+        } catch (err) {
+          done(err);
+        }
+      }, 100);
+    });
+
+    it("armHeartbeatTimer is a no-op when the session doesn't exist", () => {
+      // Should not throw — gracefully handles unknown sessionId.
+      expect(() => armHeartbeatTimer("ses-unknown", 50, () => {})).not.toThrow();
     });
   });
 });

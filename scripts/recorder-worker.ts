@@ -4,6 +4,9 @@
  *   - HTTP API interna: POST /internal/start, GET /health
  *   - WebSocket server: ws://RECORDER_PUBLIC_URL
  *   - Orphan cleanup al arrancar
+ *   - Heartbeat expiration (C2): si un cliente WS deja de mandar heartbeats
+ *     por RECORDER_HEARTBEAT_TIMEOUT_MS, persiste estado='detenida' y
+ *     cierra el BrowserContext.
  *
  * Reusa el patrón long-lived de scripts/worker.ts.
  *
@@ -22,7 +25,12 @@ import {
   markBrowserReady,
 } from "../lib/recorder/ws-server";
 import { startScreencast } from "../lib/recorder/screencast";
-import { cleanupOrphans } from "../lib/recorder/session-registry";
+import {
+  cleanupOrphans,
+  getEntry,
+  removeEntry,
+  type HeartbeatExpireCallback,
+} from "../lib/recorder/session-registry";
 import { launchSession, UrlInaccesibleError } from "../lib/recorder/launch-session";
 import { prisma } from "../lib/db";
 import { DEFAULT_TOKEN_TTL_SEC, WS_CLOSE_URL_FAILED } from "../lib/recorder/types";
@@ -40,11 +48,17 @@ async function main(): Promise<void> {
   const publicUrl = process.env.RECORDER_PUBLIC_URL ?? `ws://localhost:${wsPort}`;
   const internalSecret = requireEnv("RECORDER_INTERNAL_SECRET");
   const tokenTtlSec = DEFAULT_TOKEN_TTL_SEC;
+  const heartbeatTimeoutMs = (() => {
+    const v = process.env.RECORDER_HEARTBEAT_TIMEOUT_MS;
+    const n = v ? Number.parseInt(v, 10) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : 600_000;
+  })();
 
   console.log(`[recorder-worker] Iniciando`);
   console.log(`[recorder-worker]   WS port: ${wsPort}`);
   console.log(`[recorder-worker]   Public URL: ${publicUrl}`);
   console.log(`[recorder-worker]   MAX_SESSIONS: ${process.env.RECORDER_MAX_SESSIONS ?? "3 (default)"}`);
+  console.log(`[recorder-worker]   HEARTBEAT_TIMEOUT_MS: ${heartbeatTimeoutMs}`);
 
   // 1. Orphan cleanup
   const cleaned = await cleanupOrphans();
@@ -107,8 +121,57 @@ async function main(): Promise<void> {
   // 3. WebSocket server (mismo puerto que HTTP — ws upgrade)
   const wss = new WebSocketServer({ server: httpServer });
 
+  // C2 — Heartbeat expiration handler. Cuando un cliente deja de mandar
+  //      heartbeats por heartbeatTimeoutMs:
+  //        - persiste estado='detenida' + endedAt en DB
+  //        - cierra el BrowserContext
+  //        - notifica a clientes WS restantes con {type:'sesion_detenida', reason:'heartbeat_timeout'}
+  //        - remueve la entry del registry
+  const onHeartbeatExpire: HeartbeatExpireCallback = async (sessionId: string) => {
+    console.log(`[recorder-worker] Heartbeat timeout for sessionId=${sessionId}`);
+    const entry = getEntry(sessionId);
+    const payload = JSON.stringify({
+      type: "sesion_detenida",
+      reason: "heartbeat_timeout",
+    });
+    if (entry) {
+      // Notify remaining WS clients (best-effort).
+      for (const client of entry.clients) {
+        try {
+          if (client.readyState === client.OPEN) {
+            client.send(payload);
+            client.close(1000, "heartbeat_timeout");
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    // Persist estado='detenida' (best-effort; failure logged but doesn't block).
+    try {
+      await prisma.sesionGrabacion.update({
+        where: { id: sessionId },
+        data: { estado: "detenida", endedAt: new Date() },
+      });
+    } catch (err) {
+      console.error(`[recorder-worker] DB update failed on heartbeat expire`, err);
+    }
+    // Close the BrowserContext (if any).
+    if (entry?.context) {
+      try {
+        await entry.context.close();
+      } catch (err) {
+        console.error(`[recorder-worker] context.close failed on heartbeat expire`, err);
+      }
+    }
+    removeEntry(sessionId);
+  };
+
   wss.on("connection", (ws: WsServerSocket, req) => {
-    handleWsConnection(ws, req, screencastStarted).catch((err) => {
+    handleWsConnection(ws, req, screencastStarted, {
+      heartbeatTimeoutMs,
+      onHeartbeatExpire,
+    }).catch((err) => {
       console.error("[recorder-worker] WS connection error", err);
     });
   });

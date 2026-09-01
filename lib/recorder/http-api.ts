@@ -111,7 +111,7 @@ async function handleStart(ctx: ApiContext, req: IncomingMessage, res: ServerRes
       cdp: null as unknown as CDPSession,
       clients: new Set<WsServerSocket>(),
       lastHeartbeatAt: Date.now(),
-      heartbeatTimer: setInterval(() => {}, 60_000) as unknown as NodeJS.Timeout,
+      heartbeatTimer: undefined,
       createdAt: new Date(),
     });
   } catch (err) {
@@ -143,7 +143,7 @@ async function handleStart(ctx: ApiContext, req: IncomingMessage, res: ServerRes
         urlInicial: body.urlInicial,
         clients: new Set<WsServerSocket>(),
         lastHeartbeatAt: Date.now(),
-        heartbeatTimer: setInterval(() => {}, 60_000) as unknown as NodeJS.Timeout,
+        heartbeatTimer: undefined,
         createdAt: new Date(),
       };
       addEntry(realEntry);

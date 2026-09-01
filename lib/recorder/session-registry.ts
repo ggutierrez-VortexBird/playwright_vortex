@@ -62,7 +62,7 @@ export function addEntry(entry: SessionEntry): void {
   if (sessions.has(entry.sessionId)) {
     // Clean up timer of old entry
     const old = sessions.get(entry.sessionId)!;
-    clearInterval(old.heartbeatTimer);
+    clearTimeout(old.heartbeatTimer);
     sessions.set(entry.sessionId, entry);
     return;
   }
@@ -76,7 +76,7 @@ export function addEntry(entry: SessionEntry): void {
 export function removeEntry(sessionId: string): void {
   const entry = sessions.get(sessionId);
   if (!entry) return;
-  clearInterval(entry.heartbeatTimer);
+  clearTimeout(entry.heartbeatTimer);
   // Close any remaining WS clients (best-effort)
   for (const ws of entry.clients) {
     try {
@@ -113,6 +113,63 @@ export function countEntries(): number {
 }
 
 /**
+ * Callback fired when a session's heartbeat timer expires (C2).
+ * The recorder-worker uses this to persist `estado='detenida'`, close
+ * the BrowserContext, and notify connected WS clients.
+ */
+export type HeartbeatExpireCallback = (sessionId: string) => void | Promise<void>;
+
+/**
+ * Arms (or re-arms) the per-session heartbeat timer. After `timeoutMs`
+ * of inactivity (no reset), the callback fires with the sessionId.
+ *
+ * The timer is reactive: each `armHeartbeatTimer` call clears any pending
+ * timer and starts a fresh one. Call this from the WS server on every
+ * `{type:'heartbeat'}` message from the client.
+ *
+ * No-op when the session doesn't exist (returns undefined).
+ */
+export function armHeartbeatTimer(
+  sessionId: string,
+  timeoutMs: number,
+  onExpire: HeartbeatExpireCallback,
+): NodeJS.Timeout | undefined {
+  const entry = sessions.get(sessionId);
+  if (!entry) return undefined;
+
+  // Clear any existing timer (re-arm case).
+  if (entry.heartbeatTimer) {
+    clearTimeout(entry.heartbeatTimer);
+  }
+  entry.lastHeartbeatAt = Date.now();
+  const timer = setTimeout(() => {
+    // Clear the reference so a future re-arm doesn't try to clearTimeout
+    // on an already-fired handle.
+    const e = sessions.get(sessionId);
+    if (e) e.heartbeatTimer = undefined;
+    void onExpire(sessionId);
+  }, timeoutMs);
+  // Don't keep the process alive solely for this timer — the worker has
+  // other long-lived handles (WS server, HTTP server) so this is mostly
+  // defensive.
+  if (typeof timer.unref === "function") timer.unref();
+  entry.heartbeatTimer = timer;
+  return timer;
+}
+
+/**
+ * Cancels the per-session heartbeat timer (if any). Idempotent.
+ * Called by `removeEntry` automatically, but exposed for callers that
+ * want to disarm without removing the entry.
+ */
+export function disarmHeartbeatTimer(sessionId: string): void {
+  const entry = sessions.get(sessionId);
+  if (!entry || !entry.heartbeatTimer) return;
+  clearTimeout(entry.heartbeatTimer);
+  entry.heartbeatTimer = undefined;
+}
+
+/**
  * Al arrancar, marca sesiones colgadas como error.
  * "Colgada" = estado IN ('iniciando','activa') con tokenUsado=true que no
  * recibió heartbeat en los últimos 5 minutos (HU-G22).
@@ -139,7 +196,7 @@ export async function cleanupOrphans(): Promise<number> {
 /** Test-only: reset internal state. Do not call from production code. */
 export function _resetForTests(): void {
   for (const e of sessions.values()) {
-    clearInterval(e.heartbeatTimer);
+    clearTimeout(e.heartbeatTimer);
   }
   sessions.clear();
   locks.clear();

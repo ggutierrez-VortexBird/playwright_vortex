@@ -6,6 +6,9 @@
  *   - Adjuntar cliente al SessionEntry
  *   - Manejar mensajes: heartbeat / pause / resume / stop
  *   - Broadcast frames desde CDP screencast a todos los clientes de la sesión
+ *   - Heartbeat timer: cada `{type:'heartbeat'}` re-arma un timer; si el
+ *     cliente deja de mandar heartbeats por `heartbeatTimeoutMs`, se invoca
+ *     `onHeartbeatExpire(sessionId)` (C2)
  *
  * Diseño: este módulo NO instancia el `WebSocketServer` (eso es el entrypoint),
  * solo expone handlers. El entrypoint gluea `ws.Server.on('connection', handleConnection)`.
@@ -15,7 +18,13 @@ import { WebSocket as WsServerSocket } from "ws";
 import type { WebSocketServer } from "ws";
 import { prisma } from "@/lib/db";
 import { validateToken } from "./auth";
-import { attachClient, detachClient, getEntry } from "./session-registry";
+import {
+  armHeartbeatTimer,
+  attachClient,
+  detachClient,
+  getEntry,
+} from "./session-registry";
+import type { HeartbeatExpireCallback } from "./session-registry";
 import { WS_CLOSE_INVALID_TOKEN } from "./types";
 import type { WsClientMessage, WsServerMessage } from "./types";
 
@@ -39,13 +48,20 @@ function closeWs(ws: WsServerSocket, code: number, reason: string): void {
  * Handler de conexión nueva. Acepta el `ws.Server.on('connection', handler)`
  * con la forma `(ws, req) => void`.
  *
- * El handler es async porque lee `tokenUsado` de la DB antes de aceptar.
+ * El handler es async porque hace CAS atómico en DB antes de aceptar.
  */
 export async function handleWsConnection(
   ws: WsServerSocket,
   req: { url?: string },
   screencastStarted: Set<string>,
-  onFrame?: (sessionId: string, data: string, ts: number) => void,
+  options: {
+    /** Timeout para considerar la sesión como expirada por inactividad (default 600_000). */
+    heartbeatTimeoutMs?: number;
+    /** Callback invocado cuando expira el heartbeat timer (C2). */
+    onHeartbeatExpire?: HeartbeatExpireCallback;
+    /** Opcional: handler de frames para screencast. */
+    onFrame?: (sessionId: string, data: string, ts: number) => void;
+  } = {},
 ): Promise<void> {
   // 1. Extraer token de la URL
   let token = "";
@@ -105,6 +121,16 @@ export async function handleWsConnection(
     sendMessage(ws, { type: "sesion_lista", ts: Date.now() });
   }
 
+  // 6.5. Armar el heartbeat timer (C2). Si el caller no provee
+  //      heartbeatTimeoutMs, default 10 min. Sin onHeartbeatExpire
+  //      el timer igual se arma pero solo actualiza lastHeartbeatAt
+  //      (modo "tracking-only", útil para tests / dry-run).
+  const heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? 600_000;
+  const onExpire: HeartbeatExpireCallback = options.onHeartbeatExpire ?? ((_id) => {});
+  if (entry) {
+    armHeartbeatTimer(sessionId, heartbeatTimeoutMs, onExpire);
+  }
+
   // 7. Manejar mensajes del cliente
   ws.on("message", (data: import("ws").RawData) => {
     let msg: WsClientMessage;
@@ -115,7 +141,8 @@ export async function handleWsConnection(
     }
     switch (msg.type) {
       case "heartbeat":
-        if (entry) entry.lastHeartbeatAt = Date.now();
+        // Re-arm the timer on every heartbeat so an active client never expires.
+        armHeartbeatTimer(sessionId, heartbeatTimeoutMs, onExpire);
         break;
       case "pause":
         sendMessage(ws, { type: "sesion_pausada" });
@@ -136,7 +163,7 @@ export async function handleWsConnection(
 
   // 8. Si el caller quiere recibir frames para hacer broadcast, registramos
   //    un emisor que escribe al ws cuando hay un frame nuevo.
-  if (onFrame) {
+  if (options.onFrame) {
     ws.on("__pw_frame__", (data: string, ts: number) => {
       sendMessage(ws, { type: "frame", data, ts });
     });

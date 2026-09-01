@@ -46,11 +46,28 @@ import type { WebSocket as WsServerSocket } from "ws";
 import { handleWsConnection } from "@/lib/recorder/ws-server";
 import {
   _resetForTests,
+  addEntry,
   attachClient,
   countEntries,
   getEntry,
 } from "@/lib/recorder/session-registry";
+import type { SessionEntry } from "@/lib/recorder/types";
 import { WS_CLOSE_INVALID_TOKEN } from "@/lib/recorder/types";
+
+function fakeEntryWithTimer(sessionId: string): SessionEntry {
+  return {
+    sessionId,
+    userId: `user-${sessionId}`,
+    urlInicial: "https://example.com",
+    context: {} as never,
+    page: {} as never,
+    cdp: {} as never,
+    clients: new Set(),
+    lastHeartbeatAt: Date.now(),
+    heartbeatTimer: undefined,
+    createdAt: new Date(),
+  };
+}
 
 function fakeWs(id: string): WsServerSocket & {
   close: jest.Mock;
@@ -242,6 +259,64 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
     // how heartbeat/stop/etc. get handled. Closing would indicate failure.
     expect(ws.close).not.toHaveBeenCalled();
     expect(ws.on).toHaveBeenCalledWith("message", expect.any(Function));
+  });
+
+  it("client heartbeat message re-arms the session's heartbeat timer", async () => {
+    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+
+    const entry = fakeEntryWithTimer("ses-1");
+    addEntry(entry);
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    // Capture the message handler installed by the production code.
+    const messageHandler = ws.on.mock.calls.find((c: unknown[]) => c[0] === "message")?.[1] as
+      | ((data: unknown) => void)
+      | undefined;
+    expect(messageHandler).toBeDefined();
+
+    // Simulate the client sending a heartbeat.
+    messageHandler!(Buffer.from(JSON.stringify({ type: "heartbeat" })));
+
+    // After a heartbeat, the entry's heartbeatTimer should be defined
+    // (a fresh Node Timeout in prod, a number id in jsdom — either is a
+    // valid "timer is armed" signal).
+    const e = getEntry("ses-1");
+    expect(e).toBeDefined();
+    expect(e!.heartbeatTimer).toBeDefined();
+  });
+
+  it("user-initiated stop closes the WS and the session registry entry's timer is disarmed", async () => {
+    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+
+    const entry = fakeEntryWithTimer("ses-1");
+    addEntry(entry);
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    const messageHandler = ws.on.mock.calls.find((c: unknown[]) => c[0] === "message")?.[1] as
+      | ((data: unknown) => void)
+      | undefined;
+    expect(messageHandler).toBeDefined();
+
+    // Simulate user-initiated stop.
+    messageHandler!(Buffer.from(JSON.stringify({ type: "stop" })));
+
+    // WS closed with code 1000 (graceful), sesion_detenida sent.
+    expect(ws.close).toHaveBeenCalledWith(1000, "stop");
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: "sesion_detenida" }),
+    );
   });
 });
 
