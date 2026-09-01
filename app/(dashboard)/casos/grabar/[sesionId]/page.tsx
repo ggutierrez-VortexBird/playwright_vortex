@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { GrabadorClient } from "@/components/grabador/grabador-client";
+import type { GrabadorTopbarMeta } from "@/components/grabador/grabador-topbar";
 
 interface PageProps {
   params: Promise<{ sesionId: string }>;
@@ -25,6 +26,13 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
       urlInicial: true,
       token: true,
       mensajeError: true,
+      nombre: true,
+      ambiente: true,
+      navegador: true,
+      credencialId: true,
+      credencial: {
+        select: { nombre: true },
+      },
     },
   });
 
@@ -36,8 +44,6 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
     redirect("/casos");
   }
 
-  // El token y wsUrl se pasan por searchParams cuando el cliente llega
-  // desde /nueva. Si no están (refresh directo o link externo), los derivamos.
   const finalToken = token ?? sesion.token;
   if (!finalToken) {
     return (
@@ -55,12 +61,19 @@ export default async function SesionGrabacionPage({ params, searchParams }: Page
   const finalWsUrl =
     wsUrl ?? `${process.env.RECORDER_PUBLIC_URL ?? "ws://localhost:3100"}/?token=${encodeURIComponent(finalToken)}`;
 
+  const topbarMeta: GrabadorTopbarMeta = {
+    nombre: sesion.nombre,
+    sesionShortId: `SES-${sesion.id.slice(0, 4).toUpperCase()}`,
+    ambiente: sesion.ambiente,
+    navegador: sesion.navegador,
+    credencialNombre: sesion.credencial?.nombre ?? "",
+  };
+
   return (
     <GrabadorClient
-      sessionId={sesion.id}
-      initialToken={finalToken}
       wsUrl={finalWsUrl}
       urlInicial={sesion.urlInicial}
+      topbarMeta={topbarMeta}
     />
   );
 }
