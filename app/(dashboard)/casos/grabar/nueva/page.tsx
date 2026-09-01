@@ -81,10 +81,12 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
         <span className="sub">{proyecto.nombre} · {proyecto.ambiente}</span>
         <span className="spacer" />
       </div>
-      <NuevaGrabacionForm
-        proyectoId={proyecto.id}
-        credenciales={credenciales}
-      />
+      <div className="w-full flex justify-center py-8">
+        <NuevaGrabacionForm
+          proyectoId={proyecto.id}
+          credenciales={credenciales}
+        />
+      </div>
     </div>
   );
 }

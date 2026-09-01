@@ -9,15 +9,44 @@ interface NuevaGrabacionFormProps {
   credenciales: CredencialListItem[];
 }
 
+type NavegadorValue = "chromium" | "firefox" | "webkit";
+
+/**
+ * Form "Nueva Grabación" del HU-G1.
+ *
+ * Visual fidelity: `fase2/mockups/nuevo-caso-video.html` lines 156-279.
+ * Submission: identical to the previous implementation — POST to
+ * `/api/grabador/sesiones` (which in turn invokes the Server Action
+ * `iniciarSesionGrabacion`). Only the JSX presentation changed.
+ */
 export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionFormProps) {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
-  const [urlInicial, setUrlInicial] = useState("https://");
+  // Mockup splits the URL field visually: a fixed "https://" prefix and
+  // an input where the user types only the host/path. We store the host
+  // part here and prepend the scheme on validation/submission.
+  const [urlHost, setUrlHost] = useState("");
   const [ambiente, setAmbiente] = useState<"QA" | "Staging" | "Prod">("QA");
-  const [credencialId, setCredencialId] = useState(credenciales[0]?.id ?? "");
-  const [navegador] = useState<"chromium">("chromium");
+  // The "__none__" sentinel means "Login manual" — only offered when no
+  // credenciales exist for the project. When credenciales exist the API
+  // requires a real credencialId.
+  const sentinelNone = "__none__";
+  const [credencialId, setCredencialId] = useState<string>(
+    credenciales.length > 0 ? credenciales[0]!.id : sentinelNone,
+  );
+  const [navegador, setNavegador] = useState<NavegadorValue>("chromium");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const tieneCredenciales = credenciales.length > 0;
+  // The mockup offers three browser engines; only chromium is wired in
+  // HU-G1 (Firefox/WebKit land in HU-G8). The radios are still visible
+  // so the user can preview the future capability, but only chromium
+  // is sent to the API.
+  const puedeSeleccionarNavegador = (v: NavegadorValue) => v === "chromium";
+  const navegadorParaApi: "chromium" = "chromium";
+
+  const urlCompleta = `https://${urlHost.trim()}`;
 
   function isValidUrl(s: string): boolean {
     try {
@@ -33,15 +62,17 @@ export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionF
     setError(null);
 
     if (!nombre.trim()) {
-      setError("El nombre es requerido");
+      setError("El nombre del caso es requerido");
       return;
     }
-    if (!isValidUrl(urlInicial)) {
-      setError("URL inválida (debe ser http o https)");
+    if (!urlHost.trim() || !isValidUrl(urlCompleta)) {
+      setError("La URL inicial debe ser válida (http o https)");
       return;
     }
-    if (!credencialId) {
-      setError("Selecciona una credencial");
+    if (!tieneCredenciales || credencialId === sentinelNone) {
+      setError(
+        "Crea al menos una credencial para este proyecto antes de iniciar una grabación",
+      );
       return;
     }
 
@@ -53,10 +84,10 @@ export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionF
           body: JSON.stringify({
             proyectoId,
             nombre: nombre.trim(),
-            urlInicial,
+            urlInicial: urlCompleta,
             ambiente,
             credencialId,
-            navegador,
+            navegador: navegadorParaApi,
           }),
         });
 
@@ -74,106 +105,266 @@ export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionF
   }
 
   return (
-    <div className="card p-6">
-      <h2 className="mb-4 text-lg font-semibold text-ink">Nueva grabación</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form
+      id="nueva-grabacion"
+      onSubmit={handleSubmit}
+      noValidate
+      className="w-full max-w-2xl bg-m3-surface-container-lowest border border-m3-surface-variant rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] overflow-hidden"
+    >
+      {/* Header */}
+      <header className="bg-m3-surface border-b border-m3-surface-variant px-6 py-4 flex items-center justify-between gap-4">
         <div>
-          <label htmlFor="nombre" className="block text-sm font-medium text-ink">
-            Nombre de la sesión
+          <h1 className="font-headline text-headline-lg text-m3-primary leading-tight">
+            Configuración de Grabación
+          </h1>
+          <p className="font-body text-body-md text-m3-on-surface-variant mt-1">
+            Configure los parámetros iniciales antes de lanzar el navegador interactivo.
+          </p>
+        </div>
+        <div
+          aria-hidden="true"
+          className="w-10 h-10 rounded-full bg-m3-secondary-fixed flex items-center justify-center shrink-0"
+        >
+          <span
+            className="material-symbols-outlined text-m3-secondary text-[22px]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            videocam
+          </span>
+        </div>
+      </header>
+
+      {/* Body */}
+      <div className="p-6 space-y-6">
+        {/* Nombre del Caso */}
+        <div>
+          <label
+            htmlFor="caso_nombre"
+            className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
+          >
+            Nombre del Caso
           </label>
           <input
-            id="nombre"
+            id="caso_nombre"
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             required
             maxLength={200}
-            placeholder="Ej: Login con credenciales válidas"
-            className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink placeholder:text-ink-3 focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
+            placeholder="ej. Login Exitoso - Usuario Standard"
+            className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all"
           />
         </div>
 
+        {/* URL Inicial */}
         <div>
-          <label htmlFor="urlInicial" className="block text-sm font-medium text-ink">
-            URL inicial
+          <label
+            htmlFor="url_inicial"
+            className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
+          >
+            URL Inicial
           </label>
-          <input
-            id="urlInicial"
-            type="url"
-            value={urlInicial}
-            onChange={(e) => setUrlInicial(e.target.value)}
-            required
-            placeholder="https://app.example.com/login"
-            className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink placeholder:text-ink-3 focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
-          />
+          <div className="flex rounded-md shadow-sm">
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center px-3 rounded-l border border-r-0 border-m3-outline-variant bg-m3-surface-container-low text-m3-on-surface-variant font-mono-code text-mono-code select-none"
+            >
+              https://
+            </span>
+            <input
+              id="url_inicial"
+              type="text"
+              inputMode="url"
+              value={urlHost}
+              onChange={(e) => setUrlHost(e.target.value)}
+              required
+              placeholder="app.ejemplo.com/login"
+              className="flex-1 block w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded-r px-3 py-2 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all"
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Grid 2 cols */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Ambiente */}
           <div>
-            <label htmlFor="ambiente" className="block text-sm font-medium text-ink">
+            <label
+              htmlFor="ambiente"
+              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
+            >
               Ambiente
             </label>
             <select
               id="ambiente"
               value={ambiente}
               onChange={(e) => setAmbiente(e.target.value as typeof ambiente)}
-              className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
+              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer"
             >
-              <option value="QA">QA</option>
-              <option value="Staging">Staging</option>
-              <option value="Prod">Prod</option>
+              <option value="QA">QA (Testing)</option>
+              <option value="Staging">Staging (Pre-prod)</option>
+              <option value="Prod">Producción</option>
             </select>
           </div>
 
+          {/* Credencial */}
           <div>
-            <label htmlFor="credencial" className="block text-sm font-medium text-ink">
-              Credencial
+            <label
+              htmlFor="credencial"
+              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
+            >
+              Credencial (Auto-Login)
             </label>
             <select
               id="credencial"
               value={credencialId}
               onChange={(e) => setCredencialId(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
+              disabled={!tieneCredenciales}
+              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {credenciales.length === 0 && (
-                <option value="">Sin credenciales — crea una primero</option>
+              {!tieneCredenciales ? (
+                <option value={sentinelNone}>Ninguna (Login manual)</option>
+              ) : (
+                <>
+                  {/* Per mockup spec: when no credenciales exist, the
+                     first/only option is "Ninguna (Login manual)".
+                     When credenciales exist, we surface them and skip
+                     the sentinel because the API requires a real id. */}
+                  {credenciales.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                      {c.vence ? ` (vence ${new Date(c.vence).toLocaleDateString()})` : ""}
+                    </option>
+                  ))}
+                </>
               )}
-              {credenciales.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                  {c.vence ? ` (vence ${new Date(c.vence).toLocaleDateString()})` : ""}
-                </option>
-              ))}
             </select>
+            {!tieneCredenciales && (
+              <p className="mt-1.5 text-xs text-m3-on-surface-variant">
+                No hay credenciales para este proyecto. Crea una desde{" "}
+                <span className="font-mono-code">/credenciales</span> antes de
+                iniciar una grabación.
+              </p>
+            )}
           </div>
         </div>
 
+        {/* Motor de Navegador — Bento */}
         <div>
-          <label className="block text-sm font-medium text-ink">Navegador</label>
-          <div className="mt-1 flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input type="radio" name="navegador" value="chromium" checked readOnly />
-              <span>Chromium</span>
-            </label>
-            <span className="text-xs text-ink-3">(Firefox/WebKit próximamente)</span>
+          <span className="block font-label text-label-sm font-semibold text-m3-primary mb-2">
+            Motor de Navegador
+          </span>
+          <div className="grid grid-cols-3 gap-3">
+            {(
+              [
+                { value: "chromium" as const, label: "Chromium", icon: "web" },
+                { value: "firefox" as const, label: "Firefox", icon: "language" },
+                { value: "webkit" as const, label: "WebKit", icon: "phone_iphone" },
+              ]
+            ).map((opt) => {
+              const checked = navegador === opt.value;
+              const enabled = puedeSeleccionarNavegador(opt.value);
+              return (
+                <label
+                  key={opt.value}
+                  className={`cursor-pointer relative ${enabled ? "" : "opacity-60"}`}
+                  data-testid={`browser-${opt.value}`}
+                >
+                  <input
+                    className="peer sr-only"
+                    type="radio"
+                    name="browser"
+                    value={opt.value}
+                    checked={checked}
+                    onChange={() => setNavegador(opt.value)}
+                    disabled={!enabled}
+                  />
+                  <div
+                    className={`p-4 rounded-lg border transition-all flex flex-col items-center gap-2 ${
+                      checked
+                        ? "border-m3-secondary bg-m3-secondary-fixed/20"
+                        : "border-m3-outline-variant hover:bg-m3-surface-container"
+                    }`}
+                  >
+                    <span
+                      className={`material-symbols-outlined text-[32px] ${
+                        checked ? "text-m3-secondary" : "text-m3-on-surface-variant"
+                      }`}
+                    >
+                      {opt.icon}
+                    </span>
+                    <span
+                      className={`font-label text-label-sm text-center ${
+                        checked
+                          ? "text-m3-primary font-bold"
+                          : "text-m3-on-surface-variant"
+                      }`}
+                    >
+                      {opt.label}
+                    </span>
+                    {!enabled && (
+                      <span className="text-[10px] uppercase tracking-wider text-m3-on-surface-variant">
+                        Pronto
+                      </span>
+                    )}
+                  </div>
+                  {/* Selected check dot — top-right */}
+                  <div
+                    aria-hidden="true"
+                    className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${
+                      checked
+                        ? "border-m3-secondary bg-m3-secondary"
+                        : "border-m3-outline-variant"
+                    }`}
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full bg-m3-surface-container-lowest ${
+                        checked ? "block" : "hidden"
+                      }`}
+                    />
+                  </div>
+                </label>
+              );
+            })}
           </div>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-stamp">{error}</div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={pending}
-            className="btn btn-primary"
+          <div
+            role="alert"
+            data-testid="form-error"
+            className="rounded-md border border-m3-error-container bg-m3-error-container/40 px-3 py-2 font-body text-body-md text-m3-error"
           >
-            {pending ? "Iniciando…" : "Iniciar grabación"}
-          </button>
-        </div>
-      </form>
-    </div>
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-m3-surface-container-low px-6 py-4 flex justify-end gap-3 border-t border-m3-surface-variant">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 rounded text-m3-primary font-label text-label-sm font-semibold hover:bg-m3-surface-container-high transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={pending}
+          data-testid="start-recording"
+          className="px-6 py-2 rounded bg-m3-secondary-container text-m3-on-secondary-container font-label text-label-sm font-bold flex items-center gap-2 hover:bg-m3-secondary hover:text-m3-on-secondary transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <span
+            className="material-symbols-outlined text-[18px]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            play_arrow
+          </span>
+          {pending ? "Iniciando…" : "Iniciar Grabador"}
+        </button>
+      </footer>
+    </form>
   );
 }
