@@ -1163,3 +1163,133 @@ dialog[open] {
   background: var(--stamp);
   animation: rec-pulse 1.6s ease-in-out infinite;
 }
+
+/* ============================================================
+ * Modo grabador — HU-G1 UI polish (mockup fase2/mockups/)
+ * Adds Material Symbols font support, pulse-red animation, and
+ * step-divider utility. The M3 color tokens are exposed via
+ * tailwind.config.ts under the `m3-*` namespace, so JSX uses
+ * `bg-m3-surface-container-lowest`, `text-m3-on-surface-variant`,
+ * etc. Inline styles in components use the --m3-* CSS vars below.
+ * ============================================================ */
+
+@layer base {
+  /* M3 CSS variables — mirrors the tailwind `m3-*` palette so that
+     inline styles can reference them. Tokens match the mockup
+     exactly (see fase2/mockups/grabar-test.html lines 17-65). */
+  :root {
+    --m3-primary: #000000;
+    --m3-on-primary: #ffffff;
+    --m3-primary-container: #131b2e;
+    --m3-on-primary-container: #7c839b;
+    --m3-primary-fixed: #dae2fd;
+    --m3-primary-fixed-dim: #bec6e0;
+    --m3-on-primary-fixed: #131b2e;
+    --m3-on-primary-fixed-variant: #3f465c;
+    --m3-secondary: #855300;
+    --m3-on-secondary: #ffffff;
+    --m3-secondary-container: #fea619;
+    --m3-on-secondary-container: #684000;
+    --m3-secondary-fixed: #ffddb8;
+    --m3-secondary-fixed-dim: #ffb95f;
+    --m3-on-secondary-fixed: #2a1700;
+    --m3-on-secondary-fixed-variant: #653e00;
+    --m3-background: #f7f9fb;
+    --m3-surface: #f7f9fb;
+    --m3-surface-dim: #d8dadc;
+    --m3-surface-bright: #f7f9fb;
+    --m3-surface-container-lowest: #ffffff;
+    --m3-surface-container-low: #f2f4f6;
+    --m3-surface-container: #eceef0;
+    --m3-surface-container-high: #e6e8ea;
+    --m3-surface-container-highest: #e0e3e5;
+    --m3-surface-variant: #e0e3e5;
+    --m3-surface-tint: #565e74;
+    --m3-on-surface: #191c1e;
+    --m3-on-surface-variant: #45464d;
+    --m3-on-background: #191c1e;
+    --m3-inverse-surface: #2d3133;
+    --m3-inverse-on-surface: #eff1f3;
+    --m3-inverse-primary: #bec6e0;
+    --m3-outline: #76777d;
+    --m3-outline-variant: #c6c6cd;
+    --m3-error: #ba1a1a;
+    --m3-on-error: #ffffff;
+    --m3-error-container: #ffdad6;
+    --m3-on-error-container: #93000a;
+  }
+}
+
+/* ---------- Material Symbols Outlined ----------
+ * Loaded via <link> in app/layout.tsx (next/font/google does not
+ * support this font family). Default FILL=0/wght=400/GRAD=0/opsz=24;
+ * individual icons opt-in to filled via inline style:
+ *   style={{ fontVariationSettings: "'FILL' 1" }}
+ */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ---------- pulse-red animation ----------
+ * Used by the REC badge and the EN VIVO elapsed-time indicator.
+ * Source: mockup grabdar-test.html lines 102-108.
+ */
+@keyframes pulse-red {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.pulse-red {
+  animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ---------- step-divider ----------
+ * Vertical hairline between consecutive step rows in the right
+ * panel of the EN VIVO view. Source: mockup grabar-test.html
+ * lines 116-124.
+ */
+.step-divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--m3-outline-variant);
+  margin-left: 28px;
+  margin-top: -8px;
+  margin-bottom: -8px;
+  z-index: 0;
+}
+
+/* ---------- slide-in ----------
+ * Used by step rows when they enter the panel.
+ * Source: mockup grabar-test.html lines 109-115.
+ */
+.slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
