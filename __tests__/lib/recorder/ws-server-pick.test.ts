@@ -257,7 +257,10 @@ describe("recorder/ws-server — pick / hover (HU-G5)", () => {
   });
 
   it("swallows page.evaluate errors and returns null (defensive)", async () => {
-    const entry = entryWithFakePage({ evalError: new Error("Target closed") });
+    const entry = entryWithFakePage({
+      evalResult: null,
+      evalError: new Error("Target closed"),
+    });
     addEntry(entry);
 
     const ws = fakeWs();

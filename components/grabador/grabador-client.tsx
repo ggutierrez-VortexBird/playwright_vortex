@@ -200,6 +200,62 @@ export function GrabadorClient({
     }
   }
 
+  // HU-G5/G7 — toolbar handlers. Wired here so the toolbar's disabled state
+  // can also react to busy/error. In this PR we keep the signal-mode and
+  // pause behavior light: toggles the local state and fires WS messages;
+  // the full modals (Agregar verificación, Convertir a parámetro) are
+  // mounted by the screen that uses them, not by the toolbar.
+  const [signalActive, setSignalActive] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  function handleToggleSignal() {
+    setSignalActive((prev) => !prev);
+  }
+
+  async function handleTogglePause() {
+    if (!paused) {
+      // Pause: tell the worker + persist estado='pausada'.
+      sendWsMessage({ type: "pause" });
+      try {
+        await fetch(
+          `/api/grabador/sesiones/${encodeURIComponent(sesionId)}/pause`,
+          { method: "POST" },
+        );
+      } catch {
+        // ignore — the next heartbeat or stop will sync state
+      }
+      setPaused(true);
+    } else {
+      // Resume.
+      sendWsMessage({ type: "resume" });
+      try {
+        await fetch(
+          `/api/grabador/sesiones/${encodeURIComponent(sesionId)}/resume`,
+          { method: "POST" },
+        );
+      } catch {
+        // ignore
+      }
+      setPaused(false);
+    }
+  }
+
+  function handleActionVerificar() {
+    // Stub: the live popover over the canvas opens the AgregarVerificacion
+    // modal in a future wiring step. The toolbar shortcut mirrors the
+    // popover's intent so the UX is consistent.
+    setErrorMsg(
+      "Elegí un elemento del navegador para agregar una verificación.",
+    );
+  }
+
+  function handleActionParametro() {
+    // Stub: same pattern as handleActionVerificar.
+    setErrorMsg(
+      "Elegí un elemento del navegador para convertirlo en parámetro.",
+    );
+  }
+
   const isLive = connState === "live";
   const isError = connState === "error" || connState === "closed";
   const topbarActionsDisabled = isError || busy !== null;
@@ -231,7 +287,15 @@ export function GrabadorClient({
               )}
             </div>
 
-            <RecToolbar disabled={!isLive} />
+            <RecToolbar
+              disabled={!isLive}
+              signalActive={signalActive}
+              paused={paused}
+              onToggleSignal={handleToggleSignal}
+              onActionVerificar={handleActionVerificar}
+              onActionParametro={handleActionParametro}
+              onTogglePause={handleTogglePause}
+            />
           </div>
         </section>
 

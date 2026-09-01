@@ -1,29 +1,14 @@
 /**
- * Integration test: /casos/grabar/[sesionId]/revisar — placeholder page.
+ * Integration test: /casos/grabar/[sesionId]/revisar (HU-G8).
  *
- * Covers HU-G2 navigation flow: after clicking "Detener y revisar",
- * the user lands here. This test exercises the Server Component layer
- * (auth gate + DB load + ownership check + RevisarPlaceholder render).
- *
- * Cases:
- *   - 404 if session does not exist
- *   - redirect to /casos if session belongs to a different user
- *   - 200 (placeholder renders) when session is owned by the current user
- *
- * The route doesn't take a redirect through iron-session here — it uses
- * `redirect()` from next/navigation which throws a `NEXT_REDIRECT` error.
- * We catch that to assert the redirect target.
+ * Verifies the Server Component layer (auth gate + DB load + ownership
+ * check + RevisarCliente render). The full drag-and-drop UI is exercised
+ * in `__tests__/components/grabador/revisar-cliente.test.tsx`.
  */
 
 import RevisarPage from "@/app/(dashboard)/casos/grabar/[sesionId]/revisar/page";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-
-// next/navigation: mock notFound + redirect
-// Use `var` so the bindings are available when jest.mock factory
-// (hoisted to the top of the file) references them.
-var mockNotFound: jest.Mock;
-var mockRedirect: jest.Mock;
 
 jest.mock("next/navigation", () => ({
   __esModule: true,
@@ -36,17 +21,6 @@ jest.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
 }));
-
-beforeAll(() => {
-  mockNotFound = jest.fn(() => {
-    throw new Error("NEXT_NOT_FOUND");
-  });
-  mockRedirect = jest.fn((url: string) => {
-    const err = new Error(`NEXT_REDIRECT: ${url}`);
-    (err as Error & { digest?: string }).digest = `NEXT_REDIRECT;${url}`;
-    throw err;
-  });
-});
 
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),
@@ -63,15 +37,11 @@ jest.mock("@/lib/db", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
-  process.env.SESSION_SECRET =
-    process.env.SESSION_SECRET ||
-    "test-secret-32chars-min-AAA-BBB-CCC-DDD-EEE-FFF";
 });
 
-describe("/casos/grabar/[sesionId]/revisar (server page)", () => {
+describe("/casos/grabar/[sesionId]/revisar (server page, HU-G8)", () => {
   it("redirects to /login when no session", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: undefined });
-
     await expect(
       RevisarPage({ params: Promise.resolve({ sesionId: "ses-1" }) }),
     ).rejects.toThrow(/NEXT_REDIRECT: \/login/);
@@ -80,7 +50,6 @@ describe("/casos/grabar/[sesionId]/revisar (server page)", () => {
   it("throws 404 when session does not exist", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: "user-1" });
     (prisma.sesionGrabacion.findUnique as jest.Mock).mockResolvedValueOnce(null);
-
     await expect(
       RevisarPage({ params: Promise.resolve({ sesionId: "ses-x" }) }),
     ).rejects.toThrow("NEXT_NOT_FOUND");
@@ -91,37 +60,73 @@ describe("/casos/grabar/[sesionId]/revisar (server page)", () => {
     (prisma.sesionGrabacion.findUnique as jest.Mock).mockResolvedValueOnce({
       id: "ses-1",
       usuarioId: "user-2",
-      _count: { pasos: 3 },
+      nombre: "X",
+      pasos: [],
+      parametros: [],
     });
-
     await expect(
       RevisarPage({ params: Promise.resolve({ sesionId: "ses-1" }) }),
     ).rejects.toThrow(/NEXT_REDIRECT: \/casos/);
   });
 
-  it("renders the RevisarPlaceholder when session is owned", async () => {
+  it("renders with empty pasos/parametros when session has none", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: "user-1" });
     (prisma.sesionGrabacion.findUnique as jest.Mock).mockResolvedValueOnce({
-      id: "abcd1234-uuid",
+      id: "ses-1",
       usuarioId: "user-1",
-      _count: { pasos: 7 },
+      nombre: "Sesión vacía",
+      pasos: [],
+      parametros: [],
     });
-
-    // RevisarPlaceholder is a Client Component; in this test environment
-    // it renders successfully with the props we pass.
     const tree = await RevisarPage({
-      params: Promise.resolve({ sesionId: "abcd1234-uuid" }),
+      params: Promise.resolve({ sesionId: "ses-1" }),
     });
-
-    // The result is a React element (RSC) containing the placeholder.
     expect(tree).toBeTruthy();
-    expect((tree as { props: unknown }).props).toBeDefined();
-
-    // Verify the page queried the DB with the correct ownership check.
     expect(prisma.sesionGrabacion.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "abcd1234-uuid" },
+        where: { id: "ses-1" },
       }),
     );
+  });
+
+  it("loads pasos + parametros in the expected shapes", async () => {
+    (getSession as jest.Mock).mockResolvedValue({ userId: "user-1" });
+    (prisma.sesionGrabacion.findUnique as jest.Mock).mockResolvedValueOnce({
+      id: "ses-1",
+      usuarioId: "user-1",
+      nombre: "Consulta de saldo",
+      pasos: [
+        {
+          id: "p1",
+          numero: 1,
+          tipo: "navegar",
+          descripcion: "Abrir portal",
+          selectorPrincipal: null,
+          selectoresRespaldo: null,
+          valor: null,
+          esValorSensible: false,
+          assertionKind: null,
+        },
+      ],
+      parametros: [
+        {
+          id: "param1",
+          nombre: "usuario",
+          valorDefecto: "admin",
+          origen: "manual",
+          enUso: true,
+        },
+      ],
+    });
+
+    const tree = await RevisarPage({
+      params: Promise.resolve({ sesionId: "ses-1" }),
+    });
+    expect(tree).toBeTruthy();
+    // Verify the DB query was made with the right select fields.
+    const call = (prisma.sesionGrabacion.findUnique as jest.Mock).mock
+      .calls[0][0];
+    expect(call.select.pasos.select).toHaveProperty("id");
+    expect(call.select.parametros.select).toHaveProperty("valorDefecto");
   });
 });

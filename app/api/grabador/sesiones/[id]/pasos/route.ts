@@ -1,32 +1,10 @@
 /**
- * POST /api/grabador/sesiones/[id]/pasos
+ * /api/grabador/sesiones/[id]/pasos
  *
- * Crea un PasoGrabado adicional (manual o de verificación). Se usa desde:
- *   - HU-G6: HU-G6 modal "Agregar verificación" desde el modo señalar.
- *   - HU-G10: modal "Agregar paso manual" desde la pantalla Revisar.
+ * POST: create a PasoGrabado (HU-G6 agregar verificación, HU-G10 paso manual)
+ * PATCH: reorder pasos via drag-and-drop (HU-G8)
  *
- * Body (JSON):
- *   {
- *     tipo: 'navegar' | 'clic' | 'escribir' | 'seleccionar' | 'esperar' | 'verificar' | 'generico',
- *     origen: 'manual' | 'grabado' | 'auto',
- *     descripcion: string,
- *     selectorPrincipal: object | null,
- *     selectoresRespaldo: object | null,
- *     valor?: string | null,
- *     valorEsperado?: string | null,
- *     assertionKind?: 'visible' | 'texto_igual' | 'texto_contiene' | 'valor_igual' | 'count',
- *     numero?: number  // si se omite, usa max+1
- *   }
- *
- * Auth: requiere ser owner de la sesión (usuarioId = session.userId).
- *
- * Responses:
- *   - 201 { paso: <PasoGrabado> }  OK
- *   - 400 { error: 'validation', message }
- *   - 401 { error: 'No autenticado' }
- *   - 403 { error: 'forbidden' }
- *   - 404 { error: 'not_found' }
- *   - 409 { error: 'numero_conflict', message }
+ * Auth: requiere ser owner de la sesión.
  */
 
 import { NextResponse } from "next/server";
@@ -37,6 +15,10 @@ import { getSession } from "@/lib/auth";
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
+
+/* ====================================================================== */
+/* POST — create a single paso (HU-G6, HU-G10)                            */
+/* ====================================================================== */
 
 const TIPOS_VALIDOS = new Set([
   "navegar",
@@ -68,10 +50,7 @@ interface PostBody {
   numero?: number;
 }
 
-/**
- * Calcula el próximo numero disponible para la sesion.
- * Si el caller provee un `numero`, valida que sea positivo y no colisione.
- */
+/** Calcula el próximo numero disponible. */
 async function resolverNumero(
   sesionId: string,
   numeroSolicitado: number | undefined,
@@ -82,9 +61,7 @@ async function resolverNumero(
       !Number.isInteger(numeroSolicitado) ||
       numeroSolicitado < 1
     ) {
-      throw Object.assign(new Error("numero inválido"), {
-        status: 400,
-      });
+      throw Object.assign(new Error("numero inválido"), { status: 400 });
     }
     return numeroSolicitado;
   }
@@ -96,20 +73,14 @@ async function resolverNumero(
   return (maxRow?.numero ?? 0) + 1;
 }
 
-/**
- * Renumera los pasos cuyo numero >= newPos en la misma sesion, sumando +1.
- * Si el cliente pidió insertar en la mitad, los pasos siguientes se desplazan.
- *
- * Se hace en una transacción para garantizar consistencia bajo concurrencia.
- */
+/** Renumera los pasos >= fromNumero sumando +1, dejando lugar al nuevo. */
 async function desplazarPasos(
   tx: Prisma.TransactionClient,
   sesionId: string,
   fromNumero: number,
-  skipPasoId?: string,
 ): Promise<void> {
   const futuros = await tx.pasoGrabado.findMany({
-    where: { sesionId, numero: { gte: fromNumero }, ...(skipPasoId ? { id: { not: skipPasoId } } : {}) },
+    where: { sesionId, numero: { gte: fromNumero } },
     orderBy: { numero: "desc" },
     select: { id: true, numero: true },
   });
@@ -139,7 +110,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Validaciones
   const tipo = body.tipo ?? "";
   const origen = body.origen ?? "manual";
   const descripcion = (body.descripcion ?? "").trim();
@@ -171,7 +141,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Ownership
   const sesion = await prisma.sesionGrabacion.findUnique({
     where: { id: sesionId },
     select: { id: true, usuarioId: true },
@@ -183,12 +152,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Resolver numero + desplazamiento
   try {
     const paso = await prisma.$transaction(async (tx) => {
       const numero = await resolverNumero(sesionId, body.numero);
-
-      // Si el caller pidió un numero intermedio, desplazamos los siguientes.
       if (body.numero !== undefined) {
         const countExistente = await tx.pasoGrabado.count({
           where: { sesionId, numero },
@@ -197,7 +163,6 @@ export async function POST(request: Request, { params }: RouteParams) {
           await desplazarPasos(tx, sesionId, numero);
         }
       }
-
       return tx.pasoGrabado.create({
         data: {
           sesionId,
@@ -226,12 +191,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       const status = (err as { status?: number }).status;
       if (status === 400) {
         return NextResponse.json(
-          { error: "validation", message: (err as Error).message },
+          {
+            error: "validation",
+            message: (err as { message?: string }).message ?? "validation",
+          },
           { status: 400 },
         );
       }
     }
-    // Prisma unique constraint (sesionId, numero).
     const code = (err as { code?: string })?.code;
     if (code === "P2002") {
       return NextResponse.json(
@@ -241,4 +208,100 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
     throw err;
   }
+}
+
+/* ====================================================================== */
+/* PATCH — reorder (HU-G8)                                                 */
+/* ====================================================================== */
+
+interface PatchBody {
+  orderedIds?: string[];
+}
+
+export async function PATCH(request: Request, { params }: RouteParams) {
+  const session = await getSession();
+  if (!session.userId) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const { id: sesionId } = await params;
+
+  let body: PatchBody;
+  try {
+    body = (await request.json()) as PatchBody;
+  } catch {
+    return NextResponse.json(
+      { error: "validation", message: "JSON inválido" },
+      { status: 400 },
+    );
+  }
+
+  const orderedIds = body.orderedIds;
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return NextResponse.json(
+      { error: "validation", message: "orderedIds debe ser un array no-vacío de strings" },
+      { status: 400 },
+    );
+  }
+  if (orderedIds.some((id) => typeof id !== "string" || id.length === 0)) {
+    return NextResponse.json(
+      { error: "validation", message: "orderedIds contiene IDs inválidos" },
+      { status: 400 },
+    );
+  }
+
+  const sesion = await prisma.sesionGrabacion.findUnique({
+    where: { id: sesionId },
+    select: {
+      id: true,
+      usuarioId: true,
+      pasos: { select: { id: true }, orderBy: { numero: "asc" } },
+    },
+  });
+  if (!sesion) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (sesion.usuarioId !== session.userId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // Verify the provided IDs match the session's pasos exactly.
+  const existingIds = sesion.pasos.map((p) => p.id).sort();
+  const providedIds = [...orderedIds].sort();
+  if (
+    existingIds.length !== providedIds.length ||
+    existingIds.some((id, i) => id !== providedIds[i])
+  ) {
+    return NextResponse.json(
+      {
+        error: "length_mismatch",
+        message: "orderedIds no coincide con los pasos actuales de la sesión",
+      },
+      { status: 409 },
+    );
+  }
+
+  // Renumber in a transaction. Two-phase to avoid unique constraint collisions:
+  //   phase 1: assign negative numbers (-1, -2, ...) to break the (sesionId, numero) unique
+  //   phase 2: assign positive numbers 1..N in the desired order
+  const updated = await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx.pasoGrabado.update({
+        where: { id: orderedIds[i] },
+        data: { numero: -1 - i },
+      });
+    }
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx.pasoGrabado.update({
+        where: { id: orderedIds[i] },
+        data: { numero: i + 1 },
+      });
+    }
+    return tx.pasoGrabado.findMany({
+      where: { sesionId },
+      orderBy: { numero: "asc" },
+    });
+  });
+
+  return NextResponse.json({ ok: true, pasos: updated });
 }

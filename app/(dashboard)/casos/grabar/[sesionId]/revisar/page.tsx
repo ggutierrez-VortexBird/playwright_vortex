@@ -1,28 +1,23 @@
 /**
- * /casos/grabar/[sesionId]/revisar — placeholder para la pantalla de revisión.
+ * /casos/grabar/[sesionId]/revisar — pantalla de revisión completa (HU-G8).
  *
  * Server Component:
- *   1. Auth: requiere sesión; redirige a /login si no.
- *   2. Carga la SesionGrabacion (conteo de pasos incluidos) desde DB.
- *   3. Verifica ownership → redirige a /casos si no es del usuario.
- *   4. Renderiza el componente cliente RevisarPlaceholder.
+ *   1. Auth + ownership check.
+ *   2. Load sesion + pasos + parametros from DB.
+ *   3. Render `<RevisarCliente>` con esos datos.
  *
- * Esta página existe porque el botón "Detener y revisar" del topbar ya
- * redirige acá (HU-G2). La pantalla completa de revisión llega en HU-G8
- * (que mostrará video, pasos navegables, edición, etc.) — por ahora
- * mostramos un card con icono + "Volver" button para cerrar el flow.
- *
- * Response:
- *   - 200 + RevisarPlaceholder para sesiones existentes y owned
- *   - redirect /login si no hay sesión
- *   - redirect /casos si la sesión es de otro usuario
- *   - 404 si la sesión no existe
+ * La pantalla completa (drag-and-drop, agregar paso, guardar, etc.) es
+ * HU-G8 + HU-G10 + HU-G16; acá solo cableamos el server-side.
  */
 
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { RevisarPlaceholder } from "@/components/grabador/revisar-placeholder";
+import {
+  RevisarCliente,
+  type RevisarPasoItem,
+  type RevisarParametroItem,
+} from "@/components/grabador/revisar-cliente";
 
 interface PageProps {
   params: Promise<{ sesionId: string }>;
@@ -40,8 +35,30 @@ export default async function RevisarSesionPage({ params }: PageProps) {
     select: {
       id: true,
       usuarioId: true,
-      _count: {
-        select: { pasos: true },
+      nombre: true,
+      pasos: {
+        orderBy: { numero: "asc" },
+        select: {
+          id: true,
+          numero: true,
+          tipo: true,
+          descripcion: true,
+          selectorPrincipal: true,
+          selectoresRespaldo: true,
+          valor: true,
+          esValorSensible: true,
+          assertionKind: true,
+        },
+      },
+      parametros: {
+        orderBy: { nombre: "asc" },
+        select: {
+          id: true,
+          nombre: true,
+          valorDefecto: true,
+          origen: true,
+          enUso: true,
+        },
       },
     },
   });
@@ -49,15 +66,38 @@ export default async function RevisarSesionPage({ params }: PageProps) {
   if (!sesion) {
     notFound();
   }
-
   if (sesion.usuarioId !== session.userId) {
     redirect("/casos");
   }
 
+  const pasosIniciales: RevisarPasoItem[] = sesion.pasos.map((p) => ({
+    id: p.id,
+    numero: p.numero,
+    tipo: p.tipo,
+    descripcion: p.descripcion,
+    selectorPrincipal: p.selectorPrincipal,
+    selectoresRespaldo: p.selectoresRespaldo,
+    valor: p.valor,
+    esValorSensible: p.esValorSensible,
+    assertionKind: p.assertionKind,
+  }));
+
+  const parametrosIniciales: RevisarParametroItem[] = sesion.parametros.map(
+    (p) => ({
+      id: p.id,
+      nombre: p.nombre,
+      valorDefecto: p.valorDefecto,
+      origen: p.origen,
+      enUso: p.enUso,
+    }),
+  );
+
   return (
-    <RevisarPlaceholder
+    <RevisarCliente
       sesionId={sesion.id}
-      pasosCount={sesion._count.pasos}
+      nombre={sesion.nombre}
+      pasosIniciales={pasosIniciales}
+      parametrosIniciales={parametrosIniciales}
     />
   );
 }
