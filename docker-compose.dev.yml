@@ -30,6 +30,30 @@ services:
       postgres:
         condition: service_healthy
 
+  recorder:
+    # El recorder-worker comparte imagen con app pero ejecuta el proceso Node
+    # dedicado. Aísla memoria/CPU del Chromium y permite escalado independiente.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acta-recorder
+    command: ["node", "--import", "tsx", "scripts/recorder-worker.ts"]
+    ports:
+      - "3100:3100"
+    environment:
+      - DATABASE_URL=postgresql://acta:acta@postgres:5432/acta?schema=public
+      # Apunta al app para HTTP /internal/start (mismo docker network)
+      - RECORDER_PUBLIC_URL=ws://localhost:3100
+      - RECORDER_WS_PORT=3100
+      - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:-dev-recorder-secret-change-me-in-prod-32chars}
+      - RECORDER_MAX_SESSIONS=${RECORDER_MAX_SESSIONS:-3}
+      - RECORDER_HEARTBEAT_TIMEOUT_MS=${RECORDER_HEARTBEAT_TIMEOUT_MS:-600000}
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:16-alpine
     container_name: acta-postgres
