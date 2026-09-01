@@ -30,12 +30,17 @@ export async function seedCredencialDemo(proyectoId: string): Promise<Credencial
     return existing as CredencialDemo;
   }
 
+  // W4 — Prisma 6 + Node 22 type narrowing fix: Buffer (Uint8Array<ArrayBufferLike>)
+  // no es asignable a Uint8Array<ArrayBuffer>. Prisma espera el genérico
+  // estricto con ArrayBuffer; Buffer's underlying storage es ArrayBufferLike.
+  // Cast explícito (la memoria subyacente es la misma — solo difiere el genérico).
+  const ciphertext = encryptCredencial(DEMO_STORAGE_STATE);
   return (await prisma.credencial.create({
     data: {
       proyectoId,
       nombre: DEMO_NOMBRE,
       tipo: DEMO_TIPO,
-      valor: encryptCredencial(DEMO_STORAGE_STATE) as unknown as Uint8Array,
+      valor: ciphertext as unknown as Uint8Array<ArrayBuffer>,
     },
   })) as CredencialDemo;
 }
