@@ -33,8 +33,16 @@ export interface PasoItem {
 interface PasoPanelProps {
   pasos?: PasoItem[];
   /** When the session started; used to compute the elapsed timer.
+   *  Accepts Date or ISO string (from server-rendered pages).
    *  Defaults to "now" — the timer counts up from mount. */
-  startedAt?: Date;
+  startedAt?: Date | string;
+}
+
+function parseStartedAt(value: Date | string | undefined): Date {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed : new Date();
 }
 
 function formatElapsed(seconds: number): string {
@@ -47,7 +55,7 @@ export function PasoPanel({ pasos = [], startedAt }: PasoPanelProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
-    const start = startedAt ?? new Date();
+    const start = parseStartedAt(startedAt);
     setElapsedSeconds(Math.floor((Date.now() - start.getTime()) / 1000));
     const interval = window.setInterval(() => {
       setElapsedSeconds(Math.floor((Date.now() - start.getTime()) / 1000));

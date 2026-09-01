@@ -49,4 +49,20 @@ describe("PasoPanel", () => {
     // 75 seconds = 01:15
     expect(screen.getByText(/01:15/)).toBeInTheDocument();
   });
+
+  it("accepts startedAt as an ISO string (server-rendered pages)", () => {
+    const isoString = new Date(Date.now() - 30_000).toISOString();
+    render(<PasoPanel startedAt={isoString} />);
+    // 30 seconds = 00:30
+    expect(screen.getByText(/00:30/)).toBeInTheDocument();
+  });
+
+  it("falls back to 'now' when startedAt is missing or invalid", () => {
+    const { rerender } = render(<PasoPanel />);
+    expect(screen.getByText(/00:00/)).toBeInTheDocument();
+
+    rerender(<PasoPanel startedAt="not-a-date" />);
+    // Invalid string → fall back to "now" → 00:00
+    expect(screen.getByText(/00:00/)).toBeInTheDocument();
+  });
 });
