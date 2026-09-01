@@ -31,7 +31,11 @@ export type WsClientMessage =
   | { type: "heartbeat" }
   | { type: "pause" }
   | { type: "resume" }
-  | { type: "stop" };
+  | { type: "stop" }
+  /** HU-G5: pedir el elemento bajo el cursor (cliente → worker → cliente). */
+  | { type: "pick"; x: number; y: number }
+  /** HU-G5: highlight on hover (enviado debounced 50ms). */
+  | { type: "hover"; x: number; y: number };
 
 /** Mensajes que el recorder manda al cliente por WS. */
 export type WsServerMessage =
@@ -42,7 +46,11 @@ export type WsServerMessage =
   | { type: "sesion_detenida" }
   | { type: "frame"; data: string; ts: number }
   | { type: "paso_agregado"; paso: PasoGrabadoDTO }
-  | { type: "error"; msg: string };
+  | { type: "error"; msg: string }
+  /** HU-G5: respuesta a {type:'pick'} con el elemento serializado. */
+  | { type: "pick_result"; element: import("@/lib/grabador/dom-utils").SerializedElementFull | null }
+  /** HU-G5: respuesta a {type:'hover'} con el bbox del elemento. */
+  | { type: "highlight"; bbox: import("@/lib/grabador/dom-utils").SerializedElementFull["bbox"] | null };
 
 export interface PasoGrabadoDTO {
   numero: number;

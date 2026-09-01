@@ -27,6 +27,10 @@ import {
 import type { HeartbeatExpireCallback } from "./session-registry";
 import { WS_CLOSE_INVALID_TOKEN } from "./types";
 import type { WsClientMessage, WsServerMessage } from "./types";
+import {
+  serializeElement,
+  type SerializedElementFull,
+} from "@/lib/grabador/dom-utils";
 
 function sendMessage(ws: WsServerSocket, msg: WsServerMessage): void {
   try {
@@ -43,6 +47,168 @@ function closeWs(ws: WsServerSocket, code: number, reason: string): void {
     // ignore
   }
 }
+
+/**
+ * HU-G5: handler compartido para `{type:'pick'}` y `{type:'hover'}`.
+ *
+ * Estrategia: ejecutamos `document.elementFromPoint(x, y)` en la página
+ * del browser y serializamos el elemento via `dom-utils.serializeElement`.
+ * El cliente recibe `pick_result` o `highlight` según el tipo.
+ *
+ * Si la página no está lista (entry existe pero `page` está null porque el
+ * browser no terminó de bootear), respondemos con `null` para que el
+ * cliente muestre el empty state sin crashear.
+ *
+ * Errores de Playwright (`Target closed`, etc.) se silencian — son
+ * transitorios y la UI ya tiene un debounce/retry implícito.
+ */
+async function handleElementQuery(
+  ws: WsServerSocket,
+  sessionId: string,
+  payload: { type: "pick" | "hover"; x: number; y: number },
+): Promise<void> {
+  const entry = getEntry(sessionId);
+  if (!entry || !entry.page) {
+    if (payload.type === "pick") {
+      sendMessage(ws, { type: "pick_result", element: null });
+    } else {
+      sendMessage(ws, { type: "highlight", bbox: null });
+    }
+    return;
+  }
+  try {
+    // We can't import `serializeElement` into the browser context, so we
+    // grab the underlying DOM element + bbox separately. The full
+    // serialization stays in Node.
+    const result = (await entry.page.evaluate(
+      ({ x, y }: { x: number; y: number }) => {
+        const el = document.elementFromPoint(x, y);
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        return {
+          tag: (el.tagName || "").toLowerCase(),
+          role: el.getAttribute("role") || (el.tagName || "").toLowerCase(),
+          aria:
+            el.getAttribute("aria-label") ||
+            el.getAttribute("name") ||
+            el.getAttribute("id") ||
+            "",
+          name: el.getAttribute("name") || "",
+          testId: el.getAttribute("data-testid") || "",
+          text: ((el.textContent || "").trim()).slice(0, 50),
+          id: el.id || "",
+          // Pass a light representation; the Node side will compute
+          // candidates/cssPath from these primitives.
+          bbox: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+        };
+      },
+      { x: payload.x, y: payload.y },
+    )) as
+      | {
+          tag: string;
+          role: string;
+          aria: string;
+          name: string;
+          testId: string;
+          text: string;
+          id: string;
+          bbox: SerializedElementFull["bbox"];
+        }
+      | null;
+
+    if (!result) {
+      if (payload.type === "pick") {
+        sendMessage(ws, { type: "pick_result", element: null });
+      } else {
+        sendMessage(ws, { type: "highlight", bbox: null });
+      }
+      return;
+    }
+
+    if (payload.type === "hover") {
+      sendMessage(ws, { type: "highlight", bbox: result.bbox });
+      return;
+    }
+
+    // pick: build the full serialized element from the primitives. We
+    // can't pass the DOM node across the wire, so the Node helper
+    // recomputes candidates from the primitive fields we extracted.
+    const full = buildFullFromPrimitives(result);
+    sendMessage(ws, { type: "pick_result", element: full });
+  } catch {
+    // page.evaluate threw (target closed, page crashed, etc.)
+    if (payload.type === "pick") {
+      sendMessage(ws, { type: "pick_result", element: null });
+    } else {
+      sendMessage(ws, { type: "highlight", bbox: null });
+    }
+  }
+}
+
+/**
+ * HU-G5: reconstruye un SerializedElementFull a partir de las primitives
+ * que devuelve `page.evaluate` (tag, role, aria, etc.). Mantiene la misma
+ * forma que el init-script del browser para que el resto del pipeline
+ * (paso-repo, UI, serializer) reciba la misma shape.
+ */
+function buildFullFromPrimitives(p: {
+  tag: string;
+  role: string;
+  aria: string;
+  name: string;
+  testId: string;
+  text: string;
+  id: string;
+  bbox: SerializedElementFull["bbox"];
+}): SerializedElementFull {
+  const candidates: Array<{ strategy: string; value: string }> = [];
+  if (p.testId) {
+    candidates.push({
+      strategy: "testid",
+      value: `[data-testid="${p.testId.replace(/"/g, '\\"')}"]`,
+    });
+  }
+  if (p.id) candidates.push({ strategy: "id", value: `#${p.id}` });
+  if (p.aria) {
+    candidates.push({
+      strategy: "aria-label",
+      value: `[aria-label="${p.aria.replace(/"/g, '\\"')}"]`,
+    });
+  }
+  if (p.name) {
+    candidates.push({
+      strategy: "name",
+      value: `[name="${p.name.replace(/"/g, '\\"')}"]`,
+    });
+  }
+  if (p.text && p.text.length < 30) {
+    candidates.push({ strategy: "text", value: p.text });
+  }
+  candidates.push({ strategy: "css", value: "" }); // css path requires DOM walk, N/A from primitives
+
+  return {
+    tag: p.tag,
+    role: p.role,
+    aria: p.aria,
+    name: p.name,
+    testId: p.testId,
+    text: p.text,
+    candidates,
+    bbox: p.bbox,
+  };
+}
+
+/**
+ * Backwards-compat re-export so unit tests can import the helper without
+ * also importing the dom-utils path. (No-op at runtime; the function is
+ * pure and lives in dom-utils.)
+ */
+export const _serializeElement = serializeElement;
 
 /**
  * Handler de conexión nueva. Acepta el `ws.Server.on('connection', handler)`
@@ -165,6 +331,11 @@ export async function handleWsConnection(
           );
         sendMessage(ws, { type: "sesion_detenida" });
         closeWs(ws, 1000, "stop");
+        break;
+      case "pick":
+      case "hover":
+        // HU-G5: respond to element queries. Async — fire and forget.
+        void handleElementQuery(ws, sessionId, msg);
         break;
     }
   });
