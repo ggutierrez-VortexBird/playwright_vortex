@@ -62,19 +62,24 @@ export async function handleWsConnection(
     return;
   }
 
-  // 2. Validar firma + expiración
+  // 2. Validar firma + expiración (devuelve sessionId extraído del payload)
   const result = validateToken(token);
   if (!result.ok) {
     closeWs(ws, WS_CLOSE_INVALID_TOKEN, `token ${result.reason}`);
     return;
   }
+  const { sessionId } = result;
 
-  // 3. Verificar token en DB y one-shot
-  let sesion: { id: string; tokenUsado: boolean } | null;
+  // 3. Atomic CAS: una sola UPDATE que flippa tokenUsado=false → true.
+  //    PostgreSQL garantiza que solo UNA transacción concurrente matchea
+  //    el WHERE (los demás ven tokenUsado=true y obtienen count=0).
+  //    Antes esto eran dos queries separadas (findFirst + update) y dos
+  //    conexiones concurrentes pasaban el check → rompiendo one-shot (C1).
+  let claimed: { count: number };
   try {
-    sesion = await prisma.sesionGrabacion.findFirst({
-      where: { token },
-      select: { id: true, tokenUsado: true },
+    claimed = await prisma.sesionGrabacion.updateMany({
+      where: { token, tokenUsado: false },
+      data: { tokenUsado: true },
     });
   } catch (err) {
     console.error("[ws-server] DB error al validar token", err);
@@ -82,24 +87,19 @@ export async function handleWsConnection(
     return;
   }
 
-  if (!sesion || sesion.tokenUsado) {
+  if (claimed.count === 0) {
+    // Token ausente en DB o ya fue usado por una conexión previa/concurrente.
     closeWs(ws, WS_CLOSE_INVALID_TOKEN, "token ya utilizado o no existe");
     return;
   }
 
-  // 4. Marcar como usado
-  await prisma.sesionGrabacion.update({
-    where: { id: sesion.id },
-    data: { tokenUsado: true },
-  });
-
   // 5. Adjuntar al registry (puede ser que el browser aún no esté listo → igual
   //    aceptamos la conexión; los frames se enviarán cuando lleguen)
-  attachClient(sesion.id, ws);
+  attachClient(sessionId, ws);
 
   // 6. Mensaje inicial: sesion_iniciando si el browser aún no terminó el goto
-  const entry = getEntry(sesion.id);
-  if (!entry || !screencastStarted.has(sesion.id)) {
+  const entry = getEntry(sessionId);
+  if (!entry || !screencastStarted.has(sessionId)) {
     sendMessage(ws, { type: "sesion_iniciando" });
   } else {
     sendMessage(ws, { type: "sesion_lista", ts: Date.now() });
@@ -131,7 +131,7 @@ export async function handleWsConnection(
   });
 
   ws.on("close", () => {
-    detachClient(sesion!.id, ws);
+    detachClient(sessionId, ws);
   });
 
   // 8. Si el caller quiere recibir frames para hacer broadcast, registramos
