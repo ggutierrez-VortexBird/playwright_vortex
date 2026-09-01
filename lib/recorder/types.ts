@@ -1,0 +1,66 @@
+/**
+ * Tipos compartidos entre los módulos del recorder-worker.
+ *
+ * Mantener este archivo libre de imports pesados para que pueda usarse
+ * tanto desde el worker Node (sin DOM) como desde el WS server (con `ws`).
+ */
+
+import type { BrowserContext, Page } from "playwright";
+import type { WebSocket as WsServerSocket } from "ws";
+
+/** Estado de una sesión de grabación en memoria del worker. */
+export interface SessionEntry {
+  sessionId: string;
+  userId: string;
+  urlInicial: string;
+  context: BrowserContext;
+  page: Page;
+  /** CDP session para emitir Page.startScreencast */
+  cdp: import("playwright").CDPSession;
+  /** Sockets WS conectados a esta sesión (puede ser >1 si re-conexión) */
+  clients: Set<WsServerSocket>;
+  /** Última vez que el cliente mandó un heartbeat */
+  lastHeartbeatAt: number;
+  /** Timer para expiración por inactividad */
+  heartbeatTimer: NodeJS.Timeout;
+  createdAt: Date;
+}
+
+/** Mensajes que el cliente puede mandar al recorder por WS. */
+export type WsClientMessage =
+  | { type: "heartbeat" }
+  | { type: "pause" }
+  | { type: "resume" }
+  | { type: "stop" };
+
+/** Mensajes que el recorder manda al cliente por WS. */
+export type WsServerMessage =
+  | { type: "sesion_iniciando" }
+  | { type: "sesion_lista"; ts: number }
+  | { type: "sesion_pausada" }
+  | { type: "sesion_reanudada" }
+  | { type: "sesion_detenida" }
+  | { type: "frame"; data: string; ts: number }
+  | { type: "paso_agregado"; paso: PasoGrabadoDTO }
+  | { type: "error"; msg: string };
+
+export interface PasoGrabadoDTO {
+  numero: number;
+  tipo: string;
+  descripcion: string;
+  selectorPrincipal: unknown;
+  valor?: string;
+}
+
+/** Resultado de validación de token. */
+export type TokenValidation =
+  | { ok: true; sessionId: string; userId: string }
+  | { ok: false; reason: "invalid_signature" | "expired" | "malformed" };
+
+/** Códigos de cierre del WS recorder. */
+export const WS_CLOSE_INVALID_TOKEN = 4001;
+export const WS_CLOSE_URL_FAILED = 4002;
+export const WS_CLOSE_INTERNAL_ERROR = 4003;
+
+/** Default TTL para tokens HMAC (10 min). */
+export const DEFAULT_TOKEN_TTL_SEC = 600;
