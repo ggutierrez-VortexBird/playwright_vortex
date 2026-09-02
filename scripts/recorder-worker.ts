@@ -27,6 +27,7 @@ import {
   broadcastFrame,
   handleWsConnection,
   markBrowserReady,
+  setupNavigationTracking,
 } from "../lib/recorder/ws-server";
 import { startScreencast } from "../lib/recorder/screencast";
 import {
@@ -178,6 +179,10 @@ async function main(): Promise<void> {
           data: { estado: "activa", startedAt: new Date() },
         })
         .catch((err) => console.error("[recorder-worker] DB update failed", err));
+
+      // Navigation tracking: emite url_changed cuando el browser navega
+      // (click en link, history, hash, navigate manual desde URL bar).
+      setupNavigationTracking(sessionId, _cdp);
 
       // Iniciar screencast y broadcast frames a clientes WS
       console.log(`[recorder-worker] iniciando screencast para ${sessionId}`);

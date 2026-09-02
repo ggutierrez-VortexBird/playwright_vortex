@@ -84,6 +84,10 @@ export function GrabadorClient({
           window.dispatchEvent(
             new CustomEvent("grabador-paso", { detail: msg.paso }),
           );
+        } else if (msg.type === "url_changed") {
+          // El browser navego (click en link, history, hash, navigate
+          // manual desde la URL bar). Sincronizamos el pageUrl local.
+          setPageUrl(msg.url);
         } else if (msg.type === "error") {
           setErrorMsg(msg.msg);
           setConnState("error");
@@ -276,7 +280,12 @@ export function GrabadorClient({
         {/* Left column: Browser + Toolbar */}
         <section className="col-span-12 lg:col-span-8 flex flex-col h-[calc(100vh-200px)] min-h-[520px]">
           <div className="bg-m3-surface-container-lowest rounded-lg border border-m3-outline-variant shadow-sm flex-1 flex flex-col overflow-hidden relative">
-            <BrowserChrome status={connState} pageUrl={pageUrl} />
+            <BrowserChrome
+              status={connState}
+              pageUrl={pageUrl}
+              onNavigate={(url) => sendWsMessage({ type: "navigate", url })}
+              disabled={!isLive || paused}
+            />
 
             <div className="flex-1 relative bg-m3-surface-container overflow-hidden">
               <ScreencastCanvas
@@ -326,15 +335,34 @@ export function GrabadorClient({
 
 /* ------------------------------------------------------------------ */
 /* Browser Chrome — subcomponent to keep grabador-client readable.     */
-/* 3 dots + URL bar (lock icon) + REC badge.                          */
+/* 3 dots + URL bar (editable, Enter navega) + REC badge.              */
 /* ------------------------------------------------------------------ */
 function BrowserChrome({
   status,
   pageUrl,
+  onNavigate,
+  disabled,
 }: {
   status: ConnState;
   pageUrl: string;
+  onNavigate: (url: string) => void;
+  disabled?: boolean;
 }) {
+  const [inputValue, setInputValue] = useState(pageUrl);
+
+  // Mantener el input sincronizado con la URL real cuando cambia por
+  // navegacion del browser (click en link, history, pushState) sin
+  // haber sido el usuario quien edito el input.
+  useEffect(() => {
+    setInputValue(pageUrl);
+  }, [pageUrl]);
+
+  function submitUrl() {
+    const url = inputValue.trim();
+    if (!url || url === pageUrl) return;
+    onNavigate(url);
+  }
+
   return (
     <div className="bg-m3-surface-container border-b border-m3-outline-variant p-3 flex items-center gap-4">
       <div className="flex gap-2 px-2" aria-hidden="true">
@@ -342,14 +370,35 @@ function BrowserChrome({
         <span className="w-3 h-3 rounded-full bg-m3-outline-variant" />
         <span className="w-3 h-3 rounded-full bg-m3-outline-variant" />
       </div>
-      <div className="flex-1 bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-1.5 flex items-center justify-between min-w-0">
-        <span className="font-mono-code text-mono-code text-m3-on-surface-variant text-xs truncate">
-          {pageUrl}
-        </span>
-        <span className="material-symbols-outlined text-[16px] text-m3-on-surface-variant ml-2 shrink-0">
+      <form
+        className="flex-1 bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-1.5 flex items-center gap-2 min-w-0"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submitUrl();
+        }}
+        data-testid="browser-url-form"
+      >
+        <span className="material-symbols-outlined text-[16px] text-m3-on-surface-variant shrink-0">
           lock
         </span>
-      </div>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={submitUrl}
+          disabled={disabled}
+          spellCheck={false}
+          autoComplete="off"
+          aria-label="URL del navegador"
+          data-testid="browser-url-input"
+          className="flex-1 bg-transparent font-mono-code text-mono-code text-m3-on-surface text-xs outline-none min-w-0 disabled:opacity-60"
+        />
+        {disabled && (
+          <span className="material-symbols-outlined text-[14px] text-m3-on-surface-variant shrink-0">
+            edit_off
+          </span>
+        )}
+      </form>
       <ConnectionStatus state={status} />
     </div>
   );

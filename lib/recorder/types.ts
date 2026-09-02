@@ -49,7 +49,9 @@ export type WsClientMessage =
   /** Input dispatch: key released. */
   | { type: "key_up"; key: string; code?: string; modifiers?: number }
   /** Input dispatch: type text (insertText CDP — para escribir en inputs). */
-  | { type: "type"; text: string };
+  | { type: "type"; text: string }
+  /** Navigate el browser a una nueva URL (Enter en la URL bar del chrome). */
+  | { type: "navigate"; url: string };
 
 /** Mensajes que el recorder manda al cliente por WS. */
 export type WsServerMessage =
@@ -64,7 +66,9 @@ export type WsServerMessage =
   /** HU-G5: respuesta a {type:'pick'} con el elemento serializado. */
   | { type: "pick_result"; element: import("@/lib/grabador/dom-utils").SerializedElementFull | null }
   /** HU-G5: respuesta a {type:'hover'} con el bbox del elemento. */
-  | { type: "highlight"; bbox: import("@/lib/grabador/dom-utils").SerializedElementFull["bbox"] | null };
+  | { type: "highlight"; bbox: import("@/lib/grabador/dom-utils").SerializedElementFull["bbox"] | null }
+  /** URL cambio (navigate manual, click en link, history back/forward). */
+  | { type: "url_changed"; url: string };
 
 export interface PasoGrabadoDTO {
   numero: number;

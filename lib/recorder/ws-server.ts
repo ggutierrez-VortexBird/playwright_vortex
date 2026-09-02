@@ -371,6 +371,11 @@ export async function handleWsConnection(
         // captura → paso se persiste y aparece en el panel.
         void handleInputDispatch(sessionId, msg);
         break;
+      case "navigate":
+        // El usuario tipeo una URL en la URL bar del browser chrome y
+        // presiono Enter. Navegamos la pagina real via page.goto.
+        void handleNavigate(sessionId, msg.url);
+        break;
     }
   });
 
@@ -511,4 +516,107 @@ export function broadcastFrame(
  */
 export function markBrowserReady(sessionId: string, screencastStarted: Set<string>): void {
   screencastStarted.add(sessionId);
+}
+
+/**
+ * Navega la pagina del browser a una nueva URL (Enter en la URL bar).
+ * El goto usa el mismo timeout que el goto inicial (10s) y respeta
+ * domcontentloaded — suficiente para que la pagina pinte y el screencast
+ * continue emitiendo frames.
+ *
+ * Despues del goto emitimos un {type:'url_changed'} a todos los clientes
+ * para que la URL bar del chrome se sincronice.
+ */
+async function handleNavigate(sessionId: string, url: string): Promise<void> {
+  const entry = getEntry(sessionId);
+  if (!entry) return;
+  try {
+    // Normalizar URL — si no tiene scheme, anteponer https://
+    let target = url.trim();
+    if (!/^https?:\/\//i.test(target)) {
+      target = `https://${target}`;
+    }
+    await entry.page.goto(target, {
+      timeout: 10_000,
+      waitUntil: "domcontentloaded",
+    });
+    // url_changed se emitira via Page.frameNavigated; lo mandamos igual
+    // por si el listener no esta enganchado todavia.
+    broadcastUrlChanged(sessionId, entry.page.url());
+    console.log(`[recorder-worker] navigate OK ${sessionId} -> ${entry.page.url()}`);
+  } catch (err) {
+    console.error(
+      `[recorder-worker] navigate failed for ${sessionId} to ${url}:`,
+      err,
+    );
+    // Notificamos al cliente que la navegacion fallo
+    const payload = JSON.stringify({
+      type: "error",
+      msg: `No se pudo navegar a ${url}`,
+    });
+    for (const client of entry.clients) {
+      if (client.readyState === 1) {
+        try {
+          client.send(payload);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Suscribe a Page.frameNavigated + Page.navigatedWithinDocument para que
+ * cualquier cambio de URL (click en link, history back/forward, hash
+ * change, pushState) se reporte al frontend como url_changed.
+ *
+ * Llamar UNA vez cuando el browser este listo (en onBrowserReady).
+ * Idempotente: si ya hay listeners para esta sesion, los reemplaza.
+ */
+const navTrackingAttached = new Set<string>();
+
+export function setupNavigationTracking(
+  sessionId: string,
+  cdp: import("playwright").CDPSession,
+): void {
+  if (navTrackingAttached.has(sessionId)) return;
+  navTrackingAttached.add(sessionId);
+
+  cdp.on("Page.frameNavigated", (params: { frame: { url: string } }) => {
+    // frameNavigated dispara para sub-frames tambien; solo nos importa el main frame
+    if (!params.frame || !params.frame.url) return;
+    broadcastUrlChanged(sessionId, params.frame.url);
+  });
+
+  cdp.on("Page.navigatedWithinDocument", (params: { url: string }) => {
+    // Para navegacion via history.pushState / hash change
+    if (!params.url) return;
+    broadcastUrlChanged(sessionId, params.url);
+  });
+
+  console.log(`[recorder-worker] navigation tracking attached for ${sessionId}`);
+}
+
+function broadcastUrlChanged(sessionId: string, url: string): void {
+  const entry = getEntry(sessionId);
+  if (!entry) return;
+  const payload = JSON.stringify({ type: "url_changed", url });
+  for (const client of entry.clients) {
+    if (client.readyState === 1) {
+      try {
+        client.send(payload);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+/**
+ * Para tests y limpieza manual. Llamar cuando la sesion termina para
+ * liberar el flag de tracking y permitir re-attach si se reanuda.
+ */
+export function clearNavigationTracking(sessionId: string): void {
+  navTrackingAttached.delete(sessionId);
 }
