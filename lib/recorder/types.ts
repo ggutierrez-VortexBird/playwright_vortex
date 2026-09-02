@@ -35,7 +35,21 @@ export type WsClientMessage =
   /** HU-G5: pedir el elemento bajo el cursor (cliente → worker → cliente). */
   | { type: "pick"; x: number; y: number }
   /** HU-G5: highlight on hover (enviado debounced 50ms). */
-  | { type: "hover"; x: number; y: number };
+  | { type: "hover"; x: number; y: number }
+  /** Input dispatch: mouse moved sobre el canvas del frontend → CDP Input.dispatchMouseEvent. */
+  | { type: "mouse_move"; x: number; y: number }
+  /** Input dispatch: mouse button pressed. */
+  | { type: "mouse_down"; x: number; y: number; button?: "left" | "middle" | "right"; clickCount?: number }
+  /** Input dispatch: mouse button released. */
+  | { type: "mouse_up"; x: number; y: number; button?: "left" | "middle" | "right"; clickCount?: number }
+  /** Input dispatch: scroll wheel. */
+  | { type: "wheel"; x: number; y: number; deltaX: number; deltaY: number }
+  /** Input dispatch: key pressed. */
+  | { type: "key_down"; key: string; code?: string; modifiers?: number }
+  /** Input dispatch: key released. */
+  | { type: "key_up"; key: string; code?: string; modifiers?: number }
+  /** Input dispatch: type text (insertText CDP — para escribir en inputs). */
+  | { type: "type"; text: string };
 
 /** Mensajes que el recorder manda al cliente por WS. */
 export type WsServerMessage =

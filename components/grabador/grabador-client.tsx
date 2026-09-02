@@ -279,7 +279,10 @@ export function GrabadorClient({
             <BrowserChrome status={connState} pageUrl={pageUrl} />
 
             <div className="flex-1 relative bg-m3-surface-container overflow-hidden">
-              <ScreencastCanvas />
+              <ScreencastCanvas
+                onInputEvent={(msg) => sendWsMessage(msg)}
+                inputDisabled={!isLive || paused}
+              />
               {!isLive && (
                 <div className="absolute inset-0 flex items-center justify-center bg-m3-surface-container/80 backdrop-blur-sm">
                   <ConnectionStatus state={connState} mode="inline" />

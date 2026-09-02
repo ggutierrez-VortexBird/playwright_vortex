@@ -357,6 +357,20 @@ export async function handleWsConnection(
         // HU-G5: respond to element queries. Async — fire and forget.
         void handleElementQuery(ws, sessionId, msg);
         break;
+      case "mouse_move":
+      case "mouse_down":
+      case "mouse_up":
+      case "wheel":
+      case "key_down":
+      case "key_up":
+      case "type":
+        // Input dispatch: forward user interactions from the canvas
+        // (frontend) to the browser via CDP Input.* events. This is the
+        // codegen-equivalent: el usuario hace click en el canvas → worker
+        // dispatchMouseEvent en la página real → DOM fires → __pw_report
+        // captura → paso se persiste y aparece en el panel.
+        void handleInputDispatch(sessionId, msg);
+        break;
     }
   });
 
@@ -370,6 +384,95 @@ export async function handleWsConnection(
     ws.on("__pw_frame__", (data: string, ts: number) => {
       sendMessage(ws, { type: "frame", data, ts });
     });
+  }
+}
+
+/**
+ * Forward user input from the canvas (frontend) to the browser via CDP.
+ *
+ * Esto es lo que faltaba para que `playwright codegen`-equivalent funcione:
+ * el usuario ve la pagina en el canvas (via screencast), hace click sobre
+ * el canvas, el frontend captura las coordenadas y las manda por WS al
+ * worker. El worker las traduce a CDP Input.* events y los inyecta en
+ * la pagina. La pagina procesa el click nativamente → sus DOM listeners
+ * disparan → __pw_report (init-script) envia el evento al worker → paso
+ * se persiste en DB y aparece en el panel.
+ *
+ * Cada handler es fire-and-forget: si CDP falla (browser cerrado, etc.),
+ * se loguea pero no se rompe el WS.
+ */
+async function handleInputDispatch(
+  sessionId: string,
+  msg: WsClientMessage,
+): Promise<void> {
+  const entry = getEntry(sessionId);
+  if (!entry) return;
+  if (!entry.cdp) {
+    console.error(`[ws-server] input dispatch sin CDP session para ${sessionId}`);
+    return;
+  }
+
+  try {
+    switch (msg.type) {
+      case "mouse_move":
+        await entry.cdp.send("Input.dispatchMouseEvent", {
+          type: "mouseMoved",
+          x: msg.x,
+          y: msg.y,
+        });
+        break;
+      case "mouse_down":
+        await entry.cdp.send("Input.dispatchMouseEvent", {
+          type: "mousePressed",
+          x: msg.x,
+          y: msg.y,
+          button: msg.button ?? "left",
+          clickCount: msg.clickCount ?? 1,
+        });
+        break;
+      case "mouse_up":
+        await entry.cdp.send("Input.dispatchMouseEvent", {
+          type: "mouseReleased",
+          x: msg.x,
+          y: msg.y,
+          button: msg.button ?? "left",
+          clickCount: msg.clickCount ?? 1,
+        });
+        break;
+      case "wheel":
+        await entry.cdp.send("Input.dispatchMouseEvent", {
+          type: "mouseWheel",
+          x: msg.x,
+          y: msg.y,
+          deltaX: msg.deltaX,
+          deltaY: msg.deltaY,
+        });
+        break;
+      case "key_down":
+        await entry.cdp.send("Input.dispatchKeyEvent", {
+          type: "keyDown",
+          key: msg.key,
+          ...(msg.code ? { code: msg.code } : {}),
+          ...(msg.modifiers !== undefined ? { modifiers: msg.modifiers } : {}),
+        });
+        break;
+      case "key_up":
+        await entry.cdp.send("Input.dispatchKeyEvent", {
+          type: "keyUp",
+          key: msg.key,
+          ...(msg.code ? { code: msg.code } : {}),
+          ...(msg.modifiers !== undefined ? { modifiers: msg.modifiers } : {}),
+        });
+        break;
+      case "type":
+        // Input.insertText dispara eventos 'input' nativos en el elemento
+        // enfocado. A diferencia de key_down + char, esto funciona con
+        // campos que no responden a KeyDown pero sí a paste/input.
+        await entry.cdp.send("Input.insertText", { text: msg.text });
+        break;
+    }
+  } catch (err) {
+    console.error(`[ws-server] input dispatch failed for ${sessionId}:`, err);
   }
 }
 
