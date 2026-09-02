@@ -32,6 +32,8 @@ import {
   serializeElement,
   type SerializedElementFull,
 } from "@/lib/grabador/dom-utils";
+import { persistirPaso } from "@/lib/grabador/paso-repo";
+import type { EventoDom } from "@/lib/grabador/translator";
 
 function sendMessage(ws: WsServerSocket, msg: WsServerMessage): void {
   try {
@@ -434,6 +436,7 @@ async function handleInputDispatch(
           button: msg.button ?? "left",
           clickCount: msg.clickCount ?? 1,
         });
+        console.log(`[recorder-worker] input mouse_down (${msg.x},${msg.y}) button=${msg.button ?? "left"}`);
         break;
       case "mouse_up":
         await entry.cdp.send("Input.dispatchMouseEvent", {
@@ -443,6 +446,7 @@ async function handleInputDispatch(
           button: msg.button ?? "left",
           clickCount: msg.clickCount ?? 1,
         });
+        console.log(`[recorder-worker] input mouse_up (${msg.x},${msg.y}) button=${msg.button ?? "left"}`);
         break;
       case "wheel":
         await entry.cdp.send("Input.dispatchMouseEvent", {
@@ -474,6 +478,7 @@ async function handleInputDispatch(
         // enfocado. A diferencia de key_down + char, esto funciona con
         // campos que no responden a KeyDown pero sí a paste/input.
         await entry.cdp.send("Input.insertText", { text: msg.text });
+        console.log(`[recorder-worker] input insertText "${msg.text}"`);
         break;
     }
   } catch (err) {
@@ -519,6 +524,66 @@ export function markBrowserReady(sessionId: string, screencastStarted: Set<strin
 }
 
 /**
+ * Persiste un paso "Abrir <URL>" en DB y lo broadcastea como
+ * paso_agregado al cliente. Se usa cuando el usuario navega (URL bar,
+ * click en link, history). Asi el panel derecho muestra la navegacion
+ * como paso — como hace playwright codegen.
+ *
+ * Fire-and-forget: si la DB falla seguimos con la navegacion.
+ */
+async function recordNavigationStep(
+  sessionId: string,
+  url: string,
+  origen: "grabado" | "manual" = "grabado",
+): Promise<void> {
+  const evento: EventoDom = {
+    type: "navigate",
+    target: null,
+    value: url,
+    timestamp: Date.now(),
+    deltaFromPreviousMs: 0,
+    url,
+  };
+  try {
+    const paso = await persistirPaso(evento, sessionId);
+    if (paso) {
+      // Reusar el helper broadcastPaso del recorder-worker para que el
+      // paso llegue al PasoPanel del cliente con el formato correcto.
+      const payload = JSON.stringify({
+        type: "paso_agregado",
+        paso: {
+          id: paso.id,
+          numero: paso.numero,
+          tipo: paso.tipo,
+          descripcion: paso.descripcion,
+          valor: paso.valor,
+          esValorSensible: paso.esValorSensible,
+          parametroNombre: null,
+          createdAt: paso.createdAt.toISOString(),
+        },
+      });
+      const entry = getEntry(sessionId);
+      if (entry) {
+        for (const client of entry.clients) {
+          if (client.readyState === 1) {
+            try {
+              client.send(payload);
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+      console.log(
+        `[recorder-worker] paso navegar #${paso.numero} ${url} (origen=${origen})`,
+      );
+    }
+  } catch (err) {
+    console.error(`[recorder-worker] no se pudo persistir paso navegar`, err);
+  }
+}
+
+/**
  * Navega la pagina del browser a una nueva URL (Enter en la URL bar).
  * El goto usa el mismo timeout que el goto inicial (10s) y respeta
  * domcontentloaded — suficiente para que la pagina pinte y el screencast
@@ -540,10 +605,13 @@ async function handleNavigate(sessionId: string, url: string): Promise<void> {
       timeout: 10_000,
       waitUntil: "domcontentloaded",
     });
+    const finalUrl = entry.page.url();
     // url_changed se emitira via Page.frameNavigated; lo mandamos igual
     // por si el listener no esta enganchado todavia.
-    broadcastUrlChanged(sessionId, entry.page.url());
-    console.log(`[recorder-worker] navigate OK ${sessionId} -> ${entry.page.url()}`);
+    broadcastUrlChanged(sessionId, finalUrl);
+    // Persistir como paso "Abrir <URL>".
+    void recordNavigationStep(sessionId, finalUrl, "manual");
+    console.log(`[recorder-worker] navigate OK ${sessionId} -> ${finalUrl}`);
   } catch (err) {
     console.error(
       `[recorder-worker] navigate failed for ${sessionId} to ${url}:`,
@@ -569,12 +637,14 @@ async function handleNavigate(sessionId: string, url: string): Promise<void> {
 /**
  * Suscribe a Page.frameNavigated + Page.navigatedWithinDocument para que
  * cualquier cambio de URL (click en link, history back/forward, hash
- * change, pushState) se reporte al frontend como url_changed.
+ * change, pushState) se reporte al frontend como url_changed Y se
+ * persista como paso "Abrir <URL>".
  *
  * Llamar UNA vez cuando el browser este listo (en onBrowserReady).
  * Idempotente: si ya hay listeners para esta sesion, los reemplaza.
  */
 const navTrackingAttached = new Set<string>();
+const navLastUrl = new Map<string, string>();
 
 export function setupNavigationTracking(
   sessionId: string,
@@ -583,16 +653,27 @@ export function setupNavigationTracking(
   if (navTrackingAttached.has(sessionId)) return;
   navTrackingAttached.add(sessionId);
 
-  cdp.on("Page.frameNavigated", (params: { frame: { url: string } }) => {
+  cdp.on("Page.frameNavigated", (params: { frame: { url: string; parentId?: string } }) => {
     // frameNavigated dispara para sub-frames tambien; solo nos importa el main frame
+    // (main frame no tiene parentId). Si el parametro no incluye parentId,
+    // lo aceptamos como main frame (compatibilidad entre versiones CDP).
     if (!params.frame || !params.frame.url) return;
-    broadcastUrlChanged(sessionId, params.frame.url);
+    if (params.frame.parentId) return;
+    const newUrl = params.frame.url;
+    const prev = navLastUrl.get(sessionId);
+    if (prev === newUrl) return; // sin cambio real
+    navLastUrl.set(sessionId, newUrl);
+    broadcastUrlChanged(sessionId, newUrl);
+    void recordNavigationStep(sessionId, newUrl, "grabado");
   });
 
   cdp.on("Page.navigatedWithinDocument", (params: { url: string }) => {
-    // Para navegacion via history.pushState / hash change
     if (!params.url) return;
+    const prev = navLastUrl.get(sessionId);
+    if (prev === params.url) return;
+    navLastUrl.set(sessionId, params.url);
     broadcastUrlChanged(sessionId, params.url);
+    void recordNavigationStep(sessionId, params.url, "grabado");
   });
 
   console.log(`[recorder-worker] navigation tracking attached for ${sessionId}`);
