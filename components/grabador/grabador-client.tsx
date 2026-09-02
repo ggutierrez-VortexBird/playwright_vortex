@@ -304,7 +304,97 @@ export function GrabadorClient({
     );
   }
 
-  function handleActionParametro() {
+  /**
+ * HU-G5 — popover position calculator.
+ *
+ * Bug: cuando el elemento pickeado esta muy a la derecha o muy abajo,
+ * el popover (260px ancho, ~250px alto) se desbordaba del canvas del
+ * navegador contenido y quedaba parcialmente invisible.
+ *
+ * Fix: posicionamiento relativo al bbox del elemento con flip inteligente
+ * segun la orientacion:
+ *   - Si el elemento esta en la mitad derecha del viewport: flip horizontal
+ *     (popover aparece a la IZQUIERDA del elemento).
+ *   - Si el elemento esta en la mitad inferior: flip vertical
+ *     (popover aparece ARRIBA del elemento).
+ *   - En caso contrario: default (a la derecha y abajo del elemento).
+ *
+ * Tamaños aproximados del popover (min-w=260, alto variable segun
+ * acciones pero acotado a ~250). Usamos esos limites para calcular
+ * el flip antes de pintar; si por algun motivo el popover es mas
+ * grande, igualmente queda dentro del canvas porque el padre tiene
+ * `overflow-hidden` y los porcentajes se mantienen.
+ */
+function computePopoverPosition(bbox: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} | null): { left: string; top: string } {
+  // Fallback: esquina superior izquierda del canvas.
+  if (!bbox) return { left: "0%", top: "0%" };
+
+  // Constantes del viewport del page (las mismas que el browser).
+  // El canvas CSS escala via object-contain, asi que los porcentajes
+  // se calculan contra estas constantes.
+  const PAGE_W = 1280;
+  const PAGE_H = 720;
+  // Dimensiones aproximadas del popover (clamp para flip).
+  const POPOVER_W = 280;
+  const POPOVER_H = 260;
+  // Offset entre el elemento y el popover.
+  const GAP = 8;
+
+  const elemCenterX = bbox.x + bbox.width / 2;
+  const elemBottomY = bbox.y + bbox.height;
+  const elemTopY = bbox.y;
+
+  // ── Horizontal ─────────────────────────────────────────────────────
+  // Si el elemento esta en la mitad derecha O no hay espacio a la
+  // derecha (popover no entraria), flip a la izquierda.
+  const preferRight = elemCenterX + POPOVER_W + GAP <= PAGE_W;
+  const preferLeft = bbox.x - POPOVER_W - GAP >= 0;
+  let leftPx: number;
+  if (preferRight) {
+    // popover a la derecha del elemento (gap horizontal)
+    leftPx = bbox.x + bbox.width + GAP;
+    if (leftPx + POPOVER_W > PAGE_W) {
+      // No entra -> flip
+      leftPx = bbox.x - POPOVER_W - GAP;
+      if (leftPx < 0) leftPx = 0; // clamp
+    }
+  } else if (preferLeft) {
+    leftPx = bbox.x - POPOVER_W - GAP;
+    if (leftPx < 0) leftPx = 0;
+  } else {
+    // No entra ni a derecha ni a izquierda: posicionamos lo mas a
+    // la derecha posible (clamp) — el padre tiene overflow-hidden
+    // asi que el popover queda visible aunque el elemento este en
+    // el medio.
+    leftPx = Math.max(0, PAGE_W - POPOVER_W);
+  }
+
+  // ── Vertical ───────────────────────────────────────────────────────
+  // Default: debajo del elemento. Si no entra, flip arriba.
+  const preferBelow = elemBottomY + POPOVER_H + GAP <= PAGE_H;
+  const preferAbove = elemTopY - POPOVER_H - GAP >= 0;
+  let topPx: number;
+  if (preferBelow) {
+    topPx = elemBottomY + GAP;
+  } else if (preferAbove) {
+    topPx = elemTopY - POPOVER_H - GAP;
+    if (topPx < 0) topPx = 0;
+  } else {
+    topPx = Math.max(0, PAGE_H - POPOVER_H);
+  }
+
+  return {
+    left: `${(leftPx / PAGE_W) * 100}%`,
+    top: `${(topPx / PAGE_H) * 100}%`,
+  };
+}
+
+function handleActionParametro() {
     // Parametros: HU-G7. Por ahora abrimos el modal generico de verificacion
     // y dejamos la nota (TODO: modal especifico de ConvertirParametro).
     if (pickedElement) {
@@ -460,30 +550,16 @@ export function GrabadorClient({
                 />
               )}
 
-              {/* HU-G5: popover con opciones para el elemento pickeado.
-                  Posicionado cerca del centro del bbox del elemento.
-                  Las 4 acciones matchean los tools de Playwright:
-                  pick locator, assert visibility, assert text, assert
-                  snapshot. Convertir en parametro es feature nuestra
-                  (HU-G7 de ACTA, NO de playwright) — separado abajo. */}
+{/* HU-G5: popover con opciones para el elemento pickeado.
+                  Posicionado con flip inteligente (computePopoverPosition):
+                  si el elemento esta muy a la derecha, el popover
+                  aparece a la IZQUIERDA; si esta muy abajo, aparece
+                  ARRIBA. Asi nunca se desborda del canvas del navegador. */}
               {signalActive && pickedElement && (
                 <div
                   data-testid="signal-popover"
-                  className="absolute z-30 bg-m3-surface-container-highest border border-m3-outline-variant rounded-lg shadow-lg p-2 flex flex-col gap-1 min-w-[260px]"
-                  style={{
-                    left: `${Math.min(
-                      ((pickedElement.element.bbox?.x ?? 0) +
-                        (pickedElement.element.bbox?.width ?? 0) / 2) /
-                        1280,
-                      0.75,
-                    ) * 100}%`,
-                    top: `${Math.min(
-                      ((pickedElement.element.bbox?.y ?? 0) +
-                        (pickedElement.element.bbox?.height ?? 0) + 8) /
-                        720,
-                      0.85,
-                    ) * 100}%`,
-                  }}
+                  className="absolute z-30 bg-m3-surface-container-highest border border-m3-outline-variant rounded-lg shadow-lg p-2 flex flex-col gap-1 min-w-[260px] max-w-[320px]"
+                  style={computePopoverPosition(pickedElement.element.bbox)}
                 >
                   <div className="font-label text-label-sm text-m3-on-surface-variant px-2 py-1 truncate max-w-[300px]">
                     «{pickedElement.element.text || pickedElement.element.aria || pickedElement.element.tag}»
