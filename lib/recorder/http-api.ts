@@ -156,10 +156,9 @@ async function handleStart(ctx: ApiContext, req: IncomingMessage, res: ServerRes
       };
       addEntry(realEntry);
 
-      await startScreencastImpl(launched.page, () => {
-        // frame handler lo cablea el ws-server en on('connection')
-      });
-
+      // El screencast lo arranca onBrowserReady con el handler correcto
+      // (broadcastFrame). Acá NO se debe arrancar otro — ese llamado previo
+      // era un noop que confundía y creaba una sesion CDP extra sin uso.
       ctx.options.onBrowserReady?.(body.sessionId, launched.page, launched.cdp);
     } catch (err: unknown) {
       if (err instanceof UrlInaccesibleError) {
