@@ -2,9 +2,10 @@
  * WebSocket server para el recorder-worker.
  *
  *   - Handshake: parsear `?token=…` de la URL, validar con validateToken
- *   - Verificar tokenUsado=true (one-shot, segunda conexión con mismo token → close 4001)
+ *   - Verificar que la sesión existe en DB y no está en estado terminal
+ *     (token reusable durante toda la vida de la sesión, ver W3 fix)
  *   - Adjuntar cliente al SessionEntry
- *   - Manejar mensajes: heartbeat / pause / resume / stop
+ *   - Manejar mensajes: heartbeat / pause / resume / stop / pick / hover
  *   - Broadcast frames desde CDP screencast a todos los clientes de la sesión
  *   - Heartbeat timer: cada `{type:'heartbeat'}` re-arma un timer; si el
  *     cliente deja de mandar heartbeats por `heartbeatTimeoutMs`, se invoca
@@ -374,8 +375,13 @@ export async function handleWsConnection(
 
 /**
  * Helper para que el http-api notifique al ws-server cuando un frame llega.
- * Itera todos los clientes del sessionId y emite el evento `__pw_frame__`
- * (custom event para evitar pisar la API de `ws`).
+ * Itera todos los clientes del sessionId y les envía un mensaje JSON
+ * `{type:'frame', data: '<base64jpeg>', ts: <ms>}` para que el frontend lo
+ * decodifique sobre el <canvas>.
+ *
+ * IMPORTANTE: usa `client.send(JSON.stringify(...))` directamente — NO
+ * `client.emit("__pw_frame__", ...)`. Los eventos custom de `ws` no
+ * atraviesan el socket; el cliente solo recibe lo que se manda con `send`.
  */
 export function broadcastFrame(
   sessionId: string,
@@ -384,9 +390,14 @@ export function broadcastFrame(
 ): void {
   const entry = getEntry(sessionId);
   if (!entry) return;
+  const payload = JSON.stringify({ type: "frame", data, ts });
   for (const client of entry.clients) {
-    if (client.readyState === WsServerSocket.OPEN) {
-      client.emit("__pw_frame__", data, ts);
+    if (client.readyState === 1 /* OPEN, per 'ws' constants */) {
+      try {
+        client.send(payload);
+      } catch {
+        // ignore: cliente probablemente cerró entre el check y el send
+      }
     }
   }
 }

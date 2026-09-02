@@ -44,7 +44,7 @@ jest.mock("@/lib/recorder/auth", () => ({
 }));
 
 import type { WebSocket as WsServerSocket } from "ws";
-import { handleWsConnection } from "@/lib/recorder/ws-server";
+import { handleWsConnection, broadcastFrame } from "@/lib/recorder/ws-server";
 import {
   _resetForTests,
   addEntry,
@@ -397,6 +397,114 @@ describe("recorder/ws-server — handshake con token reusable", () => {
 
     expect(ws.close).toHaveBeenCalledWith(1000, "stop");
     await new Promise((r) => setTimeout(r, 10));
+  });
+});
+
+describe("recorder/ws-server — broadcastFrame (screencast → frontend)", () => {
+  // Regresion del bug "solo aparece la URL, el canvas queda en blanco":
+  // broadcastFrame usaba client.emit("__pw_frame__", ...) que no atraviesa
+  // el socket. El cliente NUNCA recibia los frames. Ahora usa
+  // client.send(JSON.stringify({type:'frame', data, ts})) directamente.
+
+  function makeClient(id: string): {
+    ws: WsServerSocket & { send: jest.Mock; readyState: number };
+  } {
+    return {
+      ws: {
+        id,
+        readyState: 1 as 1 | 0 | 2 | 3,
+        send: jest.fn(),
+        close: jest.fn(),
+        on: jest.fn(),
+        off: jest.fn(),
+        emit: jest.fn(),
+      } as unknown as WsServerSocket & { send: jest.Mock; readyState: number },
+    };
+  }
+
+  it("sends a JSON {type:'frame'} message to all OPEN clients (not custom event)", () => {
+    const entry = fakeEntryWithTimer("ses-1");
+    addEntry(entry);
+    const { ws } = makeClient("ws-frame-1");
+    attachClient("ses-1", ws);
+
+    broadcastFrame("ses-1", "base64jpeg==", 1234567890);
+
+    // Debe usar client.send con JSON.stringify, NO client.emit.
+    expect(ws.emit).not.toHaveBeenCalled();
+    expect(ws.send).toHaveBeenCalledTimes(1);
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: "frame", data: "base64jpeg==", ts: 1234567890 }),
+    );
+  });
+
+  it("does NOT throw if session has no entry in registry", () => {
+    // No entry for "ses-missing" → should be a silent no-op.
+    expect(() => broadcastFrame("ses-missing", "data", 1)).not.toThrow();
+  });
+
+  it("skips clients that are not OPEN (closing/closed)", () => {
+    const entry = fakeEntryWithTimer("ses-1");
+    addEntry(entry);
+
+    const ws1 = {
+      id: "ws-open",
+      readyState: 1,
+      send: jest.fn(),
+      close: jest.fn(),
+      on: jest.fn(),
+      off: jest.fn(),
+      emit: jest.fn(),
+    } as unknown as WsServerSocket & { send: jest.Mock; readyState: number };
+    const ws2 = {
+      id: "ws-closed",
+      readyState: 3,
+      send: jest.fn(),
+      close: jest.fn(),
+      on: jest.fn(),
+      off: jest.fn(),
+      emit: jest.fn(),
+    } as unknown as WsServerSocket & { send: jest.Mock; readyState: number };
+    attachClient("ses-1", ws1);
+    attachClient("ses-1", ws2);
+
+    broadcastFrame("ses-1", "x", 1);
+
+    expect(ws1.send).toHaveBeenCalledTimes(1);
+    expect(ws2.send).not.toHaveBeenCalled();
+  });
+
+  it("catches send errors so one bad client doesn't break the broadcast", () => {
+    const entry = fakeEntryWithTimer("ses-1");
+    addEntry(entry);
+
+    const wsOk = {
+      id: "ws-ok",
+      readyState: 1,
+      send: jest.fn(),
+      close: jest.fn(),
+      on: jest.fn(),
+      off: jest.fn(),
+      emit: jest.fn(),
+    } as unknown as WsServerSocket & { send: jest.Mock; readyState: number };
+    const wsBroken = {
+      id: "ws-broken",
+      readyState: 1,
+      send: jest.fn(() => {
+        throw new Error("socket closed");
+      }),
+      close: jest.fn(),
+      on: jest.fn(),
+      off: jest.fn(),
+      emit: jest.fn(),
+    } as unknown as WsServerSocket & { send: jest.Mock; readyState: number };
+    attachClient("ses-1", wsOk);
+    attachClient("ses-1", wsBroken);
+
+    // No debe propagar la excepción.
+    expect(() => broadcastFrame("ses-1", "x", 1)).not.toThrow();
+    // El cliente sano igual recibió el frame.
+    expect(wsOk.send).toHaveBeenCalledTimes(1);
   });
 });
 
