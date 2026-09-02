@@ -68,6 +68,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
               nombre: "usuario",
               valorDefecto: "admin",
               origen: "manual",
+              enUso: true,
             },
           ],
         }}
@@ -89,6 +90,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
               nombre: "pwd",
               valorDefecto: "supersecret",
               origen: "credencial",
+              enUso: true,
             },
           ],
         }}
@@ -96,7 +98,10 @@ describe("CasoDetalleCliente (HU-G16)", () => {
       />,
     );
     expect(screen.queryByText("supersecret")).not.toBeInTheDocument();
-    expect(screen.getByText("••••")).toBeInTheDocument();
+    // maskValue("supersecret") = "•••••••cret" (7 bullets + last 4 chars).
+    const body = screen.getByTestId("parametros-panel-body");
+    expect(body.textContent).toContain("cret");
+    expect(body.textContent).toContain("•");
   });
 
   it("Ejecutar button POSTs and redirects via window.location.href", async () => {

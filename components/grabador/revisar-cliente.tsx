@@ -3,6 +3,7 @@
 import { useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RevisarTabs } from "./revisar-tabs";
+import { ParametrosPanel } from "./parametros-panel";
 import {
   serializarPasos,
   type PasoParaSerializar,
@@ -265,37 +266,13 @@ export function RevisarCliente({
           />
         </section>
 
-        {/* Right: parámetros */}
+        {/* Right: parámetros + juego de datos placeholder (HU-G13 lives elsewhere) */}
         <aside className="col-span-12 lg:col-span-4 flex flex-col gap-3">
-          <div
-            className="bg-m3-surface-container-lowest rounded-lg border border-m3-outline-variant shadow-sm p-4"
-            data-testid="revisar-parametros-section"
-          >
-            <h3 className="font-headline text-headline-md text-m3-primary tracking-wide mb-2">
-              PARÁMETROS
-            </h3>
-            {parametrosIniciales.length === 0 ? (
-              <p className="font-body text-body-sm text-m3-on-surface-variant italic">
-                Aún no convertiste ningún valor en parámetro.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {parametrosIniciales.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex items-center gap-2 text-body-sm"
-                  >
-                    <span className="font-mono-code bg-m3-tertiary-container text-m3-on-tertiary-container px-1.5 py-0.5 rounded text-xs">
-                      {`{{${p.nombre}}}`}
-                    </span>
-                    <span className="text-m3-on-surface-variant truncate">
-                      {p.origen === "credencial" ? "••••" : p.valorDefecto ?? "—"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <ParametrosPanel
+            parametros={parametrosIniciales}
+            readOnly={true}
+            emptyMessage="Aún no convertiste ningún valor en parámetro."
+          />
 
           <div
             className="bg-m3-surface-container-lowest rounded-lg border border-m3-outline-variant shadow-sm p-4"

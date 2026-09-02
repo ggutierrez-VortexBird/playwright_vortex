@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
+import { ParametrosPanel, type ParametroPanelItem } from "@/components/grabador/parametros-panel";
 
 /**
- * CasoDetalleCliente — minimal case detail page (HU-G16 redirect target).
+ * CasoDetalleCliente — case detail page (HU-G16 redirect target + HU-G12).
  *
  * Shows the saved script in a pre block + a "Ejecutar" button. The full
- * detalle con ejecuciones pasadas vive en /ejecuciones/[id] (HU-4.x);
- * esta página es solo el "primer pantallazo" post-guardar.
+ * detalle con ejecuciones pasadas vive en /ejecuciones/[id] (HU-4.x).
+ *
+ * HU-G12: el panel de parámetros es editable (PATCH /api/casos/[id]/parametros/[paramId]).
+ * Credenciales NO se pueden editar desde acá — sólo lectura enmascarada.
  */
 
 export interface CasoDetalleParametro {
@@ -16,6 +19,7 @@ export interface CasoDetalleParametro {
   nombre: string;
   valorDefecto: string | null;
   origen: string;
+  enUso: boolean;
 }
 
 export interface CasoDetalleItem {
@@ -39,6 +43,23 @@ export interface CasoDetalleClienteProps {
 export function CasoDetalleCliente({ caso, backHref }: CasoDetalleClienteProps) {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [parametros, setParametros] = useState<ParametroPanelItem[]>(
+    caso.parametros,
+  );
+
+  const refreshParametros = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/casos/${encodeURIComponent(caso.id)}/parametros`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as { parametros: ParametroPanelItem[] };
+      setParametros(data.parametros);
+    } catch {
+      // ignore — la UI sigue mostrando el último estado conocido.
+    }
+  }, [caso.id]);
 
   async function handleEjecutar() {
     setBusy(true);
@@ -117,26 +138,15 @@ export function CasoDetalleCliente({ caso, backHref }: CasoDetalleClienteProps) 
           </pre>
         </div>
 
-        {caso.parametros.length > 0 && (
+        {parametros.length > 0 && (
           <div className="p-5 border-t border-m3-outline-variant">
-            <h3 className="font-headline text-headline-md text-m3-primary tracking-wide mb-2">
-              PARÁMETROS
-            </h3>
-            <ul className="flex flex-col gap-2">
-              {caso.parametros.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-2 text-body-sm"
-                >
-                  <span className="font-mono-code bg-m3-tertiary-container text-m3-on-tertiary-container px-1.5 py-0.5 rounded text-xs">
-                    {`{{${p.nombre}}}`}
-                  </span>
-                  <span className="text-m3-on-surface-variant truncate">
-                    {p.origen === "credencial" ? "••••" : p.valorDefecto ?? "—"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ParametrosPanel
+              parametros={parametros}
+              readOnly={false}
+              casoPruebaId={caso.id}
+              onParametrosChange={refreshParametros}
+              emptyMessage="Sin parámetros definidos."
+            />
           </div>
         )}
       </div>

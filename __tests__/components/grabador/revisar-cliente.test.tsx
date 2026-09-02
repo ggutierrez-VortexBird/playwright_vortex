@@ -155,7 +155,10 @@ describe("RevisarCliente (HU-G8)", () => {
       />,
     );
     expect(screen.queryByText("supersecret")).not.toBeInTheDocument();
-    expect(screen.getByText("••••")).toBeInTheDocument();
+    // maskValue("supersecret") = "•••••••cret" (7 bullets + last 4 chars).
+    const body = screen.getByTestId("parametros-panel-body");
+    expect(body.textContent).toContain("cret");
+    expect(body.textContent).toContain("•");
   });
 
   it("shows an empty state when there are no pasos", () => {
@@ -331,7 +334,10 @@ describe("RevisarCliente (HU-G8)", () => {
         parametrosIniciales={baseParametros}
       />,
     );
-    expect(screen.getByText(/1 parámetro/)).toBeInTheDocument();
+    // HU-G12: ahora hay dos contadores de parámetros en pantalla:
+    // 1) el del topbar (revisar-cliente), 2) el del panel ParametrosPanel.
+    // Ambos son legítimos y muestran "1 parámetro".
+    expect(screen.getAllByText(/1 parámetro/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("muestra el valor como 'valor:' cuando no es sensible", () => {

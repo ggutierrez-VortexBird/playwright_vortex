@@ -1,17 +1,19 @@
 /**
- * /casos/[casoId] — vista mínima del caso guardado (HU-G16).
+ * /casos/[casoId] — vista del caso guardado (HU-G16 + HU-G12 + HU-G13).
  *
  * Server Component:
  *   1. Auth + ownership via CasoPrueba (responsableId).
  *   2. Load caso + params + pasos from DB.
- *   3. Render the script preview + "Ejecutar" button.
+ *   3. Render the script preview + "Ejecutar" button + CSV upload UI.
  *
  * Esta página es el redirect target del botón "Guardar" en HU-G16.
  * El detalle completo (HU-2.x ya lo cubre en /casos/[id] listado);
  * acá mostramos:
  *   - Header: codigo + nombre + origen
  *   - Script block (preformatted)
- *   - Botón "Ejecutar" → POST /api/casos/[id]/ejecutar (stub)
+ *   - Panel de parámetros editable (HU-G12) con "sin uso" derivado
+ *   - Botón "Ejecutar" → POST /api/casos/[id]/ejecutar
+ *   - Subir CSV data-driven (HU-G13)
  */
 
 import { redirect, notFound } from "next/navigation";
@@ -48,12 +50,34 @@ export default async function CasoDetallePage({ params }: PageProps) {
         orderBy: { nombre: "asc" },
         select: { id: true, nombre: true, valorDefecto: true, origen: true },
       },
+      // Para HU-G12: calcular enUso desde los pasos.
+      pasosGrabados: {
+        orderBy: { numero: "asc" },
+        select: { descripcion: true, valor: true },
+      },
     },
   });
 
   if (!caso) {
     notFound();
   }
+
+  // HU-G12: calcular enUso dinámicamente.
+  const parametrosConEnUso = caso.parametros.map((p) => {
+    const token = `{{${p.nombre}}}`;
+    const enUso = caso.pasosGrabados.some(
+      (paso) =>
+        (paso.descripcion != null && paso.descripcion.includes(token)) ||
+        (paso.valor != null && paso.valor.includes(token)),
+    );
+    return {
+      id: p.id,
+      nombre: p.nombre,
+      valorDefecto: p.valorDefecto,
+      origen: p.origen,
+      enUso,
+    };
+  });
 
   return (
     <CasoDetalleCliente
@@ -67,12 +91,7 @@ export default async function CasoDetallePage({ params }: PageProps) {
         activo: caso.activo,
         createdAt: caso.createdAt.toISOString(),
         updatedAt: caso.updatedAt.toISOString(),
-        parametros: caso.parametros.map((p) => ({
-          id: p.id,
-          nombre: p.nombre,
-          valorDefecto: p.valorDefecto,
-          origen: p.origen,
-        })),
+        parametros: parametrosConEnUso,
       }}
       backHref="/casos"
     />
