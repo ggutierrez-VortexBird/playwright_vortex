@@ -53,10 +53,22 @@ export function mapearEventoAPaso(
 ): PasoPayload {
   const legible = traducirEvento(evento);
 
+  // FIX BULLETPROOF: normalizar el texto en el servidor ANTES de persistir.
+  // Esto cubre el caso donde el init-script del browser tiene codigo viejo
+  // (porque el recorder-worker no fue reiniciado) y envia text con
+  // whitespace crudo (`\n   `) y posible corrupcion de caracteres.
+  // Garantiza que la BD SIEMPRE tenga texto normalizado para que el
+  // codegen emita `getByText('Usuario')` en vez de `getByText('Usuario\n \n ')`.
+  const normalize = (s: string | null | undefined): string | null => {
+    if (typeof s !== "string") return null;
+    const collapsed = s.replace(/\s+/g, " ").trim();
+    return collapsed.length > 0 ? collapsed.slice(0, 50) : null;
+  };
+
   const selectorPrincipal = evento.target
     ? {
         tag: evento.target.tag ?? null,
-        text: evento.target.text ?? null,
+        text: normalize(evento.target.text),
         aria: evento.target.aria ?? null,
         testId: evento.target.testId ?? null,
       }
@@ -75,7 +87,10 @@ export function mapearEventoAPaso(
           list.push({ strategy: "name", value: `[name="${evento.target.name}"]` });
         }
         if (evento.target?.text) {
-          list.push({ strategy: "text", value: evento.target.text });
+          // FIX BULLETPROOF: normalizar tambien el text candidate en el
+          // servidor (ver normalize() arriba). Aunque el init-script del
+          // browser mande texto crudo, el codegen recibe normalizado.
+          list.push({ strategy: "text", value: normalize(evento.target.text) ?? "" });
         }
         return list;
       })()

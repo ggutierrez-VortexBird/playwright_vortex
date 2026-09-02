@@ -209,9 +209,12 @@ export function serializeElementLite(
   el: Element | null | undefined,
 ): SerializedElementLite | null {
   if (!el || (el as Node).nodeType !== 1) return null;
+  // FIX: colapsar whitespace como en serializeElement (full). Si no,
+  // el selectorPrincipal queda con \n \n que el codegen emite literal.
+  const normalizedText = ((el.textContent || "")).replace(/\s+/g, " ").trim();
   return {
     tag: ((el.tagName || "").toLowerCase()) || null,
-    text: ((el.textContent || "").trim()).slice(0, 50) || null,
+    text: (normalizedText.slice(0, 50)) || null,
     aria: el.getAttribute?.("aria-label") || null,
     testId: el.getAttribute?.("data-testid") || null,
   };
