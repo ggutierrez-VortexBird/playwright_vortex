@@ -38,14 +38,22 @@ export const INIT_SCRIPT = `
     if (!el || el.nodeType !== 1) return null;
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     const role = el.getAttribute && el.getAttribute('role') || tag;
-    const aria = el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('name') || el.id) || '';
+    // FIX bug: antes se colapsaba aria-label/name/id en un solo campo "aria"
+    // y siempre se etiquetaba el candidato como "aria-label". Eso causaba
+    // que el codegen emitiera \`page.getByLabel("username")\` para un input
+    // que SOLO tenia id="username" (sin aria-label real) y por lo tanto
+    // Playwright esperaba 180s sin encontrar el locator. Ahora cada
+    // atributo se lee independientemente y el candidato solo se agrega si
+    // el atributo REALMENTE existe en el elemento.
+    const ariaLabel = el.getAttribute && el.getAttribute('aria-label') || '';
+    const nameAttr = el.getAttribute && el.getAttribute('name') || '';
     const text = (el.textContent || '').trim().slice(0, 50);
     const testId = el.getAttribute && el.getAttribute('data-testid') || '';
     const candidates = [];
     if (testId) candidates.push({ strategy: 'testid', value: '[data-testid="' + testId + '"]' });
     if (el.id) candidates.push({ strategy: 'id', value: '#' + el.id });
-    if (aria) candidates.push({ strategy: 'aria-label', value: '[aria-label="' + aria + '"]' });
-    if (el.name) candidates.push({ strategy: 'name', value: '[name="' + el.name + '"]' });
+    if (ariaLabel) candidates.push({ strategy: 'aria-label', value: '[aria-label="' + ariaLabel + '"]' });
+    if (nameAttr) candidates.push({ strategy: 'name', value: '[name="' + nameAttr + '"]' });
     if (text && text.length < 30) candidates.push({ strategy: 'text', value: text });
     candidates.push({ strategy: 'css', value: cssPath(el) });
     const bbox = el.getBoundingClientRect ? {
@@ -54,7 +62,7 @@ export const INIT_SCRIPT = `
       width: el.getBoundingClientRect().width,
       height: el.getBoundingClientRect().height
     } : null;
-    return { tag, role, text, testId, aria, name: el.name || '', candidates, bbox };
+    return { tag, role, text, testId, aria: ariaLabel, name: nameAttr, candidates, bbox };
   }
 
   function cssPath(el) {

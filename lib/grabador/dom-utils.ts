@@ -111,20 +111,29 @@ export function serializeElement(
   const tag = (el.tagName || "").toLowerCase();
   const role =
     el.getAttribute?.("role") || tag;
-  const aria =
-    el.getAttribute?.("aria-label") ||
-    el.getAttribute?.("name") ||
-    el.getAttribute?.("id") ||
-    "";
-  const name = el.getAttribute?.("name") || "";
+
+  // FIX bug: antes se colapsaba aria-label/name/id en un solo campo "aria"
+  // y siempre se etiquetaba el candidato como "aria-label". Eso causaba
+  // que `getByLabel("username")` se generara para un input que SOLO
+  // tenia id="username" (sin aria-label real) y por lo tanto Playwright
+  // esperaba 180s sin encontrar el locator.
+  //
+  // Ahora cada atributo se lee independientemente y el candidato solo
+  // se agrega si el atributo REALMENTE existe en el elemento:
+  //   - si tiene aria-label -> candidato aria-label
+  //   - si tiene id          -> candidato id (#id)
+  //   - si tiene name        -> candidato name ([name="x"])
+  const ariaLabelAttr = el.getAttribute?.("aria-label") || "";
+  const idAttr = el.id || "";
+  const nameAttr = el.getAttribute?.("name") || "";
+  const testIdAttr = el.getAttribute?.("data-testid") || "";
   const text = ((el.textContent || "").trim()).slice(0, 50);
-  const testId = el.getAttribute?.("data-testid") || "";
 
   const candidates: Array<{ strategy: string; value: string }> = [];
-  if (testId) {
+  if (testIdAttr) {
     candidates.push({
       strategy: "testid",
-      value: `[data-testid="${escapeSelectorText(testId)}"]`,
+      value: `[data-testid="${escapeSelectorText(testIdAttr)}"]`,
     });
   }
   // HU-G14: priorizar role explícito sobre id. Sólo si el role difiere
@@ -133,19 +142,19 @@ export function serializeElement(
   if (explicitRole && explicitRole !== tag) {
     candidates.push({ strategy: "role", value: explicitRole });
   }
-  if (el.id) {
-    candidates.push({ strategy: "id", value: `#${el.id}` });
+  if (idAttr) {
+    candidates.push({ strategy: "id", value: `#${idAttr}` });
   }
-  if (aria) {
+  if (ariaLabelAttr) {
     candidates.push({
       strategy: "aria-label",
-      value: `[aria-label="${escapeSelectorText(aria)}"]`,
+      value: `[aria-label="${escapeSelectorText(ariaLabelAttr)}"]`,
     });
   }
-  if (name) {
+  if (nameAttr) {
     candidates.push({
       strategy: "name",
-      value: `[name="${escapeSelectorText(name)}"]`,
+      value: `[name="${escapeSelectorText(nameAttr)}"]`,
     });
   }
   if (text && text.length < 30) {
@@ -166,7 +175,18 @@ export function serializeElement(
     }
   }
 
-  return { tag, role, text, testId, aria, name, candidates, bbox };
+  return {
+    tag,
+    role,
+    text,
+    testId: testIdAttr,
+    // Mantener compat: `aria` queda como el aria-label real (o "" si
+    // no tiene). Antes era el fallback name/id — eso era el bug.
+    aria: ariaLabelAttr,
+    name: nameAttr,
+    candidates,
+    bbox,
+  };
 }
 
 /**

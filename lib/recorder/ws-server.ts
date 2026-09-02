@@ -91,11 +91,7 @@ async function handleElementQuery(
         return {
           tag: (el.tagName || "").toLowerCase(),
           role: el.getAttribute("role") || (el.tagName || "").toLowerCase(),
-          aria:
-            el.getAttribute("aria-label") ||
-            el.getAttribute("name") ||
-            el.getAttribute("id") ||
-            "",
+          aria: el.getAttribute("aria-label") || "",
           name: el.getAttribute("name") || "",
           testId: el.getAttribute("data-testid") || "",
           text: ((el.textContent || "").trim()).slice(0, 50),
