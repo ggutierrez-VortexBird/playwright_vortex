@@ -12,7 +12,16 @@
  * (persistirPaso en lib/grabador/paso-repo.ts).
  */
 
-export type TipoPaso = "navegar" | "clic" | "escribir" | "seleccionar" | "esperar" | "verificar" | "generico";
+export type TipoPaso =
+  | "navegar"
+  | "clic"
+  | "escribir"
+  | "seleccionar"
+  | "esperar"
+  | "verificar"
+  /** Tecla especial (Enter, Arrow*, Tab, Escape, F1-F12): genera page.keyboard.press(). */
+  | "tecla"
+  | "generico";
 export type OrigenPaso = "grabado" | "auto" | "manual";
 
 export interface SerializedElement {
@@ -52,6 +61,9 @@ export interface PasoLegible {
   origen: OrigenPaso;
   /** Texto listo para mostrar al usuario en el panel de pasos. */
   descripcion: string;
+  /** Valor opcional (ej: tecla='Enter', escribir='julian'). El paso-repo
+   *  lee evento.value directo asi que este campo es solo para UI/debug. */
+  valor?: string;
 }
 
 /** Cuántos caracteres `•` usar para enmascarar credenciales. */
@@ -144,13 +156,35 @@ export function traducirEvento(evento: EventoDom): PasoLegible {
     }
 
     case "keydown": {
-      // Sin tratamiento especial: el `input` ya captura el resultado final.
-      // keydown se persiste como paso "generico" para no inflar el panel.
-      const label = labelDeElemento(evento.target);
+      // Si la tecla es especial (Enter, Arrow*, Tab, Escape, F1-F12), la
+      // emitimos como tipo='tecla' con el key como valor. Asi el codegen
+      // genera `page.keyboard.press('Enter')` (lo que hace Playwright
+      // codegen) en vez de un paso "Tecla en «label»" sin codigo.
+      const SPECIAL_KEYS = new Set([
+        "Enter", "Escape", "Tab",
+        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+        "Home", "End", "PageUp", "PageDown",
+        "Insert", "Delete",
+        "F1", "F2", "F3", "F4", "F5", "F6",
+        "F7", "F8", "F9", "F10", "F11", "F12",
+      ]);
+      const key = evento.value ?? "";
+      if (SPECIAL_KEYS.has(key)) {
+        const label = labelDeElemento(evento.target);
+        return {
+          tipo: "tecla",
+          origen: "grabado",
+          descripcion: `Tecla «${key}» en «${label}»`,
+          valor: key,
+        };
+      }
+      // Caracter imprimible: el `input` ya captura el valor final, no
+      // generamos paso duplicado.
+      const label2 = labelDeElemento(evento.target);
       return {
         tipo: "generico",
         origen: "grabado",
-        descripcion: `Tecla en «${label}»`,
+        descripcion: `Tecla en «${label2}»`,
       };
     }
 

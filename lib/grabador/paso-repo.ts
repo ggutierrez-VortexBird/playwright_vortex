@@ -170,11 +170,63 @@ export async function persistirPaso(
  * Implementacion interna de persistirPaso. Llamada serializada por sesion
  * via el mutex de sessionLocks. Mantiene la logica original de
  * `findFirst → create` con retry en P2002.
+ *
+ * FIX adicional: deduplica eventos "input" consecutivos sobre el mismo
+ * target dentro de un debounce de 1500ms. Esto colapsa el typing per-char
+ * en una sola fill final (matchea lo que produce Playwright codegen):
+ *   "j" → "ju" → "jul" → ... → "julian alva"  →  11 fills
+ *   ↓
+ *   "julian alva"  (1 sola fill con el valor final)
  */
 async function doPersistirPaso(
   evento: EventoDom,
   sesionId: string,
 ): Promise<PasoGrabadoRow | null> {
+  const FILL_DEBOUNCE_MS = 1500;
+
+  // Dedupe: si es un "input" no-password y el ULTIMO paso de esta sesion
+  // fue un "escribir" con el mismo selector dentro del debounce,
+  // UPDATEamos el valor en vez de crear uno nuevo.
+  if (evento.type === "input" && !evento.isPassword) {
+    const newSel = evento.target
+      ? JSON.stringify({
+          tag: evento.target.tag,
+          aria: evento.target.aria,
+          testId: evento.target.testId,
+        })
+      : null;
+
+    const lastFill = await prisma.pasoGrabado.findFirst({
+      where: {
+        sesionId,
+        tipo: "escribir",
+        createdAt: { gte: new Date(Date.now() - FILL_DEBOUNCE_MS) },
+      },
+      orderBy: { numero: "desc" },
+    });
+
+    if (lastFill) {
+      const lastSel = lastFill.selectorPrincipal
+        ? JSON.stringify(lastFill.selectorPrincipal)
+        : null;
+      if (lastSel && lastSel === newSel) {
+        // UPDATE en vez de INSERT.
+        const updatedValor = evento.value ?? null;
+        const newDescripcion = `Escribir «${updatedValor ?? ""}» en «${
+          evento.target?.text || evento.target?.aria || evento.target?.tag || "campo"
+        }»`;
+        const updated = await prisma.pasoGrabado.update({
+          where: { id: lastFill.id },
+          data: {
+            valor: updatedValor,
+            descripcion: newDescripcion,
+          },
+        });
+        return updated as PasoGrabadoRow;
+      }
+    }
+  }
+
   let attempt = 0;
   const maxAttempts = 5;
 

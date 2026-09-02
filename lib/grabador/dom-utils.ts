@@ -103,30 +103,77 @@ export function isPasswordField(el: Element | null): boolean {
  * @param el - elemento a serializar
  * @returns objeto SerializedElementFull o null si no es un Element válido
  */
+/**
+ * Mapea el role ARIA implicito de un elemento HTML segun su tag + atributos.
+ * Esto matchea lo que Playwright codegen hace internamente: para cada
+ * elemento determina el role semantico (searchbox, combobox, button,
+ * link, etc.) y emite `page.getByRole(role, { name })`.
+ *
+ * Si el elemento tiene `role` attribute EXPLICITO, gana sobre el implicito.
+ */
+function implicitRole(el: Element): string | null {
+  const tag = el.tagName.toLowerCase();
+  // Inputs: el role depende del type
+  if (tag === "input") {
+    const type = ((el as unknown as { type?: string }).type ?? "text").toLowerCase();
+    switch (type) {
+      case "search":
+        return "searchbox";
+      case "checkbox":
+        return "checkbox";
+      case "radio":
+        return "radio";
+      case "range":
+        return "slider";
+      case "email":
+      case "tel":
+      case "url":
+      case "text":
+        return "textbox";
+      case "submit":
+      case "button":
+      case "reset":
+        return "button";
+      case "image":
+        return "button";
+      case "password":
+      case "file":
+      case "hidden":
+        return null;
+      default:
+        return "textbox";
+    }
+  }
+  if (tag === "button") return "button";
+  if (tag === "select") return "combobox";
+  if (tag === "textarea") return "textbox";
+  if (tag === "a") return "link";
+  if (tag === "nav") return "navigation";
+  if (tag === "main") return "main";
+  if (tag === "header") return "banner";
+  if (tag === "footer") return "contentinfo";
+  if (tag === "aside") return "complementary";
+  if (tag === "nav") return "navigation";
+  if (tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4" || tag === "h5" || tag === "h6") {
+    return "heading";
+  }
+  if (tag === "ul" || tag === "ol") return "list";
+  if (tag === "li") return "listitem";
+  if (tag === "img" && el.getAttribute?.("alt")) return "img";
+  return null;
+}
+
 export function serializeElement(
   el: Element | null | undefined,
 ): SerializedElementFull | null {
   if (!el || (el as Node).nodeType !== 1) return null;
 
   const tag = (el.tagName || "").toLowerCase();
-  const role =
-    el.getAttribute?.("role") || tag;
-
-  // FIX bug: antes se colapsaba aria-label/name/id en un solo campo "aria"
-  // y siempre se etiquetaba el candidato como "aria-label". Eso causaba
-  // que `getByLabel("username")` se generara para un input que SOLO
-  // tenia id="username" (sin aria-label real) y por lo tanto Playwright
-  // esperaba 180s sin encontrar el locator.
-  //
-  // Ahora cada atributo se lee independientemente y el candidato solo
-  // se agrega si el atributo REALMENTE existe en el elemento:
-  //   - si tiene aria-label -> candidato aria-label
-  //   - si tiene id          -> candidato id (#id)
-  //   - si tiene name        -> candidato name ([name="x"])
-  const ariaLabelAttr = el.getAttribute?.("aria-label") || "";
-  const idAttr = el.id || "";
-  const nameAttr = el.getAttribute?.("name") || "";
-  const testIdAttr = el.getAttribute?.("data-testid") || "";
+  // Role explicito gana sobre implicito. Si no hay explicito, calculamos
+  // el implicito segun tag+atributos (input type=search -> searchbox, etc).
+  const explicitRole = el.getAttribute?.("role") || "";
+  const computedRole = explicitRole || implicitRole(el) || tag;
+  const role = computedRole;
   // Normalizar texto para evitar que whitespace del HTML (\n, espacios
   // multiples, etc) se incluya en el selector text. Playwright SI
   // normaliza whitespace internamente pero trailing/leading newlines
@@ -138,6 +185,16 @@ export function serializeElement(
   const rawText = ((el.textContent || "")).replace(/\s+/g, " ").trim();
   const text = rawText.slice(0, 50);
 
+  // FIX bug: antes se colapsaba aria-label/name/id en un solo campo "aria"
+  // y siempre se etiquetaba el candidato como "aria-label". Eso causaba
+  // que `getByLabel("username")` se generara para un input que SOLO
+  // tenia id="username" (sin aria-label real) y por lo tanto Playwright
+  // esperaba 180s sin encontrar el locator.
+  const ariaLabelAttr = el.getAttribute?.("aria-label") || "";
+  const idAttr = el.id || "";
+  const nameAttr = el.getAttribute?.("name") || "";
+  const testIdAttr = el.getAttribute?.("data-testid") || "";
+
   const candidates: Array<{ strategy: string; value: string }> = [];
   if (testIdAttr) {
     candidates.push({
@@ -145,11 +202,12 @@ export function serializeElement(
       value: `[data-testid="${escapeSelectorText(testIdAttr)}"]`,
     });
   }
-  // HU-G14: priorizar role explícito sobre id. Sólo si el role difiere
-  // del tag (es decir, es un role semántico puesto por el dev).
-  const explicitRole = el.getAttribute?.("role");
-  if (explicitRole && explicitRole !== tag) {
-    candidates.push({ strategy: "role", value: explicitRole });
+  // Role (explicito o implicito segun tag/type): esto es lo que Playwright
+  // codegen usa — getByRole('combobox', { name }) matchea semanticamente.
+  // El rol implicito cubre inputs sin role explicito (search->searchbox,
+  // select->combobox, button->button, etc).
+  if (role && role !== tag) {
+    candidates.push({ strategy: "role", value: role });
   }
   if (idAttr) {
     candidates.push({ strategy: "id", value: `#${idAttr}` });

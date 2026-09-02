@@ -194,22 +194,26 @@ function playwrightArgFor(strategy: string, value: string): string {
  * Para strategies que necesitan opciones (ej. role → { name: 'Ingresar' }),
  * devuelve el sufijo del locator call. Cadena vacía si no aplica.
  *
- * HU-G14: role sin `name` es válido pero poco útil; si el paso tiene
- * `valor` o `descripcion` con texto legible, lo agregamos como `name`.
+ * Extrae el nombre del elemento de la descripcion (formato "Clic en
+ * «name»" / "Escribir «x» en «name»") para que el codegen emita
+ * `getByRole('button', { name: 'Ingresar' })` igual que Playwright.
  */
 function playwrightRoleOptionsFor(
   paso: { tipo: string; valor: string | null; descripcion: string },
   roleValue: string,
 ): string {
-  // Solo aplicamos name cuando NO es un navigate puro.
   if (paso.tipo === "navegar") return "";
-  // Si hay texto en el valor (no password), lo usamos como name.
-  const textCandidate = paso.valor?.trim() || paso.descripcion?.trim() || "";
-  if (!textCandidate) return "";
-  // Heurística simple: si el texto parece ser un role-related name
-  // (contiene una palabra usada como label humano), úsalo.
-  // En la mayoría de los casos simplemente lo pasamos.
-  return `, { name: \`${jsStringEscape(textCandidate.slice(0, 50))}\` }`;
+  // Intentar extraer el nombre del elemento de la descripcion.
+  // Formatos: "Clic en «NAME»", "Escribir «x» en «NAME»", "Tecla en «NAME»"
+  const m = paso.descripcion.match(/«([^»]+)»/);
+  let name = m && m[1] ? m[1].trim() : "";
+  // Fallback: valor si existe
+  if (!name && paso.valor) name = paso.valor.trim();
+  if (!name) return "";
+  // Limpiar prefijos comunes del name (ej "Clic en " si no se pudo parsear)
+  name = name.replace(/^(Clic en|Tecla en)\s+/i, "").trim();
+  if (!name) return "";
+  return `, { name: \`${jsStringEscape(name.slice(0, 50))}\` }`;
 }
 
 /** Template literal-safe: escapa backticks y ${ en strings. */
@@ -319,6 +323,21 @@ export function serializarPaso(
       const ms = Number.parseInt(paso.valor ?? "1000", 10);
       const safeMs = Number.isFinite(ms) && ms >= 0 ? ms : 1000;
       return `${indent}await page.waitForTimeout(${safeMs});`;
+    }
+    case "tecla": {
+      // Tecla especial (Enter, ArrowDown, Escape, Tab, F1-F12).
+      // Playwright codegen lo emite como `locator.press(KEY)` no
+      // `page.keyboard.press(KEY)` — usa el locator del elemento que
+      // tenia focus cuando se apretó la tecla.
+      const key = paso.valor ?? "";
+      if (!key) return `${indent}// Paso ${paso.numero}: tecla sin key`;
+      if (!bestValid) {
+        return `${indent}await page.keyboard.press(${JSON.stringify(key)});`;
+      }
+      const method = playwrightMethodFor(bestValid.strategy);
+      const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
+      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
+      return `${indent}await page.${method}(\`${arg}\`${options}).press(${JSON.stringify(key)});`;
     }
     case "verificar": {
       if (!bestValid) return `${indent}// Paso ${paso.numero}: verificacion sin selector valido — revisar manualmente`;
