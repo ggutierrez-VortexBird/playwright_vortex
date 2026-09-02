@@ -64,18 +64,28 @@ export function pasosTienenCapitulosValidos(pasos: PasoConCapitulo[]): boolean {
  * Calcula los segmentos del chapter bar.
  *
  * @param pasos        Lista de pasos en orden de ejecución.
- * @param videoDurationMs Duración total del video en ms. Si es 0 o
- *                        desconocida, devolvemos [] (no hay bar).
+ * @param videoDurationMs Duración total del video en ms. Si los pasos
+ *                        ya tienen `videoInicioMs`/`videoFinMs` válidos,
+ *                        usamos el mayor `videoFinMs` como duración
+ *                        efectiva (cubre el caso jsdom/tests donde el
+ *                        <video> nunca no carga metadata). Si no hay
+ *                        timestamps y `videoDurationMs <= 0`,
+ *                        devolvemos [] (no hay bar).
  */
 export function computeChapterSegments(
   pasos: PasoConCapitulo[],
   videoDurationMs: number,
 ): ChapterSegment[] {
   if (pasos.length === 0) return []
-  if (videoDurationMs <= 0) return []
 
   if (pasosTienenCapitulosValidos(pasos)) {
-    // Capítulo por timestamp absoluto — más preciso.
+    // Capítulo por timestamp absoluto. Usamos el mayor videoFinMs como
+    // duración efectiva cuando el caller no la conoce (test mode).
+    const lastFin = Math.max(
+      videoDurationMs,
+      pasos[pasos.length - 1].videoFinMs ?? 0,
+    )
+    if (lastFin <= 0) return []
     return pasos.map((p) => ({
       pasoId: p.id,
       numero: p.numero,
@@ -85,10 +95,12 @@ export function computeChapterSegments(
       finMs: p.videoFinMs!,
       anchoPct: Math.max(
         1,
-        Math.round(((p.videoFinMs! - p.videoInicioMs!) / videoDurationMs) * 100),
+        Math.round(((p.videoFinMs! - p.videoInicioMs!) / lastFin) * 100),
       ),
     }))
   }
+
+  if (videoDurationMs <= 0) return []
 
   // Fallback legacy: distribución por duracionMs.
   const totalDuracion = pasos.reduce(

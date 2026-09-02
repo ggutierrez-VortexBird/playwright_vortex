@@ -457,6 +457,52 @@
   .video .bar i.chapter {
     transition: width 0.3s ease;
   }
+  /* HU-G18 — barra segmentada clickable con capítulos por paso */
+  .video-chapter-bar {
+    cursor: pointer;
+  }
+  .video-chapter-bar button.chapter {
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 2px;
+    display: block;
+    transition: background 0.15s ease, height 0.15s ease;
+  }
+  .video-chapter-bar button.chapter:hover {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .video-chapter-bar button.chapter.active {
+    background: var(--seal, #0e6b4f);
+    height: 6px;
+  }
+  .video-chapter-bar button.chapter.done {
+    background: var(--stamp, #a8322a);
+  }
+  .video-chapter-bar button.chapter.done.active {
+    background: var(--amber, #a9741a);
+  }
+  /* HU-G18 — overlay "Paso N · descripción" */
+  .video-chapter-overlay {
+    position: absolute;
+    bottom: 30px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+    pointer-events: none;
+    max-width: calc(100% - 24px);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    z-index: 2;
+  }
   .shot img {
     width: 100%;
     height: 100%;

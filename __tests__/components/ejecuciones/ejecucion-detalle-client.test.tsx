@@ -127,4 +127,102 @@ describe("EjecucionDetalleClient", () => {
 
     expect(screen.queryByTestId("origen-chip")).not.toBeInTheDocument();
   });
+
+  describe("HU-G18 — video chapter bar", () => {
+    function mockEjecWithChapters(over: Record<string, unknown> = {}) {
+      return mockEjecucion({
+        estado: "paso",
+        pasos: [
+          {
+            id: "paso-1",
+            numero: 1,
+            descripcion: "Login",
+            estado: "paso",
+            duracionMs: 2000,
+            selfHealed: false,
+            errorMsg: null,
+            resultadoEsperado: null,
+            resultadoObtenido: null,
+            errorCount: 0,
+            logs: null,
+            createdAt: "2026-08-12T10:00:00.000Z",
+            videoInicioMs: 0,
+            videoFinMs: 2000,
+            subacciones: [],
+          },
+          {
+            id: "paso-2",
+            numero: 2,
+            descripcion: "Submit",
+            estado: "paso",
+            duracionMs: 3000,
+            selfHealed: false,
+            errorMsg: null,
+            resultadoEsperado: null,
+            resultadoObtenido: null,
+            errorCount: 0,
+            logs: null,
+            createdAt: "2026-08-12T10:00:02.000Z",
+            videoInicioMs: 2000,
+            videoFinMs: 5000,
+            subacciones: [],
+          },
+        ],
+        artefactos: [
+          { id: "art-1", tipo: "video", nombre: "video.webm", pasoEjecucionId: null, bytes: 1024, createdAt: "2026-08-12T10:01:00.000Z" },
+        ],
+        ...over,
+      });
+    }
+
+    it("renderiza los botones clickables del chapter bar cuando hay video", () => {
+      const ejecucion = mockEjecWithChapters();
+      render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+
+      const bar = screen.getByTestId("video-chapter-bar");
+      expect(bar).toBeInTheDocument();
+
+      const segments = screen.getAllByTestId("chapter-bar");
+      expect(segments.length).toBeGreaterThanOrEqual(2);
+      expect(segments[0]).toHaveAttribute("data-paso-id", "paso-1");
+      expect(segments[1]).toHaveAttribute("data-paso-id", "paso-2");
+    });
+
+    it("cada capítulo tiene un aria-label accesible", () => {
+      const ejecucion = mockEjecWithChapters();
+      render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+
+      const segments = screen.getAllByTestId("chapter-bar");
+      expect(segments[0]).toHaveAttribute("aria-label", "Paso 1: Login");
+      expect(segments[1]).toHaveAttribute("aria-label", "Paso 2: Submit");
+    });
+
+    it("marca como 'done' los capítulos con estado fallo", () => {
+      const ejecucion = mockEjecWithChapters({
+        pasos: [
+          {
+            id: "paso-1",
+            numero: 1,
+            descripcion: "Login",
+            estado: "fallo",
+            duracionMs: 1000,
+            selfHealed: false,
+            errorMsg: "timeout",
+            resultadoEsperado: null,
+            resultadoObtenido: null,
+            errorCount: 1,
+            logs: null,
+            createdAt: "2026-08-12T10:00:00.000Z",
+            videoInicioMs: 0,
+            videoFinMs: 1000,
+            subacciones: [],
+          },
+        ],
+      });
+      render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+
+      const segments = screen.getAllByTestId("chapter-bar");
+      expect(segments[0]).toHaveClass("done");
+    });
+  });
 });

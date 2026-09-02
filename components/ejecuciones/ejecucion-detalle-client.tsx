@@ -11,6 +11,7 @@ import { DetenerButton } from './detener-button'
 import { ReRunButton } from './re-run-button'
 import { OrigenChip } from './origen-chip'
 import { ReparadosCounter } from './reparados-counter'
+import { VideoChapterBar } from './video-chapter-bar'
 
 interface Subaccion {
   id: string
@@ -38,6 +39,9 @@ interface Paso {
   errorCount: number
   logs: unknown
   createdAt: string
+  // HU-G18 — chapter timestamps del video.
+  videoInicioMs: number | null
+  videoFinMs: number | null
   subacciones: Subaccion[]
 }
 
@@ -85,6 +89,14 @@ interface Props {
 export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props) {
   const [ejecucion, setEjecucion] = useState<Ejecucion>(initialEjecucion)
   const expandedPasoIdRef = useRef<string | null>(null)
+  // HU-G18 — ref al <video> para que VideoChapterBar pueda hacer seek.
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [videoDurationMs, setVideoDurationMs] = useState(0)
+  const handleLoadedMetadata = useCallback(() => {
+    const v = videoRef.current
+    if (!v) return
+    setVideoDurationMs(Math.round((v.duration || 0) * 1000))
+  }, [])
 
   const poll = useCallback(async () => {
     try {
@@ -217,25 +229,42 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
                   {ejecucion.estado === 'fallo' ? 'Fallo · verificación' : 'Paso destacado'}
                 </div>
                 <video
+                  ref={videoRef}
                   data-testid="video-player"
                   src={`/api/artefactos/${videoArtefacto.id}`}
                   controls
+                  onLoadedMetadata={handleLoadedMetadata}
                   className="w-full h-full object-contain"
                 />
-                {totalDuracionMs > 0 && (
-                  <div className="bar">
-                    {ejecucion.pasos.map((p) => (
-                      <i
-                        key={p.id}
-                        data-testid="chapter-bar"
-                        className={`chapter ${p.estado === 'fallo' ? 'done' : ''}`}
-                        style={{
-                          width: `${Math.round(((p.duracionMs ?? 0) / totalDuracionMs) * 100)}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* HU-G18 — barra segmentada con click-to-seek + overlay "Paso N · …".
+                    Si los pasos no tienen timestamps, el componente cae al
+                    fallback por duracionMs (no necesitamos duplicar la lógica). */}
+                <VideoChapterBar
+                  pasos={ejecucion.pasos}
+                  videoDurationMs={videoDurationMs}
+                  videoRef={videoRef}
+                />
+                {/* Backwards-compat: para grabaciones legacy sin videoInicioMs/FinMs,
+                    renderizamos la barra proporcional a duracionMs. Se muestra solo
+                    cuando la nueva barra no encontró capítulos por timestamp. */}
+                {videoDurationMs === 0 &&
+                  totalDuracionMs > 0 &&
+                  !ejecucion.pasos.some(
+                    (p) => p.videoInicioMs != null && p.videoFinMs != null,
+                  ) && (
+                    <div className="bar">
+                      {ejecucion.pasos.map((p) => (
+                        <i
+                          key={p.id}
+                          data-testid="chapter-bar"
+                          className={`chapter ${p.estado === 'fallo' ? 'done' : ''}`}
+                          style={{
+                            width: `${Math.round(((p.duracionMs ?? 0) / totalDuracionMs) * 100)}%`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
               </div>
             ) : (
               <div className="video">
