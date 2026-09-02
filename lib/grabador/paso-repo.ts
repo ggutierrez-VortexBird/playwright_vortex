@@ -127,7 +127,22 @@ export function mapearEventoAPaso(
  *
  * En caso de colision de unique constraint (P2002), hace UN retry
  * automático (max+1 otra vez). Más allá, propaga el error.
+ *
+ * FIX CRITICO: serializamos todas las llamadas a `persistirPaso` por
+ * sesionId via una cola in-memory (mutex por sesion). Esto resuelve el
+ * bug donde el usuario tipea rapido (cada letra dispara un __pw_report
+ * → handleReportedEvent → persistirPaso concurrente). Sin el mutex, las
+ * SELECT max(numero) leen el mismo valor y varios INSERT compiten por
+ * el mismo `numero+1` → la mitad falla con P2002 → esos pasos NO se
+ * guardan en BD → el script .spec.ts no los tiene.
+ *
+ * Cada sesion tiene su propia cola, asi que sesiones distintas no se
+ * bloquean entre si.
  */
+
+/** Cola de promesas por sesionId — serializa inserts por sesion. */
+const sessionLocks = new Map<string, Promise<unknown>>();
+
 export async function persistirPaso(
   evento: EventoDom,
   sesionId: string,
@@ -137,8 +152,31 @@ export async function persistirPaso(
     return null;
   }
 
+  // Encolar detras de cualquier operacion previa de la misma sesion.
+  const previous = sessionLocks.get(sesionId) ?? Promise.resolve();
+  const run = previous.then(
+    () => doPersistirPaso(evento, sesionId),
+    () => doPersistirPaso(evento, sesionId), // corre igual si la anterior fallo
+  );
+  // Mantener la cadena viva para que las siguientes llamadas esperen.
+  sessionLocks.set(
+    sesionId,
+    run.catch(() => undefined),
+  );
+  return run;
+}
+
+/**
+ * Implementacion interna de persistirPaso. Llamada serializada por sesion
+ * via el mutex de sessionLocks. Mantiene la logica original de
+ * `findFirst → create` con retry en P2002.
+ */
+async function doPersistirPaso(
+  evento: EventoDom,
+  sesionId: string,
+): Promise<PasoGrabadoRow | null> {
   let attempt = 0;
-  const maxAttempts = 2;
+  const maxAttempts = 5;
 
   while (attempt < maxAttempts) {
     attempt++;
@@ -174,17 +212,25 @@ export async function persistirPaso(
       });
       return created;
     } catch (err: unknown) {
-      // Prisma P2002: unique constraint violation. Retry with fresh max+1.
       const code = (err as { code?: string })?.code;
       if (code === "P2002" && attempt < maxAttempts) {
+        // Backoff pequeño (1ms, 2ms, 4ms, ...) para reducir contención.
+        await new Promise((r) => setTimeout(r, attempt));
         continue;
       }
       throw err;
     }
   }
 
-  // Should be unreachable thanks to the while loop logic.
   return null;
+}
+
+/**
+ * Para tests: limpia la cola de mutexes entre tests para que no se
+ * contaminen entre sesiones simuladas.
+ */
+export function _resetSessionLocksForTests(): void {
+  sessionLocks.clear();
 }
 
 /** Shape de la fila PasoGrabado retornada por persistirPaso. */
