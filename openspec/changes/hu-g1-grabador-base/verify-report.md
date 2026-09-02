@@ -370,15 +370,20 @@ Una vez corregidos, re-correr `npm test` + manual gate con `npm run dev` para va
 
 ## Limitaciones conocidas
 
-### W3 — Reconexión tras refresh del navegador
+### W3 — Reconexión tras refresh del navegador — RESUELTO
 
-Actualmente la WS handshake usa CAS atómico (ver CRITICAL C1 arriba): un token se marca `tokenUsado=true` al primer WS connect exitoso. Cualquier reconexión posterior con el mismo token — incluido un refresh del navegador que reabre WS — recibe close code 4001 con mensaje "token ya utilizado o no existe".
+El handshake WS usaba CAS atómico flipping `tokenUsado=false → true` en el primer connect exitoso, lo que rompía la reconexión (refresh del navegador, reconexión por red → close 4001 "token ya utilizado"). La sesión quedaba muerta y el usuario debía iniciar una grabación nueva.
 
-El cliente UI mitiga mostrando "Token inválido o ya utilizado. Vuelve a iniciar la grabación.", pero la sesión queda muerta. Esto entra en tensión con el design.md original ("Reconexión usa el mismo token mientras la sesión esté activa") pero matchea la spec literal ("Token de un solo uso").
+**Fix aplicado** (commit posterior al CIERRE inicial, ejecutado por validación manual):
+- `lib/recorder/ws-server.ts`: reemplazado el `updateMany` CAS por un `findUnique` que solo verifica que la sesión exista y no esté en estado terminal (`descartada`/`guardada`). El token queda REUTILIZABLE durante toda la vida de la sesión.
+- `lib/recorder/session-registry.ts` (cleanupOrphans): el criterio de "huérfana" ya no depende de `tokenUsado`; usa solo `updatedAt < now - 5min`.
+- `lib/recorder/auth.ts`: documentación actualizada — el flag `tokenUsado` ya no aplica.
+- Spec `modo-grabador/spec.md`: requisito "Autenticación del WebSocket" reescrito para reflejar que el token es reusable; rechazo solo por HMAC inválido/expirado o sesión en estado terminal.
+- Tests `__tests__/lib/recorder/ws-server.test.ts`: reescritos para validar la nueva semántica. Nuevo test crítico: "two connections with the SAME token both succeed (token reusable, refresh-friendly)" — regresión explícita del W3.
 
-Para soportar reconexión transparente tras refresh, se requiere refactor del `SessionEntry` para trackear el cliente activo en memoria (no en DB) y permitir reconexión mientras no haya cliente concurrente. Esto se difiere a una HU posterior (probablemente HU-G8 "Reanudar sesión").
+**Seguridad**: la firma HMAC con `SESSION_SECRET` (≥32 chars) + TTL 30 min sigue garantizando que solo el frontend autorizado puede presentar el token. El flag `tokenUsado` no agregaba seguridad real: era defense-in-depth que rompía funcionalidad.
 
-**Status**: deferred — no code changes en este fix-and-retry.
+**Status**: RESUELTO — manual gate debe re-validar: refresh durante grabación → misma sesión, sin "Token inválido".
 
 ---
 

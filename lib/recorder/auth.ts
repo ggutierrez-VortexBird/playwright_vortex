@@ -5,13 +5,19 @@
  *   - exp is seconds-since-epoch
  *   - HMAC-SHA256 over the `${sessionId}|${userId}|${exp}` payload, signed
  *     with SESSION_SECRET
- *   - storage in DB as opaque `token` column; on first successful WS connect
- *     we mark `tokenUsado=true` (one-shot semantics enforced at ws-server layer)
+ *   - storage in DB as opaque `token` column; el token es REUTILIZABLE
+ *     (refresh del navegador / reconexión son casos válidos). El rechazo
+ *     aplica solo a: token mal formado, expirado, firma inválida, o sesión
+ *     en estado terminal (descartada/guardada).
  *
  * Validity checks in order:
  *   1. Malformed (not exactly `payload.sig` with two parts)
  *   2. Expired (exp < now)
  *   3. Signature mismatch (HMAC over payload doesn't match)
+ *
+ * La verificación de estado de la sesión (descartada/guardada) NO vive acá —
+ * se hace en ws-server.ts después de validar el token, leyendo el `estado`
+ * de la fila correspondiente en DB.
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";

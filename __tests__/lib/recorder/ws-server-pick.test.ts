@@ -26,12 +26,12 @@ afterAll(() => {
   }
 });
 
-// Mock prisma — minimal: we only need updateMany for the handshake.
-const mockUpdateMany = jest.fn();
+// Mock prisma — handshake usa findUnique (token reusable, post-W3 fix).
+const mockFindFirst = jest.fn();
 jest.mock("@/lib/db", () => ({
   prisma: {
     sesionGrabacion: {
-      updateMany: (...args: unknown[]) => mockUpdateMany(...args),
+      findFirst: (...args: unknown[]) => mockFindFirst(...args),
       update: jest.fn(),
     },
   },
@@ -123,7 +123,8 @@ beforeEach(() => {
     sessionId: "ses-1",
     userId: "user-1",
   });
-  mockUpdateMany.mockResolvedValue({ count: 1 });
+  // Default: sesión activa existe en DB (post-W3: handshake solo verifica existencia + estado).
+  mockFindFirst.mockResolvedValue({ id: "ses-1", estado: "activa" });
 });
 
 describe("recorder/ws-server — pick / hover (HU-G5)", () => {

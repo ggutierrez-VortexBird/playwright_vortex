@@ -48,17 +48,25 @@ El sistema DEBE exponer un WebSocket server (`RECORDER_PUBLIC_URL`) que reenvía
 - Y el recorder valida, encuentra la sesión activa y retoma el stream
 - Y el browser NO se reinicia (Chromium persistente sobrevive al refresh del frontend)
 
-### Requirement: Autenticación del WebSocket con HMAC de un solo uso
+### Requirement: Autenticación del WebSocket con HMAC reusable
 
-El sistema DEBE autenticar la conexión WS mediante un token HMAC-SHA256 generado con `SESSION_SECRET` y formato `${sessionId}|${userId}|${exp}`. El token DEBE ser de un solo uso: al validarse exitosamente se marca `tokenUsado=true` en DB; cualquier intento de reuso DEBE ser rechazado.
+El sistema DEBE autenticar la conexión WS mediante un token HMAC-SHA256 generado con `SESSION_SECRET` y formato `${sessionId}|${userId}|${exp}`. El token ES REUTILIZABLE durante toda la vida de la sesión: refresh del navegador, reconexión por red, y múltiples pestañas deben poder abrir WS con el mismo token sin ser rechazados. La seguridad la aporta la firma HMAC (solo el frontend autorizado puede presentar el token) más la expiración TTL. El rechazo aplica solo a: token mal formado/expirado/firma inválida, sesión inexistente en DB, o sesión en estado terminal (`descartada`/`guardada`).
 
-#### Scenario: Conexión con token válido
+#### Scenario: Conexión con token válido y sesión activa
 
-- GIVEN una sesión con `token` no usado
+- GIVEN una sesión con `token` no expirado y `estado IN ('iniciando','activa','pausada','detenida')`
 - WHEN el cliente abre WS con `?token=…`
 - THEN el recorder valida la firma HMAC con `SESSION_SECRET`
-- AND verifica que `tokenUsado=false` en DB
-- AND acepta la conexión, marca `tokenUsado=true`, asocia el WS al `SessionEntry`
+- AND verifica que la sesión existe en DB y no está en estado terminal
+- AND acepta la conexión y asocia el WS al `SessionEntry`
+
+#### Scenario: Reconexión tras refresh del navegador
+
+- GIVEN una sesión activa con un cliente WS conectado
+- WHEN el cliente hace refresh de la página y re-abre WS con el mismo `token`
+- THEN el recorder acepta la nueva conexión
+- Y el nuevo WS queda asociado al mismo `SessionEntry`
+- Y los frames del screencast siguen llegando sin reiniciar Chromium
 
 #### Scenario: Token inválido
 
@@ -67,12 +75,12 @@ El sistema DEBE autenticar la conexión WS mediante un token HMAC-SHA256 generad
 - THEN el recorder cierra la conexión con código `4001`
 - Y no se transmiten frames
 
-#### Scenario: Token reusado
+#### Scenario: Sesión en estado terminal
 
-- GIVEN una sesión con `tokenUsado=true` (sesión ya activa)
-- WHEN un segundo cliente intenta conectar con el mismo `token`
-- THEN el recorder cierra la conexión con código `4001`
-- Y el frontend muestra un toast "Token ya utilizado, vuelve a iniciar la grabación"
+- GIVEN una sesión con `estado='descartada'` o `estado='guardada'`
+- WHEN un cliente intenta conectar con su token
+- THEN el recorder cierra la conexión con código `4001` indicando estado terminal
+- Y el frontend debe mostrar "La sesión fue descartada/guardada" y ofrecer iniciar una nueva
 
 ### Requirement: Heartbeat y expiración por inactividad
 
@@ -124,13 +132,13 @@ El sistema DEBE exponer `POST /internal/start` en el recorder-worker autenticado
 
 ### Requirement: Limpieza de sesiones huérfanas al reiniciar el recorder
 
-El sistema DEBE barrer al arrancar las `SesionGrabacion` con `estado IN ('iniciando', 'activa')` cuyo último heartbeat fue hace más de 5 minutos, marcándolas `estado='error', mensajeError='worker reiniciado'`.
+El sistema DEBE barrer al arrancar las `SesionGrabacion` con `estado IN ('iniciando', 'activa')` cuyo último heartbeat (updatedAt) fue hace más de 5 minutos, marcándolas `estado='error', mensajeError='worker reiniciado'`. La detección de "huérfana" NO depende del flag `tokenUsado` (eliminado: el token es reusable); se basa solo en la edad del último heartbeat.
 
 #### Scenario: Orphan cleanup al arrancar
 
 - GIVEN el recorder-worker arranca tras un crash
 - WHEN ejecuta la query de limpieza
-- THEN encuentra sesiones `estado='activa'` con `tokenUsado=true` sin heartbeat reciente
+- THEN encuentra sesiones `estado='activa'` con `updatedAt < now - 5min`
 - Y las marca `estado='error', mensajeError='worker reiniciado'`
 - Y el frontend puede detectar el error al consultar `GET /api/grabador/sesiones/[id]`
 

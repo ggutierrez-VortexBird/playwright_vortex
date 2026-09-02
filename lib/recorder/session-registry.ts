@@ -171,8 +171,9 @@ export function disarmHeartbeatTimer(sessionId: string): void {
 
 /**
  * Al arrancar, marca sesiones colgadas como error.
- * "Colgada" = estado IN ('iniciando','activa') con tokenUsado=true que no
- * recibió heartbeat en los últimos 5 minutos (HU-G22).
+ * "Colgada" = estado IN ('iniciando','activa') sin heartbeat (updatedAt) en
+ * los últimos 5 minutos (HU-G22). No depende del flag tokenUsado: el token
+ * es reutilizable para reconexión, así que su estado no indica vida/muerte.
  *
  * Returns the number of sessions cleaned up.
  */
@@ -181,7 +182,6 @@ export async function cleanupOrphans(): Promise<number> {
   const result = await prisma.sesionGrabacion.updateMany({
     where: {
       estado: { in: ["iniciando", "activa"] },
-      tokenUsado: true,
       updatedAt: { lt: fiveMinAgo },
     },
     data: {

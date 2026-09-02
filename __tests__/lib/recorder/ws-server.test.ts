@@ -1,13 +1,13 @@
 /**
  * Tests for ws-server.ts — WebSocket connection handler.
  *
- * Contract from design.md:
- *   - Atomic CAS: tokenUsado=true flip is a single updateMany
- *     (race-condition safe vs concurrent WS connections with same token).
- *   - First successful connection: tokenUsado=false → true; client attached.
- *   - Subsequent connections with same token: rejected with WS_CLOSE_INVALID_TOKEN (4001).
- *   - Connection with non-existent token: rejected with WS_CLOSE_INVALID_TOKEN (4001).
- *   - Connection with malformed token (validateToken fails): rejected with 4001.
+ * Contract (post-fix W3):
+ *   - Token is REUSABLE for the same sessionId during the session's lifetime
+ *     (refresh del navegador, reconexión por red → todos válidos).
+ *   - HMAC signature + expiration validation is the only cryptographic gate.
+ *   - DB-level check: session must exist and not be in a terminal state
+ *     (descartada / guardada). For those states, close 4001.
+ *   - No tokenUsado flag flip — the old one-shot CAS was the root cause of W3.
  */
 
 const ORIGINAL_SECRET = process.env.SESSION_SECRET;
@@ -26,14 +26,13 @@ afterAll(() => {
 });
 
 // Mock prisma — ws-server tests don't need a real DB.
-const mockUpdateMany = jest.fn();
-const mockUpdate = jest.fn();
+const mockFindFirst = jest.fn();
 
 jest.mock("@/lib/db", () => ({
   prisma: {
     sesionGrabacion: {
-      updateMany: (...args: unknown[]) => mockUpdateMany(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
+      findFirst: (...args: unknown[]) => mockFindFirst(...args),
+      update: jest.fn(),
     },
   },
 }));
@@ -87,7 +86,7 @@ function fakeWs(id: string): WsServerSocket & {
     readyState: number;
   } = {
     id,
-    readyState: 1, // OPEN
+    readyState: 1,
     close: jest.fn(),
     send: jest.fn(),
     on: jest.fn((event: string, fn: (...args: unknown[]) => void) => {
@@ -116,13 +115,12 @@ beforeEach(() => {
     sessionId: "ses-1",
     userId: "user-1",
   });
+  // Default: DB has an active session for the token.
+  mockFindFirst.mockResolvedValue({ id: "ses-1", estado: "activa" });
 });
 
-describe("recorder/ws-server — atomic handshake CAS", () => {
-  it("first connection with valid token succeeds (atomic CAS flips tokenUsado=true)", async () => {
-    // Simulate DB: updateMany matches and flips exactly one row.
-    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
-
+describe("recorder/ws-server — handshake con token reusable", () => {
+  it("connection with valid token + active session succeeds", async () => {
     const ws = fakeWs("ws-1");
     await handleWsConnection(
       ws,
@@ -130,62 +128,54 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
       new Set<string>(),
     );
 
-    // Atomic CAS — single UPDATE statement, not findFirst+update.
-    expect(mockUpdateMany).toHaveBeenCalledTimes(1);
-    expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { token: "valid-token", tokenUsado: false },
-      data: { tokenUsado: true },
+    // findUnique is the only DB call in the handshake path.
+    expect(mockFindFirst).toHaveBeenCalledTimes(1);
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: { token: "valid-token" },
+      select: { id: true, estado: true },
     });
     // Winner gets the initial state message (browser not ready yet).
     expect(ws.close).not.toHaveBeenCalled();
     expect(ws.send).toHaveBeenCalledWith(
       JSON.stringify({ type: "sesion_iniciando" }),
     );
-    // ws.on('message') was registered so heartbeat/stop/etc. are handled.
     expect(ws.on).toHaveBeenCalledWith("message", expect.any(Function));
     expect(ws.on).toHaveBeenCalledWith("close", expect.any(Function));
   });
 
-  it("two concurrent connections with the SAME token: exactly one succeeds, the other gets 4001", async () => {
-    // Mimic DB-level atomic CAS: only the first matching updateMany flips,
-    // the second finds tokenUsado=true and returns count=0.
-    let claimed = false;
-    mockUpdateMany.mockImplementation(async () => {
-      if (!claimed) {
-        claimed = true;
-        return { count: 1 };
-      }
-      return { count: 0 };
-    });
-
+  it("two connections with the SAME token both succeed (token reusable, refresh-friendly)", async () => {
+    // This is the W3 regression test: refresh del navegador debe poder
+    // reconectar con el mismo token sin ser rechazado.
     const ws1 = fakeWs("ws-1");
     const ws2 = fakeWs("ws-2");
 
-    await Promise.all([
-      handleWsConnection(ws1, { url: "/?token=reused-token" }, new Set<string>()),
-      handleWsConnection(ws2, { url: "/?token=reused-token" }, new Set<string>()),
-    ]);
-
-    // Atomic CAS attempted for both connections.
-    expect(mockUpdateMany).toHaveBeenCalledTimes(2);
-
-    // Exactly one ws got 4001 — the loser.
-    const closedWith4001 = [ws1, ws2].filter((w) =>
-      w.close.mock.calls.some((c: unknown[]) => c[0] === WS_CLOSE_INVALID_TOKEN),
+    await handleWsConnection(
+      ws1,
+      { url: "/?token=reused-token" },
+      new Set<string>(),
     );
-    expect(closedWith4001).toHaveLength(1);
+    await handleWsConnection(
+      ws2,
+      { url: "/?token=reused-token" },
+      new Set<string>(),
+    );
 
-    // The other ws got the initial state message — the winner.
-    const winner = closedWith4001[0] === ws1 ? ws2 : ws1;
-    expect(winner.close).not.toHaveBeenCalled();
-    expect(winner.send).toHaveBeenCalledWith(
+    // Ambas conexiones llegaron al DB check (no hay early reject).
+    expect(mockFindFirst).toHaveBeenCalledTimes(2);
+    // Ninguna fue rechazada.
+    expect(ws1.close).not.toHaveBeenCalled();
+    expect(ws2.close).not.toHaveBeenCalled();
+    // Ambas recibieron sesion_iniciando.
+    expect(ws1.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: "sesion_iniciando" }),
+    );
+    expect(ws2.send).toHaveBeenCalledWith(
       JSON.stringify({ type: "sesion_iniciando" }),
     );
   });
 
-  it("connection with token that doesn't exist in DB is rejected with 4001 (count=0)", async () => {
-    // updateMany returns 0 — no row matched (token absent OR already used).
-    mockUpdateMany.mockResolvedValueOnce({ count: 0 });
+  it("connection is rejected with 4001 when token doesn't exist in DB", async () => {
+    mockFindFirst.mockResolvedValueOnce(null);
 
     const ws = fakeWs("ws-1");
     await handleWsConnection(
@@ -196,15 +186,76 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
 
     expect(ws.close).toHaveBeenCalledWith(
       WS_CLOSE_INVALID_TOKEN,
-      expect.stringMatching(/utilizado|inválid|no existe/i),
+      expect.stringMatching(/no existe/i),
     );
     expect(ws.send).not.toHaveBeenCalled();
-    // Nothing attached to the registry.
     expect(getEntry("ses-1")).toBeUndefined();
   });
 
+  it("connection is rejected with 4001 when session is descartada (terminal)", async () => {
+    mockFindFirst.mockResolvedValueOnce({ id: "ses-1", estado: "descartada" });
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    expect(ws.close).toHaveBeenCalledWith(
+      WS_CLOSE_INVALID_TOKEN,
+      expect.stringMatching(/terminal|descartada/i),
+    );
+    expect(ws.send).not.toHaveBeenCalled();
+  });
+
+  it("connection is rejected with 4001 when session is guardada (terminal)", async () => {
+    mockFindFirst.mockResolvedValueOnce({ id: "ses-1", estado: "guardada" });
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    expect(ws.close).toHaveBeenCalledWith(
+      WS_CLOSE_INVALID_TOKEN,
+      expect.stringMatching(/terminal|guardada/i),
+    );
+    expect(ws.send).not.toHaveBeenCalled();
+  });
+
+  it("connection with session in 'iniciando' state is allowed (still alive)", async () => {
+    mockFindFirst.mockResolvedValueOnce({ id: "ses-1", estado: "iniciando" });
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    expect(ws.close).not.toHaveBeenCalled();
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: "sesion_iniciando" }),
+    );
+  });
+
+  it("connection with session in 'pausada' state is allowed (user can resume)", async () => {
+    mockFindFirst.mockResolvedValueOnce({ id: "ses-1", estado: "pausada" });
+
+    const ws = fakeWs("ws-1");
+    await handleWsConnection(
+      ws,
+      { url: "/?token=valid-token" },
+      new Set<string>(),
+    );
+
+    expect(ws.close).not.toHaveBeenCalled();
+  });
+
   it("connection is rejected with 4001 when validateToken returns malformed", async () => {
-    // Don't even reach the DB if signature/expiry fails.
     mockValidateToken.mockReturnValueOnce({
       ok: false,
       reason: "malformed",
@@ -221,11 +272,11 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
       WS_CLOSE_INVALID_TOKEN,
       expect.stringMatching(/malformed|inválid/i),
     );
-    expect(mockUpdateMany).not.toHaveBeenCalled();
+    expect(mockFindFirst).not.toHaveBeenCalled();
   });
 
-  it("connection is rejected with 4001 when prisma.updateMany throws (DB error)", async () => {
-    mockUpdateMany.mockRejectedValueOnce(new Error("connection lost"));
+  it("connection is rejected with 4001 when prisma.findUnique throws (DB error)", async () => {
+    mockFindFirst.mockRejectedValueOnce(new Error("connection lost"));
 
     const ws = fakeWs("ws-1");
     await handleWsConnection(
@@ -240,11 +291,7 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
     );
   });
 
-  it("attachClient is called for the winner after a successful CAS", async () => {
-    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
-
-    // Pre-seed the session entry so attachClient can find it (this mimics
-    // what http-api.ts does at /internal/start time).
+  it("attachClient is called for the connection after a successful handshake", async () => {
     attachClient(
       "ses-1",
       fakeWs("placeholder") as unknown as Parameters<typeof attachClient>[1],
@@ -257,15 +304,11 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
       new Set<string>(),
     );
 
-    // Production contract: ws.on('message', handler) was wired up — that's
-    // how heartbeat/stop/etc. get handled. Closing would indicate failure.
     expect(ws.close).not.toHaveBeenCalled();
     expect(ws.on).toHaveBeenCalledWith("message", expect.any(Function));
   });
 
   it("client heartbeat message re-arms the session's heartbeat timer", async () => {
-    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
-
     const entry = fakeEntryWithTimer("ses-1");
     addEntry(entry);
 
@@ -276,26 +319,23 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
       new Set<string>(),
     );
 
-    // Capture the message handler installed by the production code.
     const messageHandler = ws.on.mock.calls.find((c: unknown[]) => c[0] === "message")?.[1] as
       | ((data: unknown) => void)
       | undefined;
     expect(messageHandler).toBeDefined();
 
-    // Simulate the client sending a heartbeat.
     messageHandler!(Buffer.from(JSON.stringify({ type: "heartbeat" })));
 
-    // After a heartbeat, the entry's heartbeatTimer should be defined
-    // (a fresh Node Timeout in prod, a number id in jsdom — either is a
-    // valid "timer is armed" signal).
     const e = getEntry("ses-1");
     expect(e).toBeDefined();
     expect(e!.heartbeatTimer).toBeDefined();
   });
 
-  it("user-initiated stop closes the WS and the session registry entry's timer is disarmed", async () => {
-    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
-    mockUpdate.mockResolvedValueOnce({});
+  it("user-initiated stop closes the WS gracefully with sesion_detenida", async () => {
+    const { prisma } = jest.requireMock("@/lib/db") as {
+      prisma: { sesionGrabacion: { update: jest.Mock } };
+    };
+    prisma.sesionGrabacion.update.mockResolvedValueOnce({});
 
     const entry = fakeEntryWithTimer("ses-1");
     addEntry(entry);
@@ -312,19 +352,15 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
       | undefined;
     expect(messageHandler).toBeDefined();
 
-    // Simulate user-initiated stop.
     messageHandler!(Buffer.from(JSON.stringify({ type: "stop" })));
 
-    // WS closed with code 1000 (graceful), sesion_detenida sent.
     expect(ws.close).toHaveBeenCalledWith(1000, "stop");
     expect(ws.send).toHaveBeenCalledWith(
       JSON.stringify({ type: "sesion_detenida" }),
     );
 
-    // W5 — user-initiated stop persists estado='detenida' + endedAt.
-    // Wait a tick for the fire-and-forget DB update.
     await new Promise((r) => setTimeout(r, 10));
-    expect(mockUpdate).toHaveBeenCalledWith(
+    expect(prisma.sesionGrabacion.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "ses-1" },
         data: expect.objectContaining({
@@ -336,8 +372,10 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
   });
 
   it("DB update failure on stop does NOT prevent WS from closing (fire-and-forget)", async () => {
-    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
-    mockUpdate.mockRejectedValueOnce(new Error("DB down"));
+    const { prisma } = jest.requireMock("@/lib/db") as {
+      prisma: { sesionGrabacion: { update: jest.Mock } };
+    };
+    prisma.sesionGrabacion.update.mockRejectedValueOnce(new Error("DB down"));
 
     const entry = fakeEntryWithTimer("ses-1");
     addEntry(entry);
@@ -353,17 +391,14 @@ describe("recorder/ws-server — atomic handshake CAS", () => {
       | ((data: unknown) => void)
       | undefined;
 
-    // Should not throw even though DB update fails.
     expect(() =>
       messageHandler!(Buffer.from(JSON.stringify({ type: "stop" }))),
     ).not.toThrow();
 
-    // WS still closed gracefully.
     expect(ws.close).toHaveBeenCalledWith(1000, "stop");
-    // Wait for the async update to settle.
     await new Promise((r) => setTimeout(r, 10));
   });
 });
 
-// Suppress unused import warning if attachClient isn't referenced.
-void attachClient;
+// Suppress unused import warnings if any.
+void countEntries;

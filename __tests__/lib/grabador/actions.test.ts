@@ -7,7 +7,7 @@
  *   3. Verificar que la credencial pertenece al proyecto (decrypt + comparación)
  *   4. Crear fila SesionGrabacion con estado='iniciando'
  *   5. POST /internal/start al recorder-worker
- *   6. UPDATE SesionGrabacion SET token=..., tokenUsado=true, wsUrl=...
+ *   6. UPDATE SesionGrabacion SET token=..., wsUrl=... (tokenUsado NO se flippea: post-W3 fix, token reusable)
  *   7. Retornar {sessionId, wsUrl, token}
  *
  * Errores esperados:

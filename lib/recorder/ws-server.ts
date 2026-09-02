@@ -252,16 +252,18 @@ export async function handleWsConnection(
   }
   const { sessionId } = result;
 
-  // 3. Atomic CAS: una sola UPDATE que flippa tokenUsado=false → true.
-  //    PostgreSQL garantiza que solo UNA transacción concurrente matchea
-  //    el WHERE (los demás ven tokenUsado=true y obtienen count=0).
-  //    Antes esto eran dos queries separadas (findFirst + update) y dos
-  //    conexiones concurrentes pasaban el check → rompiendo one-shot (C1).
-  let claimed: { count: number };
+  // 3. Verificar que la sesión existe en DB y no está en estado terminal.
+  //    Seguridad: el token HMAC (firma con SESSION_SECRET, TTL 30 min) ya
+  //    garantiza que solo el frontend autorizado puede presentar el token;
+  //    una segunda conexión concurrente o un refresh del navegador son
+  //    casos válidos de reconexión, NO ataques — por eso NO usamos un flag
+  //    one-shot (tokenUsado). El rechazo aplica solo a sesiones terminales
+  //    (descartada/guardada) donde ya no hay BrowserContext vivo.
+  let sesion: { id: string; estado: string } | null;
   try {
-    claimed = await prisma.sesionGrabacion.updateMany({
-      where: { token, tokenUsado: false },
-      data: { tokenUsado: true },
+    sesion = await prisma.sesionGrabacion.findFirst({
+      where: { token },
+      select: { id: true, estado: true },
     });
   } catch (err) {
     console.error("[ws-server] DB error al validar token", err);
@@ -269,9 +271,16 @@ export async function handleWsConnection(
     return;
   }
 
-  if (claimed.count === 0) {
-    // Token ausente en DB o ya fue usado por una conexión previa/concurrente.
-    closeWs(ws, WS_CLOSE_INVALID_TOKEN, "token ya utilizado o no existe");
+  if (!sesion) {
+    closeWs(ws, WS_CLOSE_INVALID_TOKEN, "token no existe");
+    return;
+  }
+  if (sesion.estado === "descartada" || sesion.estado === "guardada") {
+    closeWs(
+      ws,
+      WS_CLOSE_INVALID_TOKEN,
+      `sesión en estado terminal '${sesion.estado}'`,
+    );
     return;
   }
 
