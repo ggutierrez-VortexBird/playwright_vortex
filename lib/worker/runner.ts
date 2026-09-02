@@ -141,6 +141,35 @@ export class EjecucionCanceladaError extends Error {
   }
 }
 
+/**
+ * HU-G15 — Auto-repair con selectores respaldo.
+ *
+ * El auto-repair ocurre DENTRO del script generado (HU-G11 +
+ * `lib/worker/auto-repair.ts`): cada paso del .spec.ts envuelve su
+ * locator en `tryWithReparacion(page, candidates, action)`, que itera
+ * los selectores en orden hasta que uno funcione. Cuando usa un
+ * respaldo (no el principal), el reporter emite `selfHealed=true`.
+ *
+ * Acá en el runner, la lógica es trivial:
+ *   1) Recibir el evento `step` del reporter (auto-repair ya ocurrió
+ *      en el browser).
+ *   2) Persistir `selfHealed` en `PasoEjecucion.selfHealed` (ya se hace
+ *      en `handleStepEvent`).
+ *   3) El conteo "Reparados: N" del UI se hace con un helper puro
+ *      `countReparadosFromPasos` desde `lib/worker/auto-repair.ts`.
+ */
+
+/**
+ * Re-export del helper de auto-repair para mantener la superficie
+ * del runner autocontenida y permitir tests del flujo end-to-end.
+ */
+export {
+  tryWithReparacionTs,
+  countReparadosFromPasos,
+  type SelectorCandidate,
+  type ReparacionResult,
+} from "./auto-repair";
+
 export function parseReporterEvent(line: string): ReporterEvent | null {
   try {
     const parsed = JSON.parse(line) as Record<string, unknown>
