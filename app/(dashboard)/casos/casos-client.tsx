@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import Link from "next/link";
+import { useState, useCallback, useEffect } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { CasoTable } from "@/components/casos/caso-table";
 import { CreateCasoForm } from "@/components/casos/create-caso-form";
 import { EditCasoForm } from "@/components/casos/edit-caso-form";
+import { ModeSelectorModal } from "@/components/casos/mode-selector-modal";
 
 interface ProyectoOption {
   id: string;
@@ -24,6 +24,20 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
   const [casos, setCasos] = useState<CasoPruebaListItem[]>(casosIniciales);
   const [editingCaso, setEditingCaso] = useState<CasoPruebaListItem | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+
+  // HU-G20: el botón "Subir Script" del mode-selector emite un evento
+  // global para abrir el CreateCasoForm existente (no duplicamos lógica).
+  useEffect(() => {
+    function onOpenCreate() {
+      setShowForm(true);
+      setEditingCaso(null);
+    }
+    window.addEventListener("acta:open-create-caso-form", onOpenCreate);
+    return () => {
+      window.removeEventListener("acta:open-create-caso-form", onOpenCreate);
+    };
+  }, []);
 
   const refreshCasos = useCallback(async () => {
     try {
@@ -97,40 +111,24 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
         </span>
         <span className="spacer" />
         {canEdit && (
-          <>
-            <Link
-              href={`/casos/grabar/nueva${proyectoId ? `?proyectoId=${proyectoId}` : ""}`}
-              className="btn"
-              style={{
-                background: "var(--stamp)",
-                borderColor: "var(--stamp)",
-                color: "#fff",
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "#fff",
-                  display: "inline-block",
-                  animation: "stampPulse 1.6s ease-in-out infinite",
-                }}
-              />
-              Grabar caso
-            </Link>
-            <button
-              onClick={() => {
-                setShowForm(true);
-                setEditingCaso(null);
-              }}
-              className="btn btn-primary"
-            >
-              + Nuevo Caso
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => setShowModeSelector(true)}
+            data-testid="nuevo-caso-button"
+            className="btn btn-primary"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Nuevo caso
+          </button>
         )}
       </div>
+
+      {/* Mode selector modal (HU-G20) */}
+      <ModeSelectorModal
+        open={showModeSelector}
+        onClose={() => setShowModeSelector(false)}
+        {...(proyectoId ? { proyectoId } : {})}
+      />
 
       {/* Create form */}
       {showForm && (
