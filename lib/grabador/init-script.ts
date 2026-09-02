@@ -47,7 +47,10 @@ export const INIT_SCRIPT = `
     // el atributo REALMENTE existe en el elemento.
     const ariaLabel = el.getAttribute && el.getAttribute('aria-label') || '';
     const nameAttr = el.getAttribute && el.getAttribute('name') || '';
-    const text = (el.textContent || '').trim().slice(0, 50);
+    // Normalizar texto: trimear + colapsar whitespace. Sino el codegen
+    // emite selectores tipo getByText con el whitespace del HTML que
+    // NO matchean el label real.
+    const text = ((el.textContent || '')).replace(/\s+/g, ' ').trim().slice(0, 50);
     const testId = el.getAttribute && el.getAttribute('data-testid') || '';
     const candidates = [];
     if (testId) candidates.push({ strategy: 'testid', value: '[data-testid="' + testId + '"]' });

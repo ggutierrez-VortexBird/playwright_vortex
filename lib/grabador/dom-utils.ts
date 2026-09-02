@@ -127,7 +127,16 @@ export function serializeElement(
   const idAttr = el.id || "";
   const nameAttr = el.getAttribute?.("name") || "";
   const testIdAttr = el.getAttribute?.("data-testid") || "";
-  const text = ((el.textContent || "").trim()).slice(0, 50);
+  // Normalizar texto para evitar que whitespace del HTML (\n, espacios
+  // multiples, etc) se incluya en el selector text. Playwright SI
+  // normaliza whitespace internamente pero trailing/leading newlines
+  // hacen que el selector text NO matchee elementos como labels que
+  // tienen textContent con indentacion por el HTML.
+  //   <label>Correo electronico\n                        \n      </label>
+  //   -> getByText("Correo electronico") ✓
+  //   -> getByText("Correo electronico\n \n      ") ✗ (lo que generabamos)
+  const rawText = ((el.textContent || "")).replace(/\s+/g, " ").trim();
+  const text = rawText.slice(0, 50);
 
   const candidates: Array<{ strategy: string; value: string }> = [];
   if (testIdAttr) {

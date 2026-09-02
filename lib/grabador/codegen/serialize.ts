@@ -266,9 +266,21 @@ export function serializarPaso(
   const candidates = candidatesFromPaso(paso);
   const best = pickBestSelector(candidates);
 
+  // FIX: si el mejor selector tiene value vacio o solo whitespace, NO
+  // emitir codigo Playwright invalido tipo `page.locator(\`\`)` que falla
+  // con "expected non-empty character sequence" o timeout. En su lugar
+  // emitir un comentario para revision manual. Casos:
+  // - Assert creado sin elemento pickeado correctamente
+  // - Click sobre un wrapper div sin id/name/text unico
+  const bestValid =
+    best !== null && typeof best.value === "string" && best.value.trim().length > 0
+      ? best
+      : null;
+
   switch (paso.tipo) {
     case "navegar": {
       const url = paso.valor ?? "";
+      if (!url) return `${indent}// Paso ${paso.numero}: navegacion sin URL`;
       const ref = findParamRef(url, parametros);
       const final = ref ? inlineParamRef(url) : jsStringEscape(url);
       // waitUntil:'domcontentloaded' matchea lo que usa el recorder-worker
@@ -278,21 +290,29 @@ export function serializarPaso(
       return `${indent}await page.goto(\`${final}\`, { waitUntil: 'domcontentloaded' });`;
     }
     case "clic": {
-      if (!best) return `${indent}// Paso ${paso.numero}: sin selector — revisar manualmente`;
-      const method = playwrightMethodFor(best.strategy);
-      const arg = playwrightArgFor(best.strategy, best.value);
+      if (!bestValid) return `${indent}// Paso ${paso.numero}: clic sin selector valido — revisar manualmente`;
+      const method = playwrightMethodFor(bestValid.strategy);
+      const arg = playwrightArgFor(bestValid.strategy, bestValid.value);
       const argJs = jsStringEscape(arg);
-      const options = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
       return `${indent}await page.${method}(\`${argJs}\`${options}).click();`;
     }
     case "escribir": {
-      if (!best) return `${indent}// Paso ${paso.numero}: sin selector — revisar manualmente`;
-      const method = playwrightMethodFor(best.strategy);
-      const arg = jsStringEscape(playwrightArgFor(best.strategy, best.value));
+      if (!bestValid) return `${indent}// Paso ${paso.numero}: escribir sin selector valido — revisar manualmente`;
+      // FIX: para passwords (valor=null por seguridad) NO emitimos fill
+      // con string vacio. El test puede fallar porque llenar password con
+      // "" borra el valor. En su lugar emitimos un comentario y dejamos
+      // que el usuario agregue un parametro de credencial via HU-G13
+      // (CSV data-driven) o via setup del credential en el caso.
+      if (paso.valor === null && paso.esValorSensible) {
+        return `${indent}// Paso ${paso.numero}: escribir credencial — agregar parametro o credential setup`;
+      }
+      const method = playwrightMethodFor(bestValid.strategy);
+      const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
       const valor = paso.valor ?? "";
       const valorRef = findParamRef(valor, parametros);
       const finalValor = valorRef ? inlineParamRef(valor) : jsStringEscape(valor);
-      const options = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
       return `${indent}await page.${method}(\`${arg}\`${options}).fill(\`${finalValor}\`);`;
     }
     case "esperar": {
@@ -301,10 +321,10 @@ export function serializarPaso(
       return `${indent}await page.waitForTimeout(${safeMs});`;
     }
     case "verificar": {
-      if (!best) return `${indent}// Paso ${paso.numero}: verificación sin selector`;
-      const method = playwrightMethodFor(best.strategy);
-      const arg = jsStringEscape(playwrightArgFor(best.strategy, best.value));
-      const options = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      if (!bestValid) return `${indent}// Paso ${paso.numero}: verificacion sin selector valido — revisar manualmente`;
+      const method = playwrightMethodFor(bestValid.strategy);
+      const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
+      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
       const expected = paso.valor ?? "";
       const expectedRef = findParamRef(expected, parametros);
       const finalExpected = expectedRef ? inlineParamRef(expected) : jsStringEscape(expected);
@@ -333,10 +353,10 @@ export function serializarPaso(
       }
     }
     case "seleccionar":
-      if (!best) return `${indent}// Paso ${paso.numero}: select sin selector`;
-      const method2 = playwrightMethodFor(best.strategy);
-      const arg2 = jsStringEscape(playwrightArgFor(best.strategy, best.value));
-      const options2 = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      if (!bestValid) return `${indent}// Paso ${paso.numero}: select sin selector`;
+      const method2 = playwrightMethodFor(bestValid.strategy);
+      const arg2 = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
+      const options2 = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
       return `${indent}await page.${method2}(\`${arg2}\`${options2}).selectOption(/* value */);`;
     case "generico":
     default:
