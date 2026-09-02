@@ -394,21 +394,7 @@ function computePopoverPosition(bbox: {
   };
 }
 
-function handleActionParametro() {
-    // Parametros: HU-G7. Por ahora abrimos el modal generico de verificacion
-    // y dejamos la nota (TODO: modal especifico de ConvertirParametro).
-    if (pickedElement) {
-      setDefaultAssertion("visible");
-      setShowVerificacionModal(true);
-      setErrorMsg(
-        "Conversión a parámetro usa el modal genérico por ahora (TODO: modal propio).",
-      );
-      return;
-    }
-    setErrorMsg(
-      "Elegí un elemento del navegador para convertirlo en parámetro.",
-    );
-  }
+
 
   /**
    * HU-G6: submit del modal de verificacion. POSTea un PasoGrabado de tipo
@@ -554,7 +540,11 @@ function handleActionParametro() {
                   Posicionado con flip inteligente (computePopoverPosition):
                   si el elemento esta muy a la derecha, el popover
                   aparece a la IZQUIERDA; si esta muy abajo, aparece
-                  ARRIBA. Asi nunca se desborda del canvas del navegador. */}
+                  ARRIBA. Asi nunca se desborda del canvas del navegador.
+
+                  Solo los 4 tools de Playwright (pick locator, assert
+                  visibility, assert text, assert snapshot). Sin
+                  "Convertir en parametro" — eso NO es de Playwright. */}
               {signalActive && pickedElement && (
                 <div
                   data-testid="signal-popover"
@@ -565,9 +555,6 @@ function handleActionParametro() {
                     «{pickedElement.element.text || pickedElement.element.aria || pickedElement.element.tag}»
                   </div>
                   <div className="border-t border-m3-outline-variant/50 my-1" />
-                  <div className="font-label text-[10px] uppercase tracking-wider text-m3-on-surface-variant/70 px-2 py-0.5">
-                    Acciones (como Playwright)
-                  </div>
 
                   {/* 1. Pick locator — volver a pickear */}
                   <button
@@ -630,31 +617,6 @@ function handleActionParametro() {
                   >
                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                     Assert snapshot (a11y)
-                  </button>
-
-                  {/* Separador — feature nuestra de ACTA */}
-                  <div className="border-t border-m3-outline-variant/50 my-1" />
-                  <div className="font-label text-[10px] uppercase tracking-wider text-m3-on-surface-variant/70 px-2 py-0.5">
-                    ACTA — específico
-                  </div>
-
-                  {/* Convertir en parámetro — feature nuestra HU-G7.
-                      Reemplaza el valor del paso por {{nombre_param}}.
-                      NO existe en playwright codegen. */}
-                  <button
-                    type="button"
-                    data-testid="popover-action-param"
-                    onClick={() => {
-                      setDefaultAssertion("visible");
-                      setShowVerificacionModal(true);
-                      setErrorMsg(
-                        "Convertir en parámetro: pendiente UI. Sustituye el valor del paso por {{nombre}} para data-driven testing.",
-                      );
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">data_object</span>
-                    Convertir en parámetro
                   </button>
                 </div>
               )}
