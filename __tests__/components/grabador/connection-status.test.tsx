@@ -25,9 +25,30 @@ describe("ConnectionStatus", () => {
       expect(screen.getByText("INICIANDO")).toBeInTheDocument();
     });
 
-    it("renders the RECONECTANDO label when reconnecting", () => {
-      render(<ConnectionStatus state="reconnecting" mode="inline" />);
-      expect(screen.getByText("RECONECTANDO")).toBeInTheDocument();
-    });
+it("renders the RECONECTANDO label when reconnecting", () => {
+    render(<ConnectionStatus state="reconnecting" mode="inline" />);
+    expect(screen.getByText("RECONECTANDO")).toBeInTheDocument();
   });
+
+  it("muestra 'Reintentando conexión…' como ayuda cuando reconnecting", () => {
+    render(<ConnectionStatus state="reconnecting" mode="inline" />);
+    expect(screen.getByText("Reintentando conexión…")).toBeInTheDocument();
+  });
+
+  it("el dot pulsa cuando está en modo inline y reconnecting (visualmente diferenciado)", () => {
+    const { container } = render(<ConnectionStatus state="reconnecting" mode="inline" />);
+    const dot = container.querySelector(".pulse-red");
+    expect(dot).toBeInTheDocument();
+    // En reconnecting el dot tiene opacity-60 (no es el pulso rojo brillante del live)
+    expect(dot).toHaveClass("opacity-60");
+  });
+
+  it("renderiza REC badge compacto (browser chrome) también en reconnecting", () => {
+    // HU-GR-1 — el badge del browser chrome debe seguir visible aunque
+    // el WS esté reconectando; el usuario sabe que la sesión está ahí.
+    const { container } = render(<ConnectionStatus state="reconnecting" />);
+    expect(screen.getByText("REC")).toBeInTheDocument();
+    expect(container.querySelector(".pulse-red")).toBeInTheDocument();
+  });
+});
 });

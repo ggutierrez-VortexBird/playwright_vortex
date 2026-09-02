@@ -19,6 +19,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "verify:hu-g21-schema": "tsx scripts/verify-hu-g21-schema.ts",
+    "cleanup:sesiones": "node --import tsx scripts/cleanup-sesiones.ts",
     "worker": "node --import tsx scripts/worker.ts",
     "recorder": "node --import tsx scripts/recorder-worker.ts",
     "postinstall": "node scripts/install-playwright-browsers.js"
