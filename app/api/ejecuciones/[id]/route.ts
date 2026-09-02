@@ -45,6 +45,9 @@ export async function GET(
       resultadoEsperado: p.resultadoEsperado,
       resultadoObtenido: p.resultadoObtenido,
       errorCount: p.errorCount,
+      // HU-G18 — chapter timestamps for the segmented video bar.
+      videoInicioMs: p.videoInicioMs,
+      videoFinMs: p.videoFinMs,
       logs: p.logs,
       createdAt: p.createdAt,
       subacciones: (p.subacciones ?? []).map(s => ({

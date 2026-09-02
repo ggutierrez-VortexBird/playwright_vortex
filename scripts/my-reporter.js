@@ -17,16 +17,28 @@ class JsonReporter {
     this.testCounter = 0
     this.substepCounters = new Map() // testCounter -> substep number
     this.assertionCounters = { total: 0, ok: 0, fail: 0 }
+    // HU-G18 — wall-clock origin for video chapter timestamps. Captured
+    // in onBegin() so each test can compute its offset from the run start
+    // (≈ when Playwright began recording video). The runner stores these
+    // as PasoEjecucion.videoInicioMs/videoFinMs and the UI uses them to
+    // build the segmented chapter bar.
+    this.runStartMs = 0
+    // Map<testCounter, { testStartMs }> — captured in onTestBegin so we
+    // can stamp the chapter start without depending on Date drift across
+    // the worker ↔ runner boundary.
+    this.testStartMs = new Map()
   }
 
   onBegin(config) {
     const project = config.projects?.[0]
     const browserName = project?.use?.browserName ?? 'chromium'
+    this.runStartMs = Date.now()
     const event = {
       type: 'env',
       navegador: browserName,
       sistemaOperativo: this._detectOS(),
       nodoEjecucion: this._detectHostname(),
+      runStartMs: this.runStartMs,
     }
     this._emit(event)
   }
@@ -34,6 +46,9 @@ class JsonReporter {
   onTestBegin(test) {
     this.testCounter++
     this.substepCounters.set(this.testCounter, 0)
+    // HU-G18 — capture the per-test offset from run start so onTestEnd
+    // can emit videoInicioMs without a second Date.now() race.
+    this.testStartMs.set(this.testCounter, Date.now())
   }
 
   onStepEnd(test, result, step) {
@@ -175,6 +190,19 @@ class JsonReporter {
 
     const resultadoEsperado = this._deriveResultadoEsperado(test)
 
+    // HU-G18 — chapter timestamps for the video bar. We use
+    // (testStartMs - runStartMs) as the start of the chapter, and add
+    // result.duration (Playwright-measured test wall-clock) to derive the
+    // end. If Playwright setup eats some time between tests (project
+    // fixtures, retries), that gap is silently rolled into the *next*
+    // chapter start — visually correct since the user sees the gap as
+    // blank screen, which is exactly what the segment width would imply.
+    const testStart = this.testStartMs.get(this.testCounter) ?? Date.now()
+    const videoInicioMs = Math.max(0, testStart - this.runStartMs)
+    const videoFinMs = videoInicioMs + (result.duration ?? 0)
+    // After emit, this test's start is no longer needed.
+    this.testStartMs.delete(this.testCounter)
+
     const event = {
       type: 'step',
       numero: this.testCounter,
@@ -186,6 +214,8 @@ class JsonReporter {
       resultadoEsperado,
       resultadoObtenido,
       errorCount,
+      videoInicioMs,
+      videoFinMs,
     }
     this._emit(event)
 

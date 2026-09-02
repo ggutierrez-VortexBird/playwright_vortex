@@ -29,6 +29,15 @@ export interface StepEvent {
   resultadoEsperado?: string | null
   resultadoObtenido?: string | null
   errorCount?: number
+  /**
+   * HU-G18 — milliseconds from video start when this step began.
+   * Emitted by my-reporter.js in onTestEnd, computed from
+   * testStartMs - runStartMs. Optional for backwards compat with old
+   * reporter versions and with events synthesized in tests.
+   */
+  videoInicioMs?: number
+  /** HU-G18 — milliseconds from video start when this step ended. */
+  videoFinMs?: number
 }
 
 export interface SubstepEvent {
@@ -233,6 +242,11 @@ async function handleStepEvent(state: RunnerState, event: StepEvent): Promise<vo
       resultadoEsperado: event.resultadoEsperado ?? null,
       resultadoObtenido: event.resultadoObtenido ?? null,
       errorCount: event.errorCount ?? 0,
+      // HU-G18 — chapter timestamps. Optional in the event for backwards
+      // compatibility with synthetic test events; when missing we leave
+      // the columns NULL and the UI falls back to duration ratios.
+      videoInicioMs: event.videoInicioMs ?? null,
+      videoFinMs: event.videoFinMs ?? null,
       logs: logs ? (logs as unknown as Prisma.InputJsonValue) : undefined,
     },
   }).then(async () => {

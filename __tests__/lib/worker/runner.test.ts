@@ -179,6 +179,65 @@ describe("runPlaywrightTest — state mapping (AC-11)", () => {
     ).rejects.toThrow(/Playwright exited with code 2/);
   });
 
+  describe("HU-G18 — videoInicioMs / videoFinMs chapter timestamps", () => {
+    it("persiste los timestamps de capítulo emitidos por el reporter", async () => {
+      mockProcess({
+        stdoutData:
+          '{"type":"step","numero":1,"descripcion":"Login","estado":"paso","duracionMs":2000,"videoInicioMs":500,"videoFinMs":2500}\n',
+        exitCode: 0,
+      });
+      (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({});
+
+      const { runPlaywrightTest } = await import("@/lib/worker/runner");
+      await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1");
+
+      expect(prisma.pasoEjecucion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            videoInicioMs: 500,
+            videoFinMs: 2500,
+          }),
+        }),
+      );
+    });
+
+    it("persiste null cuando el reporter no emite timestamps (backwards compat)", async () => {
+      mockProcess({
+        stdoutData:
+          '{"type":"step","numero":1,"descripcion":"Legacy","estado":"paso","duracionMs":2000}\n',
+        exitCode: 0,
+      });
+      (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({});
+
+      const { runPlaywrightTest } = await import("@/lib/worker/runner");
+      await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1");
+
+      expect(prisma.pasoEjecucion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            videoInicioMs: null,
+            videoFinMs: null,
+          }),
+        }),
+      );
+    });
+
+    it("acepta el evento 'env' con runStartMs del reporter (no rompe)", async () => {
+      // Garantiza que el campo extra del env event no rompe el parse.
+      mockProcess({
+        stdoutData:
+          '{"type":"env","navegador":"chromium","sistemaOperativo":"Linux","nodoEjecucion":"x","runStartMs":1700000000000}\n' +
+          '{"type":"step","numero":1,"descripcion":"X","estado":"paso","duracionMs":1,"videoInicioMs":0,"videoFinMs":1}\n',
+        exitCode: 0,
+      });
+      (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({});
+
+      const { runPlaywrightTest } = await import("@/lib/worker/runner");
+      const result = await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1");
+      expect(result.passed).toBe(true);
+    });
+  });
+
   it("bufferiza substeps que llegan antes del step y los inserta cuando llega el step", async () => {
     // El reporter emite substep ANTES de step (porque onStepEnd se llama antes de onTestEnd)
     const stdoutData =
