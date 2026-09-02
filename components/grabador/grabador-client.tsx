@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { WsServerMessage, WsClientMessage } from "@/lib/recorder/types";
+import type { SerializedElementFull } from "@/lib/grabador/dom-utils";
 import { ScreencastCanvas } from "./screencast-canvas";
 import { ConnectionStatus } from "./connection-status";
 import { PasoPanel } from "./paso-panel";
 import { RecToolbar } from "./rec-toolbar";
 import { GrabadorTopbar, type GrabadorTopbarMeta } from "./grabador-topbar";
+import { AgregarVerificacionModal, type AssertionKind } from "./agregar-verificacion-modal";
 
 interface GrabadorClientProps {
   wsUrl: string;
@@ -88,6 +90,25 @@ export function GrabadorClient({
           // El browser navego (click en link, history, hash, navigate
           // manual desde la URL bar). Sincronizamos el pageUrl local.
           setPageUrl(msg.url);
+        } else if (msg.type === "highlight") {
+          // HU-G5: hover sobre el canvas con signal mode activo. Worker
+          // devuelve el bbox del elemento bajo el cursor para que
+          // dibujemos el overlay rojo.
+          setHighlightBbox(msg.bbox);
+        } else if (msg.type === "pick_result") {
+          // HU-G5: usuario hizo click sobre un elemento con signal mode
+          // activo. Worker devuelve el elemento serializado + aria snapshot
+          // (para HU-G6 tipo 'snapshot'). Mostramos el popover.
+          if (msg.element) {
+            setPickedElement({
+              element: msg.element,
+              ariaSnapshot: msg.ariaSnapshot,
+            });
+          } else {
+            // pick falló — limpiar estado
+            setPickedElement(null);
+            setHighlightBbox(null);
+          }
         } else if (msg.type === "error") {
           setErrorMsg(msg.msg);
           setConnState("error");
@@ -212,8 +233,35 @@ export function GrabadorClient({
   const [signalActive, setSignalActive] = useState(false);
   const [paused, setPaused] = useState(false);
 
+  // HU-G5 — signal mode state.
+  // `pickedElement` se setea cuando llega un {type:'pick_result', element}
+  // desde el worker. Mostraremos un popover con 3 acciones:
+  // agregar verificación / convertir a parámetro / snapshot.
+  const [pickedElement, setPickedElement] = useState<{
+    element: SerializedElementFull;
+    ariaSnapshot: string | null;
+  } | null>(null);
+  // `highlightBbox` se setea cuando llega un {type:'highlight', bbox}.
+  // El canvas dibuja un overlay rojo sobre este bbox.
+  const [highlightBbox, setHighlightBbox] = useState<
+    { x: number; y: number; width: number; height: number } | null
+  >(null);
+  // `showVerificacionModal` — abrir el modal de assert.
+  // `defaultAssertion` pre-selecciona el tipo cuando el usuario eligio
+  // 'snapshot' desde el popover (HU-G6 tipo 'snapshot').
+  const [showVerificacionModal, setShowVerificacionModal] = useState(false);
+  const [defaultAssertion, setDefaultAssertion] = useState<AssertionKind>("visible");
+
   function handleToggleSignal() {
-    setSignalActive((prev) => !prev);
+    setSignalActive((prev) => {
+      const next = !prev;
+      // Limpiar estado relacionado al togglear off.
+      if (!next) {
+        setHighlightBbox(null);
+        setPickedElement(null);
+      }
+      return next;
+    });
   }
 
   async function handleTogglePause() {
@@ -245,19 +293,102 @@ export function GrabadorClient({
   }
 
   function handleActionVerificar() {
-    // Stub: the live popover over the canvas opens the AgregarVerificacion
-    // modal in a future wiring step. The toolbar shortcut mirrors the
-    // popover's intent so the UX is consistent.
+    // Si el popover esta activo, abrir el modal. Si no, mostrar hint.
+    if (pickedElement) {
+      setDefaultAssertion("visible");
+      setShowVerificacionModal(true);
+      return;
+    }
     setErrorMsg(
       "Elegí un elemento del navegador para agregar una verificación.",
     );
   }
 
   function handleActionParametro() {
-    // Stub: same pattern as handleActionVerificar.
+    // Parametros: HU-G7. Por ahora abrimos el modal generico de verificacion
+    // y dejamos la nota (TODO: modal especifico de ConvertirParametro).
+    if (pickedElement) {
+      setDefaultAssertion("visible");
+      setShowVerificacionModal(true);
+      setErrorMsg(
+        "Conversión a parámetro usa el modal genérico por ahora (TODO: modal propio).",
+      );
+      return;
+    }
     setErrorMsg(
       "Elegí un elemento del navegador para convertirlo en parámetro.",
     );
+  }
+
+  /**
+   * HU-G6: submit del modal de verificacion. POSTea un PasoGrabado de tipo
+   * 'verificar' con el selector, assertionKind y valor (texto para
+   * text/value/count, YAML del aria tree para 'snapshot').
+   */
+  async function handleSubmitVerificacion(input: {
+    assertionKind: AssertionKind;
+    valorEsperado: string;
+  }) {
+    if (!pickedElement) return;
+    setBusy("detener"); // reusar el lock para deshabilitar botones
+    try {
+      const el = pickedElement.element;
+      const best = el.candidates.find((c) => c.strategy !== "css") ?? el.candidates[0];
+      const selectorPrincipal = {
+        tag: el.tag,
+        text: el.text || null,
+        aria: el.aria || null,
+        testId: el.testId || null,
+      };
+      const selectoresRespaldo = el.candidates.map((c) => ({
+        strategy: c.strategy,
+        value: c.value,
+      }));
+      const descripcion =
+        input.assertionKind === "snapshot"
+          ? `Verificar snapshot de «${el.text || el.aria || el.tag}»`
+          : input.assertionKind === "visible"
+            ? `Verificar que «${el.text || el.aria || el.tag}» está visible`
+            : input.assertionKind === "count"
+              ? `Verificar que «${el.text || el.aria || el.tag}» aparezca ${input.valorEsperado} ${input.valorEsperado === "1" ? "vez" : "veces"}`
+              : input.assertionKind === "texto_igual"
+                ? `Verificar que el texto de «${el.text || el.aria || el.tag}» sea exactamente «${input.valorEsperado}»`
+                : input.assertionKind === "texto_contiene"
+                  ? `Verificar que el texto de «${el.text || el.aria || el.tag}» contenga «${input.valorEsperado}»`
+                  : `Verificar que el valor de «${el.text || el.aria || el.tag}» sea «${input.valorEsperado}»`;
+      const res = await fetch(
+        `/api/grabador/sesiones/${encodeURIComponent(sesionId)}/pasos`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tipo: "verificar",
+            origen: "grabado",
+            descripcion,
+            selectorPrincipal,
+            selectoresRespaldo,
+            valor: input.valorEsperado || null,
+            assertionKind: input.assertionKind,
+            // Para 'snapshot' guardamos el selector del best candidate
+            // como `selectorEstrategado` extra para que el codegen lo use.
+            ...(best ? { selectorEstrategado: best } : {}),
+          }),
+        },
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { message?: string };
+        setErrorMsg(data.message ?? `Error creando verificación (${res.status})`);
+        return;
+      }
+      // Cerrar popover + modal.
+      setShowVerificacionModal(false);
+      setPickedElement(null);
+      setHighlightBbox(null);
+    } catch (err) {
+      setErrorMsg(`Error de red: ${(err as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
   }
 
   const isLive = connState === "live";
@@ -291,10 +422,126 @@ export function GrabadorClient({
               <ScreencastCanvas
                 onInputEvent={(msg) => sendWsMessage(msg)}
                 inputDisabled={!isLive || paused}
+                signalActive={signalActive}
+                onHover={(coords) => {
+                  // HU-G5: throttle con 50ms via React (suficiente).
+                  // El componente canvas ya hace su propio debounce; acá
+                  // solo forward al WS.
+                  if (!signalActive) return;
+                  sendWsMessage({ type: "hover", x: coords.x, y: coords.y });
+                }}
+                onPick={(coords) => {
+                  if (!signalActive) return;
+                  sendWsMessage({ type: "pick", x: coords.x, y: coords.y });
+                }}
               />
               {!isLive && (
                 <div className="absolute inset-0 flex items-center justify-center bg-m3-surface-container/80 backdrop-blur-sm">
                   <ConnectionStatus state={connState} mode="inline" />
+                </div>
+              )}
+
+              {/* HU-G5: highlight overlay sobre el canvas. Se posiciona
+                  en coordenadas del viewport (las mismas que el worker
+                  devuelve en el bbox, que ya esta en coords del page
+                  viewport 1280x720). El CSS del canvas padre con
+                  object-contain se encarga del escalado visual. */}
+              {signalActive && highlightBbox && (
+                <div
+                  aria-hidden="true"
+                  data-testid="signal-highlight"
+                  className="absolute pointer-events-none border-2 border-error rounded-sm shadow-[0_0_0_2px_rgba(255,0,0,0.3)]"
+                  style={{
+                    left: `${(highlightBbox.x / 1280) * 100}%`,
+                    top: `${(highlightBbox.y / 720) * 100}%`,
+                    width: `${(highlightBbox.width / 1280) * 100}%`,
+                    height: `${(highlightBbox.height / 720) * 100}%`,
+                  }}
+                />
+              )}
+
+              {/* HU-G5: popover con opciones para el elemento pickeado.
+                  Posicionado cerca del centro del bbox del elemento. */}
+              {signalActive && pickedElement && (
+                <div
+                  data-testid="signal-popover"
+                  className="absolute z-30 bg-m3-surface-container-highest border border-m3-outline-variant rounded-lg shadow-lg p-2 flex flex-col gap-1 min-w-[180px]"
+                  style={{
+                    left: `${Math.min(
+                      ((pickedElement.element.bbox?.x ?? 0) +
+                        (pickedElement.element.bbox?.width ?? 0) / 2) /
+                        1280,
+                      0.85,
+                    ) * 100}%`,
+                    top: `${Math.min(
+                      ((pickedElement.element.bbox?.y ?? 0) +
+                        (pickedElement.element.bbox?.height ?? 0) + 8) /
+                        720,
+                      0.85,
+                    ) * 100}%`,
+                  }}
+                >
+                  <div className="font-label text-label-sm text-m3-on-surface-variant px-2 py-1 truncate max-w-[260px]">
+                    «{pickedElement.element.text || pickedElement.element.aria || pickedElement.element.tag}»
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="popover-action-verify"
+                    onClick={() => {
+                      setDefaultAssertion("visible");
+                      setShowVerificacionModal(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">fact_check</span>
+                    Agregar verificación
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="popover-action-snapshot"
+                    onClick={() => {
+                      if (!pickedElement.ariaSnapshot) {
+                        setErrorMsg(
+                          "No se pudo capturar el snapshot (elemento sin selector estable u oculto).",
+                        );
+                        return;
+                      }
+                      setDefaultAssertion("snapshot");
+                      setShowVerificacionModal(true);
+                    }}
+                    disabled={!pickedElement.ariaSnapshot}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                    Snapshot (a11y)
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="popover-action-param"
+                    onClick={() => {
+                      setDefaultAssertion("visible");
+                      setShowVerificacionModal(true);
+                      setErrorMsg(
+                        "Conversión a parámetro usa el modal genérico (TODO: modal propio).",
+                      );
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">data_object</span>
+                    Convertir en parámetro
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="popover-action-cancel"
+                    onClick={() => {
+                      setPickedElement(null);
+                      setHighlightBbox(null);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface-variant font-body text-body-sm text-left"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                    Cancelar
+                  </button>
                 </div>
               )}
             </div>
@@ -328,6 +575,29 @@ export function GrabadorClient({
         >
           <strong>Error:</strong> {errorMsg}
         </div>
+      )}
+
+      {/* HU-G5/G6 modal: agregar verificación / snapshot. */}
+      {showVerificacionModal && pickedElement && (
+        <AgregarVerificacionModal
+          elementLabel={
+            pickedElement.element.text ||
+            pickedElement.element.aria ||
+            pickedElement.element.tag
+          }
+          origen="grabado"
+          sesionId={sesionId}
+          ariaSnapshot={pickedElement.ariaSnapshot}
+          initialAssertion={defaultAssertion}
+          onCancel={() => {
+            setShowVerificacionModal(false);
+            setPickedElement(null);
+            setHighlightBbox(null);
+          }}
+          onSubmit={handleSubmitVerificacion}
+          // defaultAssertion se aplica via key — remontamos cuando cambia
+          key={defaultAssertion}
+        />
       )}
     </div>
   );

@@ -63,8 +63,12 @@ export type WsServerMessage =
   | { type: "frame"; data: string; ts: number }
   | { type: "paso_agregado"; paso: PasoGrabadoDTO }
   | { type: "error"; msg: string }
-  /** HU-G5: respuesta a {type:'pick'} con el elemento serializado. */
-  | { type: "pick_result"; element: import("@/lib/grabador/dom-utils").SerializedElementFull | null }
+  /** HU-G5: respuesta a {type:'pick'} con el elemento serializado.
+   *  Incluye `ariaSnapshot` (YAML accessibility tree) cuando el page.locator
+   *  puede resolver el selector — se usa para HU-G6 tipo 'snapshot' que
+   *  genera `expect(locator).toMatchAriaSnapshot(yaml)`. Si la captura
+   *  falla (elemento oculto, frame detached, etc.) viene `null`. */
+  | { type: "pick_result"; element: import("@/lib/grabador/dom-utils").SerializedElementFull | null; ariaSnapshot: string | null }
   /** HU-G5: respuesta a {type:'hover'} con el bbox del elemento. */
   | { type: "highlight"; bbox: import("@/lib/grabador/dom-utils").SerializedElementFull["bbox"] | null }
   /** URL cambio (navigate manual, click en link, history back/forward). */

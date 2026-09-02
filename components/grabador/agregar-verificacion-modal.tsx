@@ -26,12 +26,16 @@ export type AssertionKind =
   | "texto_igual"
   | "texto_contiene"
   | "valor_igual"
-  | "count";
+  | "count"
+  /** HU-G6 snapshot: `expect(locator).toMatchAriaSnapshot(yaml)`.
+   *  El YAML se captura en pick time (lo trae pick_result.ariaSnapshot)
+   *  y NO requiere valorEsperado. */
+  | "snapshot";
 
 export interface AgregarVerificacionInput {
   /** Tipo de assertion. Default "visible". */
   assertionKind: AssertionKind;
-  /** Valor esperado (texto/número) — vacío para `visible`. */
+  /** Valor esperado (texto/número) — vacío para `visible` y `snapshot`. */
   valorEsperado: string;
 }
 
@@ -46,6 +50,11 @@ export interface AgregarVerificacionModalProps {
   selectoresRespaldo?: unknown;
   /** Sesion ID — el parent puede reusar este para construir el payload. */
   sesionId: string;
+  /** Snapshot YAML pre-capturado (HU-G6 tipo 'snapshot'). Si es null y
+   *  el usuario elige 'snapshot', el botón submit queda disabled. */
+  ariaSnapshot?: string | null;
+  /** Assertion inicial seleccionado. Default "visible". */
+  initialAssertion?: AssertionKind;
   /** Callback al confirmar — recibe el payload a POSTear. */
   onSubmit: (input: AgregarVerificacionInput) => Promise<void> | void;
   /** Cancelar / cerrar modal. */
@@ -56,12 +65,13 @@ export interface AgregarVerificacionModalProps {
   errorMsg?: string | null;
 }
 
-const ASSERTIONS: Array<{ value: AssertionKind; label: string; needsValor: boolean }> = [
+const ASSERTIONS: Array<{ value: AssertionKind; label: string; needsValor: boolean; needsSnapshot?: boolean }> = [
   { value: "visible", label: "Está visible", needsValor: false },
   { value: "texto_igual", label: "Texto exacto", needsValor: true },
   { value: "texto_contiene", label: "Texto contiene", needsValor: true },
   { value: "valor_igual", label: "Valor (input) exacto", needsValor: true },
   { value: "count", label: "Cantidad de elementos", needsValor: true },
+  { value: "snapshot", label: "Snapshot (accessibility tree)", needsValor: false, needsSnapshot: true },
 ];
 
 export function AgregarVerificacionModal({
@@ -70,13 +80,15 @@ export function AgregarVerificacionModal({
   onCancel,
   busy = false,
   errorMsg = null,
+  ariaSnapshot = null,
+  initialAssertion = "visible",
 }: AgregarVerificacionModalProps) {
-  const [assertionKind, setAssertionKind] = useState<AssertionKind>("visible");
+  const [assertionKind, setAssertionKind] = useState<AssertionKind>(initialAssertion);
   const [valorEsperado, setValorEsperado] = useState("");
 
-  // Reset valorEsperado when assertion changes to visible (no necesita valor).
+  // Reset valorEsperado when assertion changes to one that doesn't need it.
   useEffect(() => {
-    if (assertionKind === "visible") {
+    if (assertionKind === "visible" || assertionKind === "snapshot") {
       setValorEsperado("");
     }
   }, [assertionKind]);
@@ -90,8 +102,12 @@ export function AgregarVerificacionModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
-  const needsValor = assertionKind !== "visible";
-  const canSubmit = !busy && (!needsValor || valorEsperado.trim().length > 0);
+  const needsValor = assertionKind !== "visible" && assertionKind !== "snapshot";
+  const needsSnapshot = assertionKind === "snapshot";
+  const canSubmit =
+    !busy &&
+    (!needsValor || valorEsperado.trim().length > 0) &&
+    (!needsSnapshot || (typeof ariaSnapshot === "string" && ariaSnapshot.trim().length > 0));
 
   function buildDescripcion(): string {
     switch (assertionKind) {
@@ -105,6 +121,8 @@ export function AgregarVerificacionModal({
         return `Verificar que el valor de «${elementLabel}» sea «${valorEsperado}»`;
       case "count":
         return `Verificar que «${elementLabel}» aparezca ${valorEsperado} ${valorEsperado === "1" ? "vez" : "veces"}`;
+      case "snapshot":
+        return `Verificar snapshot de «${elementLabel}» (accessibility tree)`;
       default:
         return `Verificar «${elementLabel}»`;
     }
@@ -113,7 +131,14 @@ export function AgregarVerificacionModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    await onSubmit({ assertionKind, valorEsperado: needsValor ? valorEsperado : "" });
+    // Para snapshot, mandamos el YAML como "valor" para que el serializer
+    // lo use como contenido de toMatchAriaSnapshot(...).
+    const finalValor = needsSnapshot
+      ? (ariaSnapshot ?? "")
+      : needsValor
+        ? valorEsperado
+        : "";
+    await onSubmit({ assertionKind, valorEsperado: finalValor });
   }
 
   return (
@@ -193,6 +218,27 @@ export function AgregarVerificacionModal({
               {buildDescripcion()}
             </span>
           </div>
+
+          {/* Snapshot preview — solo cuando el assertionKind es 'snapshot'. */}
+          {needsSnapshot && (
+            <div className="bg-m3-surface-container rounded p-3 border border-m3-outline-variant">
+              <span className="font-label text-[11px] uppercase tracking-wider text-m3-on-surface-variant block mb-1">
+                Snapshot YAML (aria tree)
+              </span>
+              {ariaSnapshot && ariaSnapshot.trim().length > 0 ? (
+                <pre
+                  data-testid="snapshot-preview"
+                  className="font-mono-code text-mono-code text-m3-on-surface text-xs bg-m3-surface-container-highest rounded p-2 overflow-x-auto whitespace-pre-wrap break-all max-h-40 overflow-y-auto"
+                >
+                  {ariaSnapshot}
+                </pre>
+              ) : (
+                <p className="text-body-sm text-m3-error">
+                  No se pudo capturar el snapshot. El elemento podría estar oculto o tener un selector inestable.
+                </p>
+              )}
+            </div>
+          )}
 
           {errorMsg && (
             <p

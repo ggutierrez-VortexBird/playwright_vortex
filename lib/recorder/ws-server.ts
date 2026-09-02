@@ -73,7 +73,7 @@ async function handleElementQuery(
   const entry = getEntry(sessionId);
   if (!entry || !entry.page) {
     if (payload.type === "pick") {
-      sendMessage(ws, { type: "pick_result", element: null });
+      sendMessage(ws, { type: "pick_result", element: null, ariaSnapshot: null });
     } else {
       sendMessage(ws, { type: "highlight", bbox: null });
     }
@@ -126,7 +126,7 @@ async function handleElementQuery(
 
     if (!result) {
       if (payload.type === "pick") {
-        sendMessage(ws, { type: "pick_result", element: null });
+        sendMessage(ws, { type: "pick_result", element: null, ariaSnapshot: null });
       } else {
         sendMessage(ws, { type: "highlight", bbox: null });
       }
@@ -141,12 +141,17 @@ async function handleElementQuery(
     // pick: build the full serialized element from the primitives. We
     // can't pass the DOM node across the wire, so the Node helper
     // recomputes candidates from the primitive fields we extracted.
+    // Tambien capturamos el aria snapshot (HU-G6 tipo 'snapshot') en el
+    // mismo round-trip para que la UI tenga todo lo necesario para
+    // ofrecer las acciones (verificar / parametro / snapshot) sin otro
+    // request al worker.
     const full = buildFullFromPrimitives(result);
-    sendMessage(ws, { type: "pick_result", element: full });
+    const ariaSnapshot = await captureAriaSnapshot(entry, full);
+    sendMessage(ws, { type: "pick_result", element: full, ariaSnapshot });
   } catch {
     // page.evaluate threw (target closed, page crashed, etc.)
     if (payload.type === "pick") {
-      sendMessage(ws, { type: "pick_result", element: null });
+      sendMessage(ws, { type: "pick_result", element: null, ariaSnapshot: null });
     } else {
       sendMessage(ws, { type: "highlight", bbox: null });
     }
@@ -680,6 +685,55 @@ function broadcastUrlChanged(sessionId: string, url: string): void {
       }
     }
   }
+}
+
+/**
+ * Resuelve el mejor selector disponible del elemento pickeado y captura
+ * el aria snapshot del locator. Se usa en el flujo de "agregar snapshot"
+ * (HU-G6 tipo 'snapshot') para que la UI pueda construir el paso
+ * `expect(locator).toMatchAriaSnapshot(yaml)` sin un segundo round-trip.
+ *
+ * Si el locator no se puede resolver (elemento oculto, frame detached,
+ * selector css fragil) devuelve null. La UI maneja null mostrando el
+ * modal de snapshot como disabled.
+ */
+async function captureAriaSnapshot(
+  entry: { page: import("playwright").Page },
+  full: import("@/lib/grabador/dom-utils").SerializedElementFull | null,
+): Promise<string | null> {
+  if (!full || !full.candidates || full.candidates.length === 0) return null;
+  // Probar candidatos en orden de prioridad hasta que uno resuelva
+  // (locator() strict mode falla si hay >1 match — usamos first()).
+  const priority = ["testid", "role", "id", "aria-label", "name", "text", "css"];
+  for (const strat of priority) {
+    const c = full.candidates.find((x) => x.strategy === strat);
+    if (!c) continue;
+    try {
+      let locator;
+      if (strat === "testid") {
+        locator = entry.page.locator(`[data-testid="${c.value.replace(/^\[data-testid="|"\]$/g, "")}"]`).first();
+      } else if (strat === "id") {
+        locator = entry.page.locator(c.value).first();
+      } else if (strat === "aria-label") {
+        locator = entry.page.locator(c.value).first();
+      } else if (strat === "name") {
+        locator = entry.page.locator(c.value).first();
+      } else if (strat === "text") {
+        locator = entry.page.getByText(c.value).first();
+      } else if (strat === "role") {
+        // role value viene como "button" (sin "role=") — usar getByRole
+        locator = entry.page.getByRole(c.value as Parameters<typeof entry.page.getByRole>[0]).first();
+      } else {
+        locator = entry.page.locator(c.value).first();
+      }
+      const snapshot = await locator.ariaSnapshot({ timeout: 1000 });
+      if (snapshot && snapshot.trim().length > 0) return snapshot;
+    } catch {
+      // try next strategy
+      continue;
+    }
+  }
+  return null;
 }
 
 /**

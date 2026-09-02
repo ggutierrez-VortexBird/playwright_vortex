@@ -289,6 +289,11 @@ export function serializarPaso(
           const n = Number.parseInt(expected, 10);
           const nSafe = Number.isFinite(n) && n >= 0 ? n : 1;
           return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveCount(${nSafe});`;
+        case "snapshot":
+          // HU-G6 snapshot: el `valor` ya viene siendo el YAML del aria tree
+          // (capturado por el worker en pick_result.ariaSnapshot). Lo
+          // emitimos como template literal de TS preservando saltos de linea.
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toMatchAriaSnapshot(\`${expected}\`);`;
         default:
           // Default to toBeVisible for unknown assertion kinds.
           return `${indent}await expect(page.${method}(\`${arg}\`${options})).toBeVisible();`;

@@ -25,11 +25,22 @@ export interface ScreencastCanvasProps {
   /** Deshabilita la captura de input (e.g. cuando el senal mode esta activo,
    *  los clicks se manejan en otra capa). */
   inputDisabled?: boolean;
+  /** Signal mode (HU-G5): cuando esta activo, mousemove→hover y click→pick
+   *  en vez del dispatch normal. Esto evita que el click se inyecte como
+   *  un click normal en el browser. */
+  signalActive?: boolean;
+  /** Callback para hover (signal mode). */
+  onHover?: (coords: { x: number; y: number }) => void;
+  /** Callback para pick (signal mode, en click). */
+  onPick?: (coords: { x: number; y: number }) => void;
 }
 
 export function ScreencastCanvas({
   onInputEvent,
   inputDisabled = false,
+  signalActive = false,
+  onHover,
+  onPick,
 }: ScreencastCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [frameData, setFrameData] = useState<string | null>(null);
@@ -147,6 +158,11 @@ export function ScreencastCanvas({
     canvasRef.current?.focus();
     const coords = eventToPageCoords(e.clientX, e.clientY);
     if (!coords) return; // click en letterbox — ignorar
+    // HU-G5: signal mode intercepta clicks para pick en vez de input dispatch.
+    if (signalActive) {
+      onPick?.(coords);
+      return;
+    }
     const button = e.button === 2 ? "right" : e.button === 1 ? "middle" : "left";
     pressedButtonsRef.current.add(e.button);
     sendInput({
@@ -163,6 +179,8 @@ export function ScreencastCanvas({
     e.preventDefault();
     const coords = eventToPageCoords(e.clientX, e.clientY);
     if (!coords) return;
+    // En signal mode no enviamos mouse_up (pick ya se envio en pointerDown).
+    if (signalActive) return;
     const button = e.button === 2 ? "right" : e.button === 1 ? "middle" : "left";
     pressedButtonsRef.current.delete(e.button);
     sendInput({
@@ -178,6 +196,11 @@ export function ScreencastCanvas({
     if (inputDisabled) return;
     const coords = eventToPageCoords(e.clientX, e.clientY);
     if (!coords) return;
+    // HU-G5: signal mode -> hover (no input dispatch).
+    if (signalActive) {
+      onHover?.(coords);
+      return;
+    }
     sendInput({ type: "mouse_move", x: coords.x, y: coords.y });
   }
 

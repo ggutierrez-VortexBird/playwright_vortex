@@ -36,6 +36,7 @@ const ASSERTIONS_VALIDAS = new Set([
   "texto_contiene",
   "valor_igual",
   "count",
+  "snapshot",
 ]);
 
 interface PostBody {
