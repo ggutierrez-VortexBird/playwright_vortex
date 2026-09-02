@@ -456,6 +456,44 @@ function computePopoverPosition(bbox: {
         setErrorMsg(data.message ?? `Error creando verificación (${res.status})`);
         return;
       }
+      // La API route no broadcastea paso_agregado por WS (corre en otro
+      // proceso). Para que el PasoPanel muestre el assert al instante
+      // durante la grabacion, dispatch local del window event que
+      // usePasosEnVivo escucha. Asi el paso aparece al costado derecho
+      // inmediatamente al confirmar el modal.
+      const data = (await res.json()) as {
+        paso?: {
+          id: string;
+          numero: number;
+          tipo: string;
+          descripcion: string;
+          valor: string | null;
+          esValorSensible: boolean;
+          assertionKind?: string | null;
+          createdAt?: string | Date;
+        };
+      };
+      if (data.paso) {
+        const p = data.paso;
+        window.dispatchEvent(
+          new CustomEvent("grabador-paso", {
+            detail: {
+              id: p.id,
+              numero: p.numero,
+              tipo: p.tipo,
+              descripcion: p.descripcion,
+              valor: p.valor,
+              esValorSensible: p.esValorSensible,
+              parametroNombre: null,
+              createdAt:
+                typeof p.createdAt === "string"
+                  ? p.createdAt
+                  : (p.createdAt as Date).toISOString(),
+              sesionId,
+            },
+          }),
+        );
+      }
       // Cerrar popover + modal.
       setShowVerificacionModal(false);
       setPickedElement(null);
