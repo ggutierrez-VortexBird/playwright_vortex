@@ -80,6 +80,14 @@ export async function GET(
       pasoEjecucionId: a.pasoEjecucionId,
       bytes: a.bytes,
       createdAt: a.createdAt,
-    }))
+    })),
+    // HU-G19 — acta ya generada (si existe)
+    acta: ejecucion.acta
+      ? {
+          id: ejecucion.acta.id,
+          consecutivo: ejecucion.acta.consecutivo,
+          rutaPdf: ejecucion.acta.rutaPdf,
+        }
+      : null,
   })
 }

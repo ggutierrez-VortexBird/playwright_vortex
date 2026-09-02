@@ -12,6 +12,7 @@ import { ReRunButton } from './re-run-button'
 import { OrigenChip } from './origen-chip'
 import { ReparadosCounter } from './reparados-counter'
 import { VideoChapterBar } from './video-chapter-bar'
+import { GenerarActaButton } from './generar-acta-button'
 
 interface Subaccion {
   id: string
@@ -79,6 +80,8 @@ interface Ejecucion {
   casoPrueba: CasoPrueba
   pasos: Paso[]
   artefactos: Artefacto[]
+  // HU-G19 — acta ya generada (si existe).
+  acta?: { id: string; consecutivo: string; rutaPdf: string } | null
 }
 
 interface Props {
@@ -157,6 +160,22 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         {/* HU-G15 — contador de pasos auto-reparados en ejecución */}
         <ReparadosCounter pasos={ejecucion.pasos} />
         <span className="spacer" />
+        {/* HU-G19 — generar/descargar acta de evidencia (solo en estados terminales) */}
+        {!isRunning && ejecucion.estado !== 'pendiente' && (
+          <GenerarActaButton
+            ejecucionId={ejecucion.id}
+            initialActa={
+              ejecucion.acta
+                ? {
+                    id: ejecucion.acta.id,
+                    consecutivo: ejecucion.acta.consecutivo,
+                    pdfPath: ejecucion.acta.rutaPdf,
+                    downloadUrl: `/api/actas/${ejecucion.acta.id}/download`,
+                  }
+                : null
+            }
+          />
+        )}
         {canReRun && (
           <ReRunButton casoPruebaId={ejecucion.casoPruebaId} />
         )}

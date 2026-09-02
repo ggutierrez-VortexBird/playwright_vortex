@@ -26,7 +26,9 @@ export async function getEjecucionConPasos(id: string) {
       },
       artefactos: {
         orderBy: { createdAt: 'asc' }
-      }
+      },
+      // HU-G19 — acta asociada (1-a-1 con Ejecucion)
+      acta: true,
     }
   })
 }
