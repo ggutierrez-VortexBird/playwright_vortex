@@ -420,65 +420,53 @@ async function handleInputDispatch(
   }
 
   try {
+    // Usamos las APIs de alto nivel de Playwright (page.mouse / page.keyboard)
+    // en lugar de CDP Input.dispatchMouseEvent directo. Internamente hacen
+    // exactamente lo mismo pero manejan mejor el estado (mouse position,
+    // modifier flags, focus tracking) — es lo que usa playwright codegen
+    // por debajo, asi que cualquier cosa que funcione ahi funciona aca.
     switch (msg.type) {
       case "mouse_move":
-        await entry.cdp.send("Input.dispatchMouseEvent", {
-          type: "mouseMoved",
-          x: msg.x,
-          y: msg.y,
-        });
+        await entry.page.mouse.move(msg.x, msg.y);
         break;
-      case "mouse_down":
-        await entry.cdp.send("Input.dispatchMouseEvent", {
-          type: "mousePressed",
-          x: msg.x,
-          y: msg.y,
+      case "mouse_down": {
+        // Antes de presionar, movemos el mouse a la posicion. Esto
+        // garantiza que el browser tenga la posicion correcta registrada
+        // (mouseMoved es prerequisito de mousePressed para algunos
+        // elementos como sliders/drag).
+        await entry.page.mouse.move(msg.x, msg.y);
+        await entry.page.mouse.down({
           button: msg.button ?? "left",
           clickCount: msg.clickCount ?? 1,
         });
-        console.log(`[recorder-worker] input mouse_down (${msg.x},${msg.y}) button=${msg.button ?? "left"}`);
+        console.log(
+          `[recorder-worker] input mouse_down (${msg.x},${msg.y}) button=${msg.button ?? "left"}`,
+        );
         break;
+      }
       case "mouse_up":
-        await entry.cdp.send("Input.dispatchMouseEvent", {
-          type: "mouseReleased",
-          x: msg.x,
-          y: msg.y,
+        await entry.page.mouse.up({
           button: msg.button ?? "left",
           clickCount: msg.clickCount ?? 1,
         });
-        console.log(`[recorder-worker] input mouse_up (${msg.x},${msg.y}) button=${msg.button ?? "left"}`);
+        console.log(
+          `[recorder-worker] input mouse_up (${msg.x},${msg.y}) button=${msg.button ?? "left"}`,
+        );
         break;
       case "wheel":
-        await entry.cdp.send("Input.dispatchMouseEvent", {
-          type: "mouseWheel",
-          x: msg.x,
-          y: msg.y,
-          deltaX: msg.deltaX,
-          deltaY: msg.deltaY,
-        });
+        await entry.page.mouse.wheel(msg.deltaX, msg.deltaY);
         break;
       case "key_down":
-        await entry.cdp.send("Input.dispatchKeyEvent", {
-          type: "keyDown",
-          key: msg.key,
-          ...(msg.code ? { code: msg.code } : {}),
-          ...(msg.modifiers !== undefined ? { modifiers: msg.modifiers } : {}),
-        });
+        await entry.page.keyboard.down(msg.key);
         break;
       case "key_up":
-        await entry.cdp.send("Input.dispatchKeyEvent", {
-          type: "keyUp",
-          key: msg.key,
-          ...(msg.code ? { code: msg.code } : {}),
-          ...(msg.modifiers !== undefined ? { modifiers: msg.modifiers } : {}),
-        });
+        await entry.page.keyboard.up(msg.key);
         break;
       case "type":
-        // Input.insertText dispara eventos 'input' nativos en el elemento
-        // enfocado. A diferencia de key_down + char, esto funciona con
-        // campos que no responden a KeyDown pero sí a paste/input.
-        await entry.cdp.send("Input.insertText", { text: msg.text });
-        console.log(`[recorder-worker] input insertText "${msg.text}"`);
+        // page.keyboard.type dispara keydown + keypress + input event por
+        // cada char. Es lo que usa playwright codegen para llenar inputs.
+        await entry.page.keyboard.type(msg.text);
+        console.log(`[recorder-worker] input type "${msg.text}"`);
         break;
     }
   } catch (err) {

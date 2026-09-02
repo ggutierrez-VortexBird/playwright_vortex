@@ -73,29 +73,58 @@ export function ScreencastCanvas({
 
   /**
    * Convierte coordenadas del click (CSS pixels del canvas renderizado)
-   * a coordenadas internas de la pagina (que es lo que CDP espera).
+   * a coordenadas internas de la pagina (que es lo que CDP/Playwright
+   * esperan — viewport 1280x720).
    *
-   * El canvas renderiza la pagina a su tamano intrinseco (1280x720 por
-   * defecto del browser); el CSS scalea visualmente via object-contain.
-   * El factor de escala es canvasIntrinsicW / canvasRenderedW.
+   * BUG FIX: el CSS `object-contain` deja bandas vacias (letterbox)
+   * arriba/abajo o a los lados si el aspect ratio del container no
+   * matchea el del contenido. La version anterior no las tenia en
+   * cuenta, asi que clicks en el letterbox se mapeaban a coordenadas
+   * fuera del viewport real y el browser los descartaba.
+   *
+   * Calculamos el bounding box VISUAL del contenido dentro del canvas
+   * element y mapeamos solo si el click cae dentro de esa zona.
    */
   const eventToPageCoords = useCallback(
-    (clientX: number, clientY: number): { x: number; y: number } => {
+    (clientX: number, clientY: number): { x: number; y: number } | null => {
       const canvas = canvasRef.current;
-      if (!canvas) return { x: clientX, y: clientY };
+      if (!canvas) return null;
       const rect = canvas.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
-        return { x: clientX, y: clientY };
+      if (rect.width === 0 || rect.height === 0) return null;
+      if (canvas.width === 0 || canvas.height === 0) return null;
+
+      // Calculamos el area visual real del contenido dentro del canvas
+      // element (object-contain centra y deja bandas si hay mismatch).
+      const containerAspect = rect.width / rect.height;
+      const contentAspect = canvas.width / canvas.height;
+
+      let visualW: number;
+      let visualH: number;
+      let offsetX: number;
+      let offsetY: number;
+      if (contentAspect > containerAspect) {
+        // contenido mas ancho → bandas arriba/abajo
+        visualW = rect.width;
+        visualH = rect.width / contentAspect;
+        offsetX = 0;
+        offsetY = (rect.height - visualH) / 2;
+      } else {
+        // contenido mas alto → bandas a los lados
+        visualH = rect.height;
+        visualW = rect.height * contentAspect;
+        offsetX = (rect.width - visualW) / 2;
+        offsetY = 0;
       }
-      // CSS pixel offset relative to canvas.
-      const cssX = clientX - rect.left;
-      const cssY = clientY - rect.top;
-      // Scale to internal canvas coordinates (= page viewport coords).
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+
+      const cssX = clientX - rect.left - offsetX;
+      const cssY = clientY - rect.top - offsetY;
+      // Si el click cae en el letterbox, no hay nada debajo.
+      if (cssX < 0 || cssY < 0 || cssX > visualW || cssY > visualH) {
+        return null;
+      }
       return {
-        x: Math.round(cssX * scaleX),
-        y: Math.round(cssY * scaleY),
+        x: Math.round((cssX / visualW) * canvas.width),
+        y: Math.round((cssY / visualH) * canvas.height),
       };
     },
     [],
@@ -116,48 +145,51 @@ export function ScreencastCanvas({
     if (inputDisabled) return;
     e.preventDefault();
     canvasRef.current?.focus();
-    const { x, y } = eventToPageCoords(e.clientX, e.clientY);
+    const coords = eventToPageCoords(e.clientX, e.clientY);
+    if (!coords) return; // click en letterbox — ignorar
     const button = e.button === 2 ? "right" : e.button === 1 ? "middle" : "left";
     pressedButtonsRef.current.add(e.button);
     sendInput({
       type: "mouse_down",
-      x,
-      y,
+      x: coords.x,
+      y: coords.y,
       button,
-      clickCount: e.detail,
+      clickCount: 1,
     });
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
     if (inputDisabled) return;
     e.preventDefault();
-    const { x, y } = eventToPageCoords(e.clientX, e.clientY);
+    const coords = eventToPageCoords(e.clientX, e.clientY);
+    if (!coords) return;
     const button = e.button === 2 ? "right" : e.button === 1 ? "middle" : "left";
     pressedButtonsRef.current.delete(e.button);
     sendInput({
       type: "mouse_up",
-      x,
-      y,
+      x: coords.x,
+      y: coords.y,
       button,
-      clickCount: e.detail,
+      clickCount: 1,
     });
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (inputDisabled) return;
-    // Throttle mouse_move (CDP doesn't need every pixel)
-    const { x, y } = eventToPageCoords(e.clientX, e.clientY);
-    sendInput({ type: "mouse_move", x, y });
+    const coords = eventToPageCoords(e.clientX, e.clientY);
+    if (!coords) return;
+    sendInput({ type: "mouse_move", x: coords.x, y: coords.y });
   }
 
   function handleWheel(e: React.WheelEvent<HTMLCanvasElement>) {
     if (inputDisabled) return;
     e.preventDefault();
-    const { x, y } = eventToPageCoords(e.clientX, e.clientY);
+    const coords = eventToPageCoords(e.clientX, e.clientY);
+    if (!coords) return;
     sendInput({
       type: "wheel",
-      x,
-      y,
+      x: coords.x,
+      y: coords.y,
       deltaX: e.deltaX,
       deltaY: e.deltaY,
     });
@@ -169,18 +201,26 @@ export function ScreencastCanvas({
     // el usuario escribe en otros inputs del dashboard).
     if (e.target !== canvasRef.current) return;
     e.preventDefault();
-    const modifiers = computeModifiers(e);
-    sendInput({
-      type: "key_down",
-      key: e.key,
-      code: e.code,
-      modifiers,
-    });
-    // Para caracteres imprimibles, dispatch también type para que llene
-    // inputs de una sola pasada (Input.insertText es más robusto que
-    // simular keypress por char).
-    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+
+    // Para caracteres imprimibles (letras, numeros, simbolos sin
+    // modificadores), usamos `type` que internamente dispara
+    // keydown + keypress + input en un solo mensaje. NO mandamos
+    // tambien key_down porque duplicaria el evento en el browser.
+    const printable =
+      e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+    if (printable) {
       sendInput({ type: "type", text: e.key });
+    } else {
+      // Teclas especiales (Enter, Escape, Tab, Arrow keys, F1-F12)
+      // van como key_down para que el worker haga page.keyboard.down(key).
+      const modifiers = computeModifiers(e);
+      sendInput({
+        type: "key_down",
+        key: e.key,
+        code: e.code,
+        modifiers,
+      });
     }
   }
 
