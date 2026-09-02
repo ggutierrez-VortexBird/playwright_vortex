@@ -7,14 +7,19 @@
  * parámetros, retorna el string TypeScript listo para escribir a disco.
  *
  * Vocabulary (debe coincidir con el reporter):
- *   navegar  → page.goto(url)
- *   clic     → page.<strategy>(selector).click()
- *   escribir → page.<strategy>(selector).fill(valor)
- *   esperar  → page.waitForTimeout(ms)
+ *   navegar   → page.goto(url)
+ *   clic      → page.<strategy>(selector).click()
+ *   escribir  → page.<strategy>(selector).fill(valor)
+ *   esperar   → page.waitForTimeout(ms)
  *   verificar → expect(page.<strategy>(selector)).<assertion>(esperado)
  *
- * Selector priority: testid > id > aria-label > name > text > css
- * (delegamos a `pickBestSelector` de dom-utils).
+ * HU-G14 — Selector priority (HU-G14):
+ *   testid > role > id > aria-label > name > text > css
+ *   Implementada en `pickBestSelector` de lib/grabador/dom-utils.ts.
+ *   El serializador consume `selectoresRespaldo` del paso (lista de
+ *   `{ strategy, value }` ordenada por preferencia) y `pickBestSelector`
+ *   resuelve el primero que aparezca en la priority list. Si ninguno
+ *   matchea, emitimos un comentario "// sin selector — revisar".
  *
  * Param substitution:
  *   - Si un paso tiene `valor` que matchea el nombre de un parametro
@@ -62,6 +67,11 @@ const TYPE_STRATEGY_FALLBACK = "locator";
  * Convierte `selectoresRespaldo` (que es lo persistido por el init-script
  * como JSON) a la forma `SerializedElementFull.candidates` que `pickBestSelector`
  * espera. Si no hay selectores de respaldo, intenta derivarlos de selectorPrincipal.
+ *
+ * HU-G14: el orden de los candidates en el array afecta el resultado de
+ * `pickBestSelector` solo cuando hay empate de estrategia; para
+ * prioridades distintas, gana la estrategia más prioritaria sin importar
+ * la posición.
  */
 function candidatesFromPaso(paso: PasoParaSerializar): Array<{ strategy: string; value: string }> {
   const respaldo = paso.selectoresRespaldo;
@@ -81,6 +91,7 @@ function candidatesFromPaso(paso: PasoParaSerializar): Array<{ strategy: string;
   ) {
     const sp = paso.selectorPrincipal as {
       tag?: string;
+      role?: string;
       testId?: string;
       aria?: string;
       text?: string;
@@ -91,6 +102,9 @@ function candidatesFromPaso(paso: PasoParaSerializar): Array<{ strategy: string;
         strategy: "testid",
         value: `[data-testid="${sp.testId}"]`,
       });
+    }
+    if (sp.role) {
+      candidates.push({ strategy: "role", value: sp.role });
     }
     if (sp.aria) {
       candidates.push({
@@ -117,6 +131,8 @@ function playwrightMethodFor(strategy: string): string {
   switch (strategy) {
     case "testid":
       return "getByTestId";
+    case "role":
+      return "getByRole";
     case "id":
       return "locator";
     case "aria-label":
@@ -134,7 +150,7 @@ function playwrightMethodFor(strategy: string): string {
 /**
  * Devuelve el argumento al locator method. Para testid/aria/name/id el
  * arg es el valor del selector; para text es el texto; para css es
- * el selector completo.
+ * el selector completo; para role devuelve `value` (que es el role, ej "button").
  */
 function playwrightArgFor(strategy: string, value: string): string {
   switch (strategy) {
@@ -143,6 +159,28 @@ function playwrightArgFor(strategy: string, value: string): string {
     default:
       return value;
   }
+}
+
+/**
+ * Para strategies que necesitan opciones (ej. role → { name: 'Ingresar' }),
+ * devuelve el sufijo del locator call. Cadena vacía si no aplica.
+ *
+ * HU-G14: role sin `name` es válido pero poco útil; si el paso tiene
+ * `valor` o `descripcion` con texto legible, lo agregamos como `name`.
+ */
+function playwrightRoleOptionsFor(
+  paso: { tipo: string; valor: string | null; descripcion: string },
+  roleValue: string,
+): string {
+  // Solo aplicamos name cuando NO es un navigate puro.
+  if (paso.tipo === "navegar") return "";
+  // Si hay texto en el valor (no password), lo usamos como name.
+  const textCandidate = paso.valor?.trim() || paso.descripcion?.trim() || "";
+  if (!textCandidate) return "";
+  // Heurística simple: si el texto parece ser un role-related name
+  // (contiene una palabra usada como label humano), úsalo.
+  // En la mayoría de los casos simplemente lo pasamos.
+  return `, { name: \`${jsStringEscape(textCandidate.slice(0, 50))}\` }`;
 }
 
 /** Template literal-safe: escapa backticks y ${ en strings. */
@@ -211,7 +249,8 @@ export function serializarPaso(
       const method = playwrightMethodFor(best.strategy);
       const arg = playwrightArgFor(best.strategy, best.value);
       const argJs = jsStringEscape(arg);
-      return `${indent}await page.${method}(\`${argJs}\`).click();`;
+      const options = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      return `${indent}await page.${method}(\`${argJs}\`${options}).click();`;
     }
     case "escribir": {
       if (!best) return `${indent}// Paso ${paso.numero}: sin selector — revisar manualmente`;
@@ -220,7 +259,8 @@ export function serializarPaso(
       const valor = paso.valor ?? "";
       const valorRef = findParamRef(valor, parametros);
       const finalValor = valorRef ? inlineParamRef(valor) : jsStringEscape(valor);
-      return `${indent}await page.${method}(\`${arg}\`).fill(\`${finalValor}\`);`;
+      const options = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      return `${indent}await page.${method}(\`${arg}\`${options}).fill(\`${finalValor}\`);`;
     }
     case "esperar": {
       const ms = Number.parseInt(paso.valor ?? "1000", 10);
@@ -231,33 +271,35 @@ export function serializarPaso(
       if (!best) return `${indent}// Paso ${paso.numero}: verificación sin selector`;
       const method = playwrightMethodFor(best.strategy);
       const arg = jsStringEscape(playwrightArgFor(best.strategy, best.value));
+      const options = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
       const expected = paso.valor ?? "";
       const expectedRef = findParamRef(expected, parametros);
       const finalExpected = expectedRef ? inlineParamRef(expected) : jsStringEscape(expected);
 
       switch (paso.assertionKind) {
         case "visible":
-          return `${indent}await expect(page.${method}(\`${arg}\`)).toBeVisible();`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toBeVisible();`;
         case "texto_igual":
-          return `${indent}await expect(page.${method}(\`${arg}\`)).toHaveText(\`${finalExpected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveText(\`${finalExpected}\`);`;
         case "texto_contiene":
-          return `${indent}await expect(page.${method}(\`${arg}\`)).toContainText(\`${finalExpected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toContainText(\`${finalExpected}\`);`;
         case "valor_igual":
-          return `${indent}await expect(page.${method}(\`${arg}\`)).toHaveValue(\`${finalExpected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveValue(\`${finalExpected}\`);`;
         case "count":
           const n = Number.parseInt(expected, 10);
           const nSafe = Number.isFinite(n) && n >= 0 ? n : 1;
-          return `${indent}await expect(page.${method}(\`${arg}\`)).toHaveCount(${nSafe});`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveCount(${nSafe});`;
         default:
           // Default to toBeVisible for unknown assertion kinds.
-          return `${indent}await expect(page.${method}(\`${arg}\`)).toBeVisible();`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toBeVisible();`;
       }
     }
     case "seleccionar":
       if (!best) return `${indent}// Paso ${paso.numero}: select sin selector`;
       const method2 = playwrightMethodFor(best.strategy);
       const arg2 = jsStringEscape(playwrightArgFor(best.strategy, best.value));
-      return `${indent}await page.${method2}(\`${arg2}\`).selectOption(/* value */);`;
+      const options2 = best.strategy === "role" ? playwrightRoleOptionsFor(paso, best.value) : "";
+      return `${indent}await page.${method2}(\`${arg2}\`${options2}).selectOption(/* value */);`;
     case "generico":
     default:
       return null;

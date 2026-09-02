@@ -127,6 +127,12 @@ export function serializeElement(
       value: `[data-testid="${escapeSelectorText(testId)}"]`,
     });
   }
+  // HU-G14: priorizar role explícito sobre id. Sólo si el role difiere
+  // del tag (es decir, es un role semántico puesto por el dev).
+  const explicitRole = el.getAttribute?.("role");
+  if (explicitRole && explicitRole !== tag) {
+    candidates.push({ strategy: "role", value: explicitRole });
+  }
   if (el.id) {
     candidates.push({ strategy: "id", value: `#${el.id}` });
   }
@@ -199,15 +205,19 @@ export function toSelectorPrincipal(
 }
 
 /**
- * Devuelve el mejor selector disponible siguiendo la prioridad:
- * testid > id > aria-label > name > text > css.
+ * HU-G14: devuelve el mejor selector disponible siguiendo la prioridad:
+ *   testid > role > id > aria-label > name > text > css.
+ *
+ * "testid" gana porque es el contrato de testing más estable.
+ * "role" es el segundo más estable cuando el dev puso un role semántico.
+ * "id" es estable mientras nadie lo renombre; los demás son frágiles.
  *
  * Usado por el codegen (HU-G11) para emitir el `page.<strategy>(...)` call.
  */
 export function pickBestSelector(
   candidates: Array<{ strategy: string; value: string }>,
 ): { strategy: string; value: string } | null {
-  const priority = ["testid", "id", "aria-label", "name", "text", "css"];
+  const priority = ["testid", "role", "id", "aria-label", "name", "text", "css"];
   for (const strat of priority) {
     const found = candidates.find((c) => c.strategy === strat);
     if (found) return found;
