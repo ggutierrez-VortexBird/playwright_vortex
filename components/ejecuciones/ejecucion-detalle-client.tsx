@@ -9,6 +9,7 @@ import { EjecucionStatus } from './ejecucion-status'
 import { EjecucionSummary } from './ejecucion-summary'
 import { DetenerButton } from './detener-button'
 import { ReRunButton } from './re-run-button'
+import { OrigenChip } from './origen-chip'
 
 interface Subaccion {
   id: string
@@ -42,6 +43,8 @@ interface Paso {
 interface CasoPrueba {
   nombre: string
   codigo: string
+  // HU-G17: origen del caso (subirScript | grabador | mixto)
+  origen?: string | null
 }
 
 interface Artefacto {
@@ -136,6 +139,8 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
               })
             : '—'}
         </span>
+        {/* HU-G17: chip de origen (grabador vs. script) */}
+        {caso.origen && <OrigenChip origen={caso.origen} />}
         <span className="spacer" />
         {canReRun && (
           <ReRunButton casoPruebaId={ejecucion.casoPruebaId} />

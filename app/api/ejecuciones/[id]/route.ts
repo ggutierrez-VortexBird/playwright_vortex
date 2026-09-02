@@ -32,6 +32,7 @@ export async function GET(
     casoPrueba: {
       nombre: ejecucion.casoPrueba.nombre,
       codigo: ejecucion.casoPrueba.codigo,
+      origen: ejecucion.casoPrueba.origen, // HU-G17: exponer origen para chip
     },
     pasos: ejecucion.pasos.map(p => ({
       id: p.id,

@@ -33,6 +33,9 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
         casoPrueba: {
           nombre: ejecucion.casoPrueba.nombre,
           codigo: ejecucion.casoPrueba.codigo,
+          // HU-G17: exponer origen para que el chip pueda distinguir
+          // casos del grabador vs. casos subidos como script.
+          origen: ejecucion.casoPrueba.origen,
         },
         pasos: ejecucion.pasos.map(p => ({
           id: p.id,

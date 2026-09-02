@@ -94,4 +94,37 @@ describe("EjecucionDetalleClient", () => {
     expect(chapters[1]).toHaveStyle({ width: "50%" });
     expect(chapters[2]).toHaveStyle({ width: "25%" });
   });
+
+  it("HU-G17: muestra chip 'Origen: Grabador' cuando casoPrueba.origen='grabador'", () => {
+    const ejecucion = mockEjecucion({
+      casoPrueba: { nombre: "Caso Grabado", codigo: "CP-G-01", origen: "grabador" },
+    });
+    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+
+    const chip = screen.getByTestId("origen-chip");
+    expect(chip).toBeInTheDocument();
+    expect(chip.getAttribute("data-origen")).toBe("grabador");
+    expect(chip).toHaveTextContent("Origen: Grabador");
+  });
+
+  it("HU-G17: muestra chip 'Origen: Subir Script' cuando casoPrueba.origen='subirScript'", () => {
+    const ejecucion = mockEjecucion({
+      casoPrueba: { nombre: "Caso Subido", codigo: "CP-S-01", origen: "subirScript" },
+    });
+    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+
+    const chip = screen.getByTestId("origen-chip");
+    expect(chip).toHaveTextContent("Origen: Subir Script");
+  });
+
+  it("HU-G17: NO muestra chip si casoPrueba.origen no está set (backwards compat)", () => {
+    // Cuando el origen no viene (casos viejos antes de HU-G17), el chip
+    // no debe renderizar para no romper el layout.
+    const ejecucion = mockEjecucion({
+      casoPrueba: { nombre: "Caso Legacy", codigo: "CP-L-01" },
+    });
+    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+
+    expect(screen.queryByTestId("origen-chip")).not.toBeInTheDocument();
+  });
 });
