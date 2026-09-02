@@ -31,8 +31,6 @@ export interface RecToolbarProps {
   /** Pause on → events stopped being recorded. */
   paused: boolean;
   onToggleSignal: () => void;
-  onActionVerificar: ToolbarVerificarAction;
-  onActionParametro: ToolbarParametroAction;
   onTogglePause: () => void;
 }
 
@@ -58,26 +56,20 @@ export function RecToolbar({
   signalActive,
   paused,
   onToggleSignal,
-  onActionVerificar,
-  onActionParametro,
   onTogglePause,
 }: RecToolbarProps) {
   const [toast, setToast] = useToast();
-
-  function guardedShortcut(action: () => void, label: string) {
-    if (!signalActive) {
-      setToast("Señalá un elemento primero para usar esta acción");
-      return;
-    }
-    void action();
-  }
 
   return (
     <div
       className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-m3-surface-container-lowest border border-m3-outline-variant shadow-lg rounded-xl px-2 py-2 flex items-center gap-1 z-20"
       data-testid="rec-toolbar"
     >
-      {/* Primary action — Señalar elemento toggle */}
+      {/* Primary action — Señalar elemento toggle.
+          El toolbar SOLO tiene este botón y Pausar. Las acciones
+          Verificar/Snapshot/Parámetro viven en el popover que aparece
+          sobre el elemento pickeado en el canvas. Asi el toolbar
+          matchea lo que ofrece playwright codegen: pick locator + pause. */}
       <button
         type="button"
         disabled={disabled}
@@ -105,27 +97,6 @@ export function RecToolbar({
         aria-hidden="true"
       />
 
-      {/* Icon-only buttons — Verificar / Parámetro / Pausar */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => guardedShortcut(onActionVerificar, "Verificar")}
-        title="Agregar verificación — primero señalá un elemento"
-        data-testid="tool-verificar"
-        className="flex items-center justify-center text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary w-10 h-10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <span className="material-symbols-outlined text-[20px]">fact_check</span>
-      </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => guardedShortcut(onActionParametro, "Parámetro")}
-        title="Convertir en parámetro — primero señalá un elemento"
-        data-testid="tool-parametro"
-        className="flex items-center justify-center text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary w-10 h-10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <span className="material-symbols-outlined text-[20px]">data_object</span>
-      </button>
       <button
         type="button"
         disabled={disabled}

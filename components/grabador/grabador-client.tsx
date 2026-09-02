@@ -461,17 +461,21 @@ export function GrabadorClient({
               )}
 
               {/* HU-G5: popover con opciones para el elemento pickeado.
-                  Posicionado cerca del centro del bbox del elemento. */}
+                  Posicionado cerca del centro del bbox del elemento.
+                  Las 4 acciones matchean los tools de Playwright:
+                  pick locator, assert visibility, assert text, assert
+                  snapshot. Convertir en parametro es feature nuestra
+                  (HU-G7 de ACTA, NO de playwright) — separado abajo. */}
               {signalActive && pickedElement && (
                 <div
                   data-testid="signal-popover"
-                  className="absolute z-30 bg-m3-surface-container-highest border border-m3-outline-variant rounded-lg shadow-lg p-2 flex flex-col gap-1 min-w-[180px]"
+                  className="absolute z-30 bg-m3-surface-container-highest border border-m3-outline-variant rounded-lg shadow-lg p-2 flex flex-col gap-1 min-w-[260px]"
                   style={{
                     left: `${Math.min(
                       ((pickedElement.element.bbox?.x ?? 0) +
                         (pickedElement.element.bbox?.width ?? 0) / 2) /
                         1280,
-                      0.85,
+                      0.75,
                     ) * 100}%`,
                     top: `${Math.min(
                       ((pickedElement.element.bbox?.y ?? 0) +
@@ -481,24 +485,60 @@ export function GrabadorClient({
                     ) * 100}%`,
                   }}
                 >
-                  <div className="font-label text-label-sm text-m3-on-surface-variant px-2 py-1 truncate max-w-[260px]">
+                  <div className="font-label text-label-sm text-m3-on-surface-variant px-2 py-1 truncate max-w-[300px]">
                     «{pickedElement.element.text || pickedElement.element.aria || pickedElement.element.tag}»
                   </div>
+                  <div className="border-t border-m3-outline-variant/50 my-1" />
+                  <div className="font-label text-[10px] uppercase tracking-wider text-m3-on-surface-variant/70 px-2 py-0.5">
+                    Acciones (como Playwright)
+                  </div>
+
+                  {/* 1. Pick locator — volver a pickear */}
                   <button
                     type="button"
-                    data-testid="popover-action-verify"
+                    data-testid="popover-action-pick"
+                    onClick={() => {
+                      setPickedElement(null);
+                      setHighlightBbox(null);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">touch_app</span>
+                    Pick locator (cambiar selección)
+                  </button>
+
+                  {/* 2. Assert visibility */}
+                  <button
+                    type="button"
+                    data-testid="popover-action-assert-visible"
                     onClick={() => {
                       setDefaultAssertion("visible");
                       setShowVerificacionModal(true);
                     }}
                     className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
                   >
-                    <span className="material-symbols-outlined text-[16px]">fact_check</span>
-                    Agregar verificación
+                    <span className="material-symbols-outlined text-[16px]">visibility</span>
+                    Assert visibility
                   </button>
+
+                  {/* 3. Assert text */}
                   <button
                     type="button"
-                    data-testid="popover-action-snapshot"
+                    data-testid="popover-action-assert-text"
+                    onClick={() => {
+                      setDefaultAssertion("texto_igual");
+                      setShowVerificacionModal(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">title</span>
+                    Assert text
+                  </button>
+
+                  {/* 4. Assert snapshot */}
+                  <button
+                    type="button"
+                    data-testid="popover-action-assert-snapshot"
                     onClick={() => {
                       if (!pickedElement.ariaSnapshot) {
                         setErrorMsg(
@@ -513,8 +553,18 @@ export function GrabadorClient({
                     className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-                    Snapshot (a11y)
+                    Assert snapshot (a11y)
                   </button>
+
+                  {/* Separador — feature nuestra de ACTA */}
+                  <div className="border-t border-m3-outline-variant/50 my-1" />
+                  <div className="font-label text-[10px] uppercase tracking-wider text-m3-on-surface-variant/70 px-2 py-0.5">
+                    ACTA — específico
+                  </div>
+
+                  {/* Convertir en parámetro — feature nuestra HU-G7.
+                      Reemplaza el valor del paso por {{nombre_param}}.
+                      NO existe en playwright codegen. */}
                   <button
                     type="button"
                     data-testid="popover-action-param"
@@ -522,25 +572,13 @@ export function GrabadorClient({
                       setDefaultAssertion("visible");
                       setShowVerificacionModal(true);
                       setErrorMsg(
-                        "Conversión a parámetro usa el modal genérico (TODO: modal propio).",
+                        "Convertir en parámetro: pendiente UI. Sustituye el valor del paso por {{nombre}} para data-driven testing.",
                       );
                     }}
                     className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface font-body text-body-sm text-left"
                   >
                     <span className="material-symbols-outlined text-[16px]">data_object</span>
                     Convertir en parámetro
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="popover-action-cancel"
-                    onClick={() => {
-                      setPickedElement(null);
-                      setHighlightBbox(null);
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-m3-surface-container text-m3-on-surface-variant font-body text-body-sm text-left"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
-                    Cancelar
                   </button>
                 </div>
               )}
@@ -551,8 +589,6 @@ export function GrabadorClient({
               signalActive={signalActive}
               paused={paused}
               onToggleSignal={handleToggleSignal}
-              onActionVerificar={handleActionVerificar}
-              onActionParametro={handleActionParametro}
               onTogglePause={handleTogglePause}
             />
           </div>
