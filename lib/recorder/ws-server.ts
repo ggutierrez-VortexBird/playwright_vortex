@@ -520,7 +520,7 @@ export function markBrowserReady(sessionId: string, screencastStarted: Set<strin
  *
  * Fire-and-forget: si la DB falla seguimos con la navegacion.
  */
-async function recordNavigationStep(
+export async function recordNavigationStep(
   sessionId: string,
   url: string,
   origen: "grabado" | "manual" = "grabado",

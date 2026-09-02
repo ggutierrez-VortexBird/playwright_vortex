@@ -27,6 +27,7 @@ import {
   broadcastFrame,
   handleWsConnection,
   markBrowserReady,
+  recordNavigationStep,
   setupNavigationTracking,
 } from "../lib/recorder/ws-server";
 import { startScreencast } from "../lib/recorder/screencast";
@@ -183,6 +184,20 @@ async function main(): Promise<void> {
       // Navigation tracking: emite url_changed cuando el browser navega
       // (click en link, history, hash, navigate manual desde URL bar).
       setupNavigationTracking(sessionId, _cdp);
+
+      // FIX bug critico: el page.goto() en launch-session.ts ocurre ANTES
+      // de que setupNavigationTracking enganche el listener, asi que la
+      // navegacion inicial NO se registravia Page.frameNavigated. Sin
+      // ese paso en la DB, el script .spec.ts generado empieza con
+      // cualquier auto-wait pero SIN page.goto(urlInicial) — Playwright
+      // arranca en about:blank, intenta click en [name="username"] (o el
+      // selector que sea) y timeout 180s porque la pagina no cargo.
+      //
+      // Registramos la navegacion inicial manualmente aca para que el
+      // script siempre arranque con un page.goto a la URL del usuario.
+      const initialUrl = page.url();
+      console.log(`[recorder-worker] registrando navegacion inicial para ${sessionId}: ${initialUrl}`);
+      void recordNavigationStep(sessionId, initialUrl, "grabado");
 
       // Iniciar screencast y broadcast frames a clientes WS
       console.log(`[recorder-worker] iniciando screencast para ${sessionId}`);
