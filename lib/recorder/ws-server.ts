@@ -317,10 +317,20 @@ export async function handleWsConnection(
         sendMessage(ws, { type: "sesion_reanudada" });
         break;
       case "stop":
-        // W5 — user-initiated stop persists estado='detenida' + endedAt.
-        // Fire-and-forget: failure to update DB does NOT prevent the WS
-        // from closing gracefully. The session would otherwise stay
-        // 'activa' until the next orphan cleanup at worker restart.
+        // W5 + HU-GR-2 — user-initiated stop persists estado='detenida'
+        // + endedAt y cierra el WS, pero NO cierra el BrowserContext.
+        // El entry queda en el registry con el contexto vivo, de modo
+        // que un POST /reanudar posterior reconecta al mismo browser
+        // (mismo URL, mismo cookies, mismo estado de página) en lugar
+        // de relanzar Chromium desde la URL inicial.
+        //
+        // El contexto SOLO se cierra en:
+        //   - heartbeat timeout (HU-G22 / C2) → onHeartbeatExpire
+        //   - estado='descartada' → el próximo cleanupOrphans / DELETE en API
+        //   - shutdown del worker (SIGTERM/SIGINT)
+        //
+        // Si la DB update falla seguimos cerrando el WS (fire-and-forget);
+        // la sesión quedaría 'activa' hasta el próximo cleanupOrphans.
         prisma.sesionGrabacion
           .update({
             where: { id: sessionId },

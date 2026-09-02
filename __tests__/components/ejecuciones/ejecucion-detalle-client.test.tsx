@@ -26,8 +26,8 @@ function mockEjecucion(overrides: Record<string, unknown> = {}) {
     casoPruebaId: "caso-1",
     casoPrueba: { nombre: "Login test", codigo: "CP-01" },
     pasos: [
-      { id: "paso-1", numero: 1, descripcion: "Navegar", estado: "paso", duracionMs: 1000, selfHealed: false, errorMsg: null, resultadoEsperado: null, resultadoObtenido: null, errorCount: 0, logs: null, createdAt: "2026-08-12T10:00:00.000Z", subacciones: [] },
-      { id: "paso-2", numero: 2, descripcion: "Click", estado: "paso", duracionMs: 2000, selfHealed: false, errorMsg: null, resultadoEsperado: null, resultadoObtenido: null, errorCount: 0, logs: null, createdAt: "2026-08-12T10:00:01.000Z", subacciones: [] },
+      { id: "paso-1", numero: 1, descripcion: "Navegar", estado: "paso", duracionMs: 1000, selfHealed: false, errorMsg: null, resultadoEsperado: null, resultadoObtenido: null, errorCount: 0, logs: null, createdAt: "2026-08-12T10:00:00.000Z", videoInicioMs: null, videoFinMs: null, subacciones: [] },
+      { id: "paso-2", numero: 2, descripcion: "Click", estado: "paso", duracionMs: 2000, selfHealed: false, errorMsg: null, resultadoEsperado: null, resultadoObtenido: null, errorCount: 0, logs: null, createdAt: "2026-08-12T10:00:01.000Z", videoInicioMs: null, videoFinMs: null, subacciones: [] },
     ],
     artefactos: [] as any[],
     ...overrides,
@@ -129,7 +129,7 @@ describe("EjecucionDetalleClient", () => {
   });
 
   describe("HU-G18 — video chapter bar", () => {
-    function mockEjecWithChapters(over: Record<string, unknown> = {}) {
+    function mockEjecWithChapters(): ReturnType<typeof mockEjecucion> {
       return mockEjecucion({
         estado: "paso",
         pasos: [
@@ -171,7 +171,6 @@ describe("EjecucionDetalleClient", () => {
         artefactos: [
           { id: "art-1", tipo: "video", nombre: "video.webm", pasoEjecucionId: null, bytes: 1024, createdAt: "2026-08-12T10:01:00.000Z" },
         ],
-        ...over,
       });
     }
 
@@ -198,7 +197,8 @@ describe("EjecucionDetalleClient", () => {
     });
 
     it("marca como 'done' los capítulos con estado fallo", () => {
-      const ejecucion = mockEjecWithChapters({
+      const ejecucion = mockEjecucion({
+        estado: "paso",
         pasos: [
           {
             id: "paso-1",
@@ -217,6 +217,9 @@ describe("EjecucionDetalleClient", () => {
             videoFinMs: 1000,
             subacciones: [],
           },
+        ],
+        artefactos: [
+          { id: "art-1", tipo: "video", nombre: "video.webm", pasoEjecucionId: null, bytes: 1024, createdAt: "2026-08-12T10:01:00.000Z" },
         ],
       });
       render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);

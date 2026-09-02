@@ -42,7 +42,7 @@ function readRetentionDays(): number {
   return n;
 }
 
-async function main(): Promise {
+async function main(): Promise<void> {
   const days = readRetentionDays();
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
@@ -81,7 +81,7 @@ main()
     await prisma.$disconnect();
     process.exit(0);
   })
-  .catch(async (err) => {
+  .catch(async (err: unknown) => {
     console.error("[cleanup-sesiones] Error:", err);
     try {
       await prisma.$disconnect();

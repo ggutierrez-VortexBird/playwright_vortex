@@ -48,6 +48,9 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
           resultadoEsperado: p.resultadoEsperado,
           resultadoObtenido: p.resultadoObtenido,
           errorCount: p.errorCount,
+          // HU-G18 — chapter timestamps del video.
+          videoInicioMs: p.videoInicioMs,
+          videoFinMs: p.videoFinMs,
           logs: p.logs,
           createdAt: p.createdAt.toISOString(),
           subacciones: p.subacciones.map(s => ({
