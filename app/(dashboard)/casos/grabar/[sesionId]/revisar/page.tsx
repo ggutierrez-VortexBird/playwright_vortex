@@ -36,6 +36,10 @@ export default async function RevisarSesionPage({ params }: PageProps) {
       id: true,
       usuarioId: true,
       nombre: true,
+      casoPruebaId: true,
+      casoPrueba: {
+        select: { scriptFileName: true },
+      },
       pasos: {
         orderBy: { numero: "asc" },
         select: {
@@ -98,6 +102,8 @@ export default async function RevisarSesionPage({ params }: PageProps) {
       nombre={sesion.nombre}
       pasosIniciales={pasosIniciales}
       parametrosIniciales={parametrosIniciales}
+      casoPruebaId={sesion.casoPruebaId ?? null}
+      scriptFileName={sesion.casoPrueba?.scriptFileName ?? null}
     />
   );
 }

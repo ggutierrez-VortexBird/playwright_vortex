@@ -2,26 +2,15 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { RevisarTabs } from "./revisar-tabs";
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  serializarPasos,
+  type PasoParaSerializar,
+  type ParametroParaSerializar,
+} from "@/lib/grabador/codegen/serialize";
 
 /**
- * RevisarCliente — pantalla "Revisar caso" (HU-G8).
+ * RevisarCliente — pantalla "Revisar caso" (HU-G8 + HU-G11).
  *
  * Server Component `page.tsx` carga la sesion + pasos + parametros
  * desde DB y los pasa como props.
@@ -30,11 +19,12 @@ import { CSS } from "@dnd-kit/utilities";
  *   - Topbar: título "Revisar caso", estado "borrador sin guardar",
  *     contador N pasos · M parámetros.
  *   - Botones: "Seguir grabando" / "Guardar" / "Guardar y ejecutar"
- *   - Columna izquierda: lista de pasos drag-and-drop con dnd-kit.
+ *   - Tabs (HU-G11):
+ *       1. "Pasos"   — lista drag-and-drop con dnd-kit.
+ *       2. "Editor"  — Monaco mostrando el .spec.ts generado.
  *   - Columna derecha: parámetros + acciones.
  *
- * HU-G8 + HU-G10: la columna izquierda incluye un botón "Agregar paso"
- * que abre el modal de paso manual.
+ * HU-G8 + HU-G10 + HU-G11: el cuerpo principal es <RevisarTabs>.
  */
 
 export interface RevisarPasoItem {
@@ -62,6 +52,10 @@ export interface RevisarClienteProps {
   nombre: string;
   pasosIniciales: RevisarPasoItem[];
   parametrosIniciales: RevisarParametroItem[];
+  /** casoPruebaId si la sesión ya fue guardada como CasoPrueba (HU-G11). */
+  casoPruebaId?: string | null;
+  /** nombre del archivo .spec.ts sugerido (HU-G11). */
+  scriptFileName?: string | null;
 }
 
 const TYPE_BADGES: Record<string, { label: string; color: string }> = {
@@ -79,19 +73,14 @@ export function RevisarCliente({
   nombre,
   pasosIniciales,
   parametrosIniciales,
+  casoPruebaId = null,
+  scriptFileName = null,
 }: RevisarClienteProps) {
   const router = useRouter();
   const [pasos, setPasos] = useState<RevisarPasoItem[]>(pasosIniciales);
   const [busy, setBusy] = useState<"guardar" | "ejecutar" | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
 
   const persistOrder = useCallback(
     async (newPasos: RevisarPasoItem[]): Promise<boolean> => {
@@ -121,18 +110,6 @@ export function RevisarCliente({
     [sesionId],
   );
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = pasos.findIndex((p) => p.id === active.id);
-    const newIndex = pasos.findIndex((p) => p.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(pasos, oldIndex, newIndex);
-    // Optimistic update.
-    setPasos(reordered);
-    void persistOrder(reordered);
-  }
-
   async function handleSeguirGrabando() {
     // HU-G8: reanuda la sesión (estado='activa') y vuelve a /grabar/[sesionId].
     try {
@@ -152,6 +129,30 @@ export function RevisarCliente({
       setErrorMsg("Error de red al reanudar");
     }
   }
+
+  // HU-G11: pre-computar el script una vez con los pasos actuales.
+  // Si el usuario reordena pasos, el script se re-serializa automáticamente
+  // porque pasamos `pasos` (state) al serializer.
+  const scriptGenerado = serializarPasos(
+    pasos.map<PasoParaSerializar>((p) => ({
+      id: p.id,
+      numero: p.numero,
+      tipo: p.tipo,
+      descripcion: p.descripcion,
+      selectorPrincipal: p.selectorPrincipal,
+      selectoresRespaldo: p.selectoresRespaldo,
+      valor: p.valor,
+      esValorSensible: p.esValorSensible,
+      assertionKind: p.assertionKind,
+    })),
+    {
+      nombreDelCaso: nombre,
+      parametros: parametrosIniciales.map<ParametroParaSerializar>((p) => ({
+        nombre: p.nombre,
+        valorDefecto: p.valorDefecto,
+      })),
+    },
+  );
 
   async function handleGuardar(ejecutar: boolean) {
     setBusy(ejecutar ? "ejecutar" : "guardar");
@@ -247,14 +248,20 @@ export function RevisarCliente({
         )}
       </div>
 
-      {/* Two-column body */}
+      {/* Two-column body (HU-G11: tabs en la columna izquierda) */}
       <div className="grid grid-cols-12 gap-4">
-        {/* Left: pasos drag-and-drop */}
+        {/* Left: tabs (Pasos / Editor) */}
         <section className="col-span-12 lg:col-span-8">
-          <PasosList
-            pasos={pasos}
-            sensors={sensors}
-            onDragEnd={handleDragEnd}
+          <RevisarTabs
+            sesionId={sesionId}
+            casoPruebaId={casoPruebaId}
+            nombre={nombre}
+            pasosIniciales={pasos}
+            parametrosIniciales={parametrosIniciales}
+            scriptGenerado={scriptGenerado}
+            {...(scriptFileName ? { scriptFileName } : {})}
+            persistOrder={persistOrder}
+            onScriptSaved={() => router.refresh()}
           />
         </section>
 
@@ -305,132 +312,5 @@ export function RevisarCliente({
         </aside>
       </div>
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* PasosList — drag-and-drop sortable list                              */
-/* ------------------------------------------------------------------ */
-
-function PasosList({
-  pasos,
-  sensors,
-  onDragEnd,
-}: {
-  pasos: RevisarPasoItem[];
-  sensors: ReturnType<typeof useSensors>;
-  onDragEnd: (e: DragEndEvent) => void;
-}) {
-  return (
-    <div
-      className="bg-m3-surface-container-lowest rounded-lg border border-m3-outline-variant shadow-sm"
-      data-testid="revisar-pasos-section"
-    >
-      <div className="p-5 border-b border-m3-outline-variant flex justify-between items-center gap-3">
-        <h3 className="font-headline text-headline-md text-m3-primary tracking-wide">
-          PASOS DEL CASO
-        </h3>
-        <span className="font-label text-xs text-m3-on-surface-variant">
-          Arrastrá para reordenar
-        </span>
-      </div>
-      <div className="p-4">
-        {pasos.length === 0 ? (
-          <div className="py-8 flex items-center justify-center border-2 border-dashed border-m3-outline-variant/50 rounded-lg text-m3-on-surface-variant">
-            <span className="text-sm">No hay pasos para revisar.</span>
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-          >
-            <SortableContext
-              items={pasos.map((p) => p.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <ol
-                className="flex flex-col gap-2"
-                data-testid="revisar-pasos-list"
-              >
-                {pasos.map((p) => (
-                  <SortablePasoItem key={p.id} paso={p} />
-                ))}
-              </ol>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SortablePasoItem({ paso }: { paso: RevisarPasoItem }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: paso.id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const badge = TYPE_BADGES[paso.tipo] ?? TYPE_BADGES.generico;
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      data-testid={`paso-revisar-${paso.id}`}
-      className="flex items-start gap-3 bg-m3-surface-container px-3 py-3 rounded-lg border border-m3-outline-variant hover:border-m3-primary/30 transition-colors"
-    >
-      <button
-        type="button"
-        aria-label="Arrastrar para reordenar"
-        className="text-m3-on-surface-variant hover:text-m3-primary cursor-grab active:cursor-grabbing mt-1"
-        {...attributes}
-        {...listeners}
-        data-testid={`drag-handle-${paso.id}`}
-      >
-        <span className="material-symbols-outlined text-[18px]">
-          drag_indicator
-        </span>
-      </button>
-      <span
-        className="font-mono-code text-sm text-m3-on-surface-variant w-7 text-right shrink-0 mt-0.5"
-        aria-hidden="true"
-      >
-        {paso.numero.toString().padStart(2, "0")}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`font-label text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${badge.color}`}
-          >
-            {badge.label}
-          </span>
-          <span className="font-body text-body-md text-m3-on-surface truncate">
-            {paso.descripcion}
-          </span>
-        </div>
-        {paso.valor && !paso.esValorSensible && (
-          <div className="font-mono-code text-[11px] text-m3-on-surface-variant mt-1">
-            valor: {paso.valor}
-          </div>
-        )}
-        {paso.esValorSensible && (
-          <div className="font-mono-code text-[11px] text-m3-on-surface-variant mt-1 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[12px]">lock</span>
-            valor sensible (enmascarado)
-          </div>
-        )}
-      </div>
-    </li>
   );
 }
