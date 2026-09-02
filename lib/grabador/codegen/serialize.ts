@@ -148,15 +148,44 @@ function playwrightMethodFor(strategy: string): string {
 }
 
 /**
- * Devuelve el argumento al locator method. Para testid/aria/name/id el
- * arg es el valor del selector; para text es el texto; para css es
- * el selector completo; para role devuelve `value` (que es el role, ej "button").
+ * Devuelve el argumento al locator method.
+ *
+ * Bug fix: antes esto era un no-op (default: return value) y mandaba el
+ * selector literal completo a Playwright. Por ejemplo:
+ *   playwrightArgFor("aria-label", `[aria-label="username"]`)
+ *     -> antes: `[aria-label="username"]`
+ *     -> ahora: `username`
+ *
+ * getByLabel / getByTestId esperan SOLO el valor (texto del label /
+ * valor del data-testid), NO el selector completo. Si le pasas el
+ * wrapper, Playwright intenta matchear un label cuyo texto es literalmente
+ * `[aria-label="username"]` y nunca lo encuentra — el test falla con
+ * timeout esperando el locator.
+ *
+ * Para id / name / css / role / text el value ya viene en el formato
+ * correcto para page.locator() o page.getByRole/getByText, asi que se
+ * pasan sin modificar.
  */
 function playwrightArgFor(strategy: string, value: string): string {
   switch (strategy) {
+    case "testid": {
+      // value: [data-testid="foo"] -> foo
+      const m = value.match(/^\[data-testid="([^"]+)"\]$/);
+      return m ? m[1]! : value;
+    }
+    case "aria-label": {
+      // value: [aria-label="foo"] -> foo
+      const m = value.match(/^\[aria-label="([^"]+)"\]$/);
+      return m ? m[1]! : value;
+    }
+    case "id":
+    case "name":
     case "css":
-      return value;
+    case "text":
+    case "role":
     default:
+      // locator('#id'), locator('[name="x"]'), locator('html > body > ...'),
+      // getByText('Welcome'), getByRole('button') — value ya esta bien.
       return value;
   }
 }
@@ -242,7 +271,11 @@ export function serializarPaso(
       const url = paso.valor ?? "";
       const ref = findParamRef(url, parametros);
       const final = ref ? inlineParamRef(url) : jsStringEscape(url);
-      return `${indent}await page.goto(\`${final}\`);`;
+      // waitUntil:'domcontentloaded' matchea lo que usa el recorder-worker
+      // y es mas rapido que 'load' (default). Tambien evita que
+      // `toHaveCount(1)` falle porque la pagina no haya terminado de cargar
+      // — el assert llega justo despues del goto.
+      return `${indent}await page.goto(\`${final}\`, { waitUntil: 'domcontentloaded' });`;
     }
     case "clic": {
       if (!best) return `${indent}// Paso ${paso.numero}: sin selector — revisar manualmente`;
