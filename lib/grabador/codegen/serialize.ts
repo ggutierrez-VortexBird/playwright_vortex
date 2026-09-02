@@ -299,7 +299,12 @@ export function serializarPaso(
       const arg = playwrightArgFor(bestValid.strategy, bestValid.value);
       const argJs = jsStringEscape(arg);
       const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
-      return `${indent}await page.${method}(\`${argJs}\`${options}).click();`;
+      // FIX: agregar .first() como defensa contra strict mode violation
+      // cuando hay multiples elementos con el mismo selector (ej. inputs
+      // duplicados en header/mobile del mismo DOM). Playwright tambien
+      // emite .first() en casos ambiguos. Sin esto, el test falla con
+      // "strict mode violation: resolved to 2 elements".
+      return `${indent}await page.${method}(\`${argJs}\`${options}).first().click();`;
     }
     case "escribir": {
       if (!bestValid) return `${indent}// Paso ${paso.numero}: escribir sin selector valido — revisar manualmente`;
@@ -317,7 +322,7 @@ export function serializarPaso(
       const valorRef = findParamRef(valor, parametros);
       const finalValor = valorRef ? inlineParamRef(valor) : jsStringEscape(valor);
       const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
-      return `${indent}await page.${method}(\`${arg}\`${options}).fill(\`${finalValor}\`);`;
+      return `${indent}await page.${method}(\`${arg}\`${options}).first().fill(\`${finalValor}\`);`;
     }
     case "esperar": {
       const ms = Number.parseInt(paso.valor ?? "1000", 10);
@@ -337,7 +342,7 @@ export function serializarPaso(
       const method = playwrightMethodFor(bestValid.strategy);
       const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
       const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
-      return `${indent}await page.${method}(\`${arg}\`${options}).press(${JSON.stringify(key)});`;
+      return `${indent}await page.${method}(\`${arg}\`${options}).first().press(${JSON.stringify(key)});`;
     }
     case "verificar": {
       if (!bestValid) return `${indent}// Paso ${paso.numero}: verificacion sin selector valido — revisar manualmente`;

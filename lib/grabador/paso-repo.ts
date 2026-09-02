@@ -100,7 +100,17 @@ export function mapearEventoAPaso(
   // El init-script del worker ya manda value=null, pero defendemos en depth
   // acá: si isPassword=true, SIEMPRE valor=null, esValorSensible=true.
   const esSensible = Boolean(evento.isPassword);
-  const valor = esSensible ? null : (evento.value ?? null);
+  // FIX: para waits (auto-wait) el delta viene en `deltaFromPreviousMs`,
+  // no en `value`. Sin este fix, el serializer emite siempre
+  // `waitForTimeout(1000)` (fallback) porque paso.valor era null.
+  let valor: string | null;
+  if (esSensible) {
+    valor = null;
+  } else if (evento.type === "wait") {
+    valor = String(evento.deltaFromPreviousMs ?? 0);
+  } else {
+    valor = evento.value ?? null;
+  }
 
   return {
     sesionId,
@@ -224,6 +234,34 @@ async function doPersistirPaso(
         });
         return updated as PasoGrabadoRow;
       }
+    }
+  }
+
+  // Dedupe: si llega un "wait" (auto-wait) y el ULTIMO paso fue tambien
+  // un "wait" dentro del debounce, UPDATEamos el delta en vez de crear
+  // otro paso. Asi pausas consecutivas (e.g. usuario lee la pagina 1.8s,
+  // luego 2.1s) colapsan en UN solo wait con el delta mayor.
+  if (evento.type === "wait") {
+    const lastWait = await prisma.pasoGrabado.findFirst({
+      where: {
+        sesionId,
+        tipo: "esperar",
+        createdAt: { gte: new Date(Date.now() - FILL_DEBOUNCE_MS) },
+      },
+      orderBy: { numero: "desc" },
+    });
+    if (lastWait) {
+      const newDelta = evento.deltaFromPreviousMs ?? 0;
+      const lastDelta = Number.parseInt(lastWait.valor ?? "0", 10);
+      const merged = Math.max(newDelta, lastDelta);
+      const updated = await prisma.pasoGrabado.update({
+        where: { id: lastWait.id },
+        data: {
+          valor: String(merged),
+          descripcion: `Esperar ${(merged / 1000).toFixed(1)}s`,
+        },
+      });
+      return updated as PasoGrabadoRow;
     }
   }
 
