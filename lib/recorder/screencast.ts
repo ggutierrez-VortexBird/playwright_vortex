@@ -41,7 +41,14 @@ export async function startScreencast(
 ): Promise<ScreencastHandle> {
   const cdp: CDPSession = await page.context().newCDPSession(page);
 
+  let frameCount = 0;
   const frameHandler = (params: { data: string; sessionId: number; metadata?: object }) => {
+    frameCount++;
+    if (frameCount === 1 || frameCount % 100 === 0) {
+      console.log(
+        `[screencast] frame #${frameCount} dataLen=${params.data.length} sessionId=${params.sessionId}`,
+      );
+    }
     onFrame(params.data, Date.now());
     // Ack para que CDP siga mandando frames
     cdp
@@ -58,6 +65,9 @@ export async function startScreencast(
     quality: config.quality,
     everyNthFrame: config.everyNthFrame,
   });
+  console.log(
+    `[screencast] started format=${config.format} quality=${config.quality} everyNth=${config.everyNthFrame}`,
+  );
 
   return {
     async stop() {

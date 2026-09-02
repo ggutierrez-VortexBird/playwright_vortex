@@ -180,9 +180,11 @@ async function main(): Promise<void> {
         .catch((err) => console.error("[recorder-worker] DB update failed", err));
 
       // Iniciar screencast y broadcast frames a clientes WS
+      console.log(`[recorder-worker] iniciando screencast para ${sessionId}`);
       await startScreencast(page, (data, ts) => {
         broadcastFrame(sessionId, data, ts);
       });
+      console.log(`[recorder-worker] screencast activo para ${sessionId}`);
     },
     onBrowserFailed: async (sessionId, err) => {
       console.log(`[recorder-worker] Browser falló para sessionId=${sessionId}: ${err.message}`);
