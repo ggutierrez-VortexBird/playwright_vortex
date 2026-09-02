@@ -10,6 +10,7 @@ import { EjecucionSummary } from './ejecucion-summary'
 import { DetenerButton } from './detener-button'
 import { ReRunButton } from './re-run-button'
 import { OrigenChip } from './origen-chip'
+import { ReparadosCounter } from './reparados-counter'
 
 interface Subaccion {
   id: string
@@ -141,6 +142,8 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         </span>
         {/* HU-G17: chip de origen (grabador vs. script) */}
         {caso.origen && <OrigenChip origen={caso.origen} />}
+        {/* HU-G15 — contador de pasos auto-reparados en ejecución */}
+        <ReparadosCounter pasos={ejecucion.pasos} />
         <span className="spacer" />
         {canReRun && (
           <ReRunButton casoPruebaId={ejecucion.casoPruebaId} />
