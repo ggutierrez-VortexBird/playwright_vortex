@@ -28,14 +28,14 @@ function basePaso(over: Partial<PasoParaSerializar> = {}): PasoParaSerializar {
 }
 
 describe("codegen/serialize — serializarPaso (HU-G11)", () => {
-  it("navegar emits page.goto with the URL", () => {
+  it("navegar emits page.goto with the URL and waitUntil:'domcontentloaded'", () => {
     const paso = basePaso({
       tipo: "navegar",
       numero: 1,
       valor: "https://portal.example.com/login",
     });
     expect(serializarPaso(paso)).toBe(
-      "  await page.goto(`https://portal.example.com/login`);",
+      "  await page.goto(`https://portal.example.com/login`, { waitUntil: 'domcontentloaded' });",
     );
   });
 
@@ -44,8 +44,10 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       tipo: "clic",
       selectoresRespaldo: [{ strategy: "testid", value: `[data-testid="submit"]` }],
     });
+    // NOTA: las acciones (clic/fill/press) NO llevan .first() porque si
+    // hay multiples matches es mejor strict mode violation a timeout.
     expect(serializarPaso(paso)).toBe(
-      "  await page.getByTestId(`[data-testid=\"submit\"]`).click();",
+      "  await page.getByTestId(`submit`).click();",
     );
   });
 
@@ -54,7 +56,9 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       tipo: "clic",
       selectoresRespaldo: [{ strategy: "text", value: "Submit" }],
     });
-    expect(serializarPaso(paso)).toBe("  await page.getByText(`Submit`).click();");
+    expect(serializarPaso(paso)).toBe(
+      "  await page.getByText(`Submit`).click();",
+    );
   });
 
   it("clic falls back to locator for css strategy", () => {
@@ -83,11 +87,11 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       valor: "admin",
     });
     expect(serializarPaso(paso)).toBe(
-      "  await page.getByTestId(`[data-testid=\"user\"]`).fill(`admin`);",
+      "  await page.getByTestId(`user`).first().fill(`admin`);",
     );
   });
 
-  it("esperar emits waitForTimeout with the parsed ms", () => {
+  it("esperar emits waitForTimeout with the parsed ms when <= MAX_WAIT_PERSIST_MS", () => {
     const paso = basePaso({
       tipo: "esperar",
       valor: "1500",
@@ -95,12 +99,24 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
     expect(serializarPaso(paso)).toBe("  await page.waitForTimeout(1500);");
   });
 
-  it("esperar falls back to 1000ms when valor is unparseable", () => {
+  it("esperar caps at 1000ms fallback when valor is unparseable", () => {
     const paso = basePaso({
       tipo: "esperar",
       valor: "not-a-number",
     });
     expect(serializarPaso(paso)).toBe("  await page.waitForTimeout(1000);");
+  });
+
+  it("esperar SKIPS (emits comment) when ms > MAX_WAIT_PERSIST_MS", () => {
+    const paso = basePaso({
+      tipo: "esperar",
+      valor: "13000",
+    });
+    const out = serializarPaso(paso);
+    expect(out).toContain("//");
+    expect(out).toContain("13000");
+    expect(out).toContain("omitido");
+    expect(out).not.toContain("waitForTimeout(13000");
   });
 
   it("verificar visible → toBeVisible", () => {
@@ -110,7 +126,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       selectoresRespaldo: [{ strategy: "testid", value: `[data-testid="go"]` }],
     });
     expect(serializarPaso(paso)).toBe(
-      "  await expect(page.getByTestId(`[data-testid=\"go\"]`)).toBeVisible();",
+      "  await expect(page.getByTestId(`go`).first()).toBeVisible();",
     );
   });
 
@@ -122,7 +138,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       selectoresRespaldo: [{ strategy: "text", value: "Greeting" }],
     });
     expect(serializarPaso(paso)).toBe(
-      "  await expect(page.getByText(`Greeting`)).toHaveText(`Hola`);",
+      "  await expect(page.getByText(`Greeting`).first()).toHaveText(`Hola`);",
     );
   });
 
@@ -134,7 +150,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       selectoresRespaldo: [{ strategy: "text", value: "Hello" }],
     });
     expect(serializarPaso(paso)).toBe(
-      "  await expect(page.getByText(`Hello`)).toContainText(`sub`);",
+      "  await expect(page.getByText(`Hello`).first()).toContainText(`sub`);",
     );
   });
 
@@ -146,7 +162,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       selectoresRespaldo: [{ strategy: "testid", value: `[data-testid="user"]` }],
     });
     expect(serializarPaso(paso)).toBe(
-      "  await expect(page.getByTestId(`[data-testid=\"user\"]`)).toHaveValue(`admin`);",
+      "  await expect(page.getByTestId(`user`).first()).toHaveValue(`admin`);",
     );
   });
 
@@ -158,7 +174,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
       selectoresRespaldo: [{ strategy: "testid", value: `[data-testid="item"]` }],
     });
     expect(serializarPaso(paso)).toBe(
-      "  await expect(page.getByTestId(`[data-testid=\"item\"]`)).toHaveCount(5);",
+      "  await expect(page.getByTestId(`item`).first()).toHaveCount(5);",
     );
   });
 
@@ -183,7 +199,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
     });
     const out = serializarPaso(paso, [{ nombre: "usuario", valorDefecto: "admin" }]);
     expect(out).toBe(
-      "  await page.goto(`https://portal.example.com/${params.usuario}`);",
+      "  await page.goto(`https://portal.example.com/${params.usuario}`, { waitUntil: 'domcontentloaded' });",
     );
   });
 
@@ -194,7 +210,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
     });
     const out = serializarPaso(paso, []);
     expect(out).toBe(
-      "  await page.goto(`https://portal.example.com/{{usuario}}`);",
+      "  await page.goto(`https://portal.example.com/{{usuario}}`, { waitUntil: 'domcontentloaded' });",
     );
   });
 
@@ -206,7 +222,7 @@ describe("codegen/serialize — serializarPaso (HU-G11)", () => {
     });
     const out = serializarPaso(paso);
     expect(out).toBe(
-      "  await page.getByTestId(`[data-testid=\"go\"]`).click();",
+      "  await page.getByTestId(`go`).click();",
     );
   });
 });
@@ -261,12 +277,15 @@ describe("codegen/serialize — serializarPasos (HU-G11 + HU-G16)", () => {
       parametros: [],
     });
     expect(out).toContain("// Paso 1: Click en «Submit»");
-    expect(out).toContain("await page.goto(`https://example.com`);");
+    expect(out).toContain("await page.goto(`https://example.com`, { waitUntil: 'domcontentloaded' });");
     expect(out).toContain("// Paso 2: Click en «Submit»");
-    expect(out).toContain("await page.getByTestId(`[data-testid=\"go\"]`).click();");
+    expect(out).toContain("await page.getByTestId(`go`).click();");
   });
 
-  it("emits a fallback comment for pasos without code-gen (generico)", () => {
+  it("SKIPS generico pasos silently (no fallback comment) — ronda 4", () => {
+    // Antes emitía "// (paso manual sin code-gen: revisar en UI)" que llenaba
+    // el .spec.ts de ruido (13+ comentarios para un typing típico). Ahora
+    // los generico (keydowns no-especiales) se SKIPpean silenciosos.
     const pasos: PasoParaSerializar[] = [
       basePaso({ numero: 1, tipo: "generico" }),
     ];
@@ -274,7 +293,8 @@ describe("codegen/serialize — serializarPasos (HU-G11 + HU-G16)", () => {
       nombreDelCaso: "Generico",
       parametros: [],
     });
-    expect(out).toContain("// (paso manual sin code-gen: revisar en UI)");
+    expect(out).not.toContain("(paso manual sin code-gen");
+    expect(out).not.toContain("// Paso 1:"); // tampoco comentario del paso
   });
 
   it("substitutes {{nombre}} in any paso's value with params.nombre", () => {

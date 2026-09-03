@@ -36,6 +36,8 @@ export interface SerializedElement {
   aria?: string;
   /** Valor `name` del input. */
   name?: string;
+  /** Candidatos de selector priorizados (del init-script del browser). */
+  candidates?: Array<{ strategy: string; value: string; name?: string }>;
 }
 
 export interface EventoDom {

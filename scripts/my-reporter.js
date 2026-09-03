@@ -258,7 +258,11 @@ class JsonReporter {
   }
 
   _emit(event) {
-    process.stdout.write(JSON.stringify(event) + '\n')
+    // HU-FIX: sanitizar cualquier \n dentro del JSON para que no rompa el
+    // parsing línea-por-línea del runner. Playwright steps pueden tener
+    // newlines en titles o error messages.
+    const json = JSON.stringify(event).replace(/\n/g, '\\n')
+    process.stdout.write(json + '\n')
   }
 
   _detectOS() {

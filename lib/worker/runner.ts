@@ -260,7 +260,7 @@ async function handleStepEvent(state: RunnerState, event: StepEvent): Promise<vo
       }
     }
   }).catch((e) => {
-    console.error('[runner] Error inserting paso:', e)
+    console.error(`[runner] Error inserting paso #${numero} (${event.descripcion}):`, e)
   })
   state.pendingInserts.push(insertPromise)
 }
@@ -378,7 +378,7 @@ async function handleSubstepEvent(state: RunnerState, event: SubstepEvent, force
       capturaReferenciaId,
     },
   }).catch((e) => {
-    console.error('[runner] Error inserting substep:', e)
+    console.error(`[runner] Error inserting substep #${substepNumero} (${event.descripcion}) for step ${parentNumero}:`, e)
   })
   state.pendingInserts.push(insertPromise)
 }
@@ -540,6 +540,7 @@ export async function runPlaywrightTest(
       cliPath,
       'test', scriptName,
       `--config=${configPath}`,
+      `--output=${outputDir}`,
     ], {
       cwd: path.resolve(process.cwd(), 'runtime', 'ejecuciones'),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -550,6 +551,7 @@ export async function runPlaywrightTest(
     let stderr = ''
     let aborted = false
     let processExited = false
+    let eventCounts = { env: 0, step: 0, substep: 0, log: 0, assertion: 0, 'captura-test': 0, end: 0 }
 
     let abortInterval: NodeJS.Timeout | null = null
     let graceTimeout: NodeJS.Timeout | null = null
@@ -574,6 +576,8 @@ export async function runPlaywrightTest(
         if (!line.trim()) continue
         const event = parseReporterEvent(line)
         if (!event) continue
+
+        eventCounts[event.type]++
 
         switch (event.type) {
           case 'env':
@@ -632,6 +636,23 @@ export async function runPlaywrightTest(
       processExited = true
       cleanup()
 
+      // Procesar cualquier evento pendiente en stdout que no terminó con \n
+      if (stdout.trim()) {
+        const event = parseReporterEvent(stdout.trim())
+        if (event) {
+          eventCounts[event.type]++
+          switch (event.type) {
+            case 'env': state.pendingInserts.push(handleEnvEvent(state, event)); break
+            case 'step': state.pendingInserts.push(handleStepEvent(state, event)); break
+            case 'substep': state.pendingInserts.push(handleSubstepEvent(state, event)); break
+            case 'log': handleLogEvent(state, event); break
+            case 'assertion': handleAssertionEvent(state, event); break
+            case 'captura-test': state.pendingInserts.push(handleCapturaTestEvent(state, event)); break
+            case 'end': state.pendingInserts.push(handleEndEvent(state, event)); break
+          }
+        }
+      }
+
       const durationMs = Date.now() - startTime
 
       try {
@@ -639,6 +660,9 @@ export async function runPlaywrightTest(
       } catch (insertError) {
         console.error('[runner] Error inserting pasos:', insertError)
       }
+
+      console.log(`[runner] Ejecución ${ejecucionId} finalizada. Eventos: env=${eventCounts.env}, steps=${eventCounts.step}, substeps=${eventCounts.substep}, assertions=${eventCounts.assertion}, logs=${eventCounts.log}, capturas=${eventCounts['captura-test']}, end=${eventCounts.end}`)
+      console.log(`[runner] Pasos insertados: ${state.pasoNumero}, pending inserts: ${state.pendingInserts.length}`)
 
       if (aborted) {
         reject(new EjecucionCanceladaError(`Ejecución ${ejecucionId} fue cancelada por el usuario`))

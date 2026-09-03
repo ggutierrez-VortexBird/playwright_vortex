@@ -197,8 +197,8 @@ describe("POST /api/grabador/sesiones/[id]/guardar (HU-G16)", () => {
     // The script content should include the navigacion + click on the login button.
     const created = mockCasoCreate.mock.calls[0][0];
     expect(created.data.origen).toBe("grabador");
-    expect(created.data.script).toContain("await page.goto(`https://portal.example.com`)");
-    expect(created.data.script).toContain("page.getByTestId(`[data-testid=\"login\"]`).click()");
+    expect(created.data.script).toContain("await page.goto(`https://portal.example.com`, { waitUntil: 'domcontentloaded' });");
+    expect(created.data.script).toContain("await page.getByTestId(`login`).click();");
     expect(created.data.script).toContain("usuario: \"admin\"");
 
     // Parametros and pasos were linked to the new caso.

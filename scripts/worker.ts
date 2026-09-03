@@ -86,6 +86,22 @@ async function main() {
             where: { ejecucionId: job.id },
           })
 
+          // HU-FIX: si no hay pasos, el test no ejecutó realmente (script vacío,
+          // error silencioso, o reporter no funcionó). No debe marcar como 'paso'.
+          if (pasos.length === 0) {
+            console.error(`[worker] Ejecución ${job.id} terminó sin pasos — posible script vacío o error silencioso`)
+            await db.ejecucion.update({
+              where: { id: job.id },
+              data: {
+                estado: 'errorMotor',
+                errorMsg: 'La ejecución no generó pasos. Posibles causas: script vacío, error de sintaxis no reportado, o falla del reporter.',
+                finAt: new Date(),
+                duracionMs: result.durationMs,
+              },
+            })
+            continue
+          }
+
           const hasUnhealedFailure = pasos.some(
             (p) => p.estado === 'fallo' && !p.selfHealed
           )

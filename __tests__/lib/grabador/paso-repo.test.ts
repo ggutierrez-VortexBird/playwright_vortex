@@ -20,12 +20,14 @@ import type { EventoDom } from "@/lib/grabador/translator";
 // Mock prisma
 const mockFindFirst = jest.fn();
 const mockCreate = jest.fn();
+const mockUpdate = jest.fn();
 
 jest.mock("@/lib/db", () => ({
   prisma: {
     pasoGrabado: {
       findFirst: (...args: unknown[]) => mockFindFirst(...args),
       create: (...args: unknown[]) => mockCreate(...args),
+      update: (...args: unknown[]) => mockUpdate(...args),
     },
   },
 }));
@@ -65,6 +67,7 @@ describe("lib/grabador/paso-repo — mapearEventoAPaso (pure)", () => {
       text: "Ingresar",
       aria: null,
       testId: null,
+      name: null,
     });
   });
 
@@ -137,7 +140,9 @@ describe("lib/grabador/paso-repo — mapearEventoAPaso (pure)", () => {
     expect(payload.tipo).toBe("esperar");
     expect(payload.origen).toBe("auto");
     expect(payload.descripcion).toBe("Esperar 1.5s");
-    expect(payload.valor).toBeNull();
+    // FIX: para waits el valor persistido es el delta (String) para que
+    // el codegen emita `waitForTimeout(N)` real. Antes era null.
+    expect(payload.valor).toBe("1500");
   });
 
   it("maps a navigate event", () => {
@@ -225,7 +230,11 @@ describe("lib/grabador/paso-repo — persistirPaso (DB side effects)", () => {
   });
 
   it("increments from the highest existing numero", async () => {
-    mockFindFirst.mockResolvedValueOnce({ numero: 5 });
+    // Primer findFirst: debounce check (no lastFill, devuelve null).
+    // Segundo findFirst: max(numero)+1 query.
+    mockFindFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ numero: 5 });
     mockCreate.mockResolvedValueOnce({
       id: "paso-6",
       sesionId: "ses-1",
@@ -331,7 +340,11 @@ describe("lib/grabador/paso-repo — persistirPaso (DB side effects)", () => {
   });
 
   it("persists wait events as origen='auto'", async () => {
-    mockFindFirst.mockResolvedValueOnce({ numero: 0 });
+    // Primer findFirst: debounce check (no lastWait → null).
+    // Segundo findFirst: max(numero)+1 query.
+    mockFindFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ numero: 0 });
     mockCreate.mockResolvedValueOnce({
       id: "paso-1",
       sesionId: "ses-1",
@@ -341,7 +354,7 @@ describe("lib/grabador/paso-repo — persistirPaso (DB side effects)", () => {
       descripcion: "Esperar 1.0s",
       selectorPrincipal: null,
       selectoresRespaldo: [],
-      valor: null,
+      valor: "1000",
       esValorSensible: false,
       createdAt: new Date(),
     });

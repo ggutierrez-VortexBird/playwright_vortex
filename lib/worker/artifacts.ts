@@ -23,18 +23,29 @@ export async function collectArtifacts(
   const storageDir = path.resolve(process.cwd(), 'storage', 'artefactos', ejecucionId)
 
   let entries: string[] = []
+  let effectiveOutputDir = outputDir
+
   try {
     entries = fs.readdirSync(outputDir)
   } catch {
-    // Directorio no existe o no es legible — nada que procesar
-    return
+    // Directorio no existe — fallback al default de Playwright (test-results/)
+    const fallbackDir = path.resolve(process.cwd(), 'runtime', 'ejecuciones', 'test-results')
+    try {
+      entries = fs.readdirSync(fallbackDir)
+      effectiveOutputDir = fallbackDir
+      console.log(`[artifacts] Fallback to Playwright default: ${fallbackDir}`)
+    } catch {
+      // Tampoco existe fallback — nada que procesar
+      console.warn(`[artifacts] No artifacts found in ${outputDir} or ${fallbackDir}`)
+      return
+    }
   }
 
   // Recolectar todos los archivos de artefactos (directorios y archivos sueltos)
   const artefactoPaths: string[] = []
 
   for (const entry of entries) {
-    const entryPath = path.join(outputDir, entry)
+    const entryPath = path.join(effectiveOutputDir, entry)
     const stat = fs.statSync(entryPath)
 
     if (stat.isDirectory()) {

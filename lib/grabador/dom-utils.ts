@@ -16,10 +16,23 @@
  * La forma retornada es compatible con `SerializedElement` en
  * `lib/grabador/translator.ts` y con `SerializedElement` en init-script.
  */
+/**
+ * Candidato de selector. `name` solo se usa cuando `strategy === "role"`:
+ * lleva el *accessible name* del elemento para que el codegen pueda emitir
+ * `getByRole('searchbox', { name: 'Buscar en Wikipedia' })` — que es
+ * exactamente lo que produce `playwright codegen`.
+ */
+export interface SelectorCandidate {
+  strategy: string;
+  value: string;
+  /** Accessible name — solo para strategy='role'. */
+  name?: string;
+}
+
 export interface SerializedElementFull {
   /** Nombre del tag lowercased. */
   tag: string;
-  /** Rol del elemento (`role` attr o tagName como fallback). */
+  /** Rol del elemento (`role` attr, rol ARIA implícito, o tagName). */
   role: string;
   /** Texto visible truncado a 50 chars. */
   text: string;
@@ -29,10 +42,64 @@ export interface SerializedElementFull {
   aria: string;
   /** Atributo `name` (input/select/textarea). */
   name: string;
+  /** Accessible name computado (aria-label > label > placeholder > texto). */
+  accessibleName: string;
   /** Lista de candidatos de selector priorizados. */
-  candidates: Array<{ strategy: string; value: string }>;
+  candidates: SelectorCandidate[];
   /** Bounding box del elemento relativa al viewport. */
   bbox: { x: number; y: number; width: number; height: number } | null;
+}
+
+/** Longitud mínima de un texto para servir como selector (`>2 chars`). */
+export const TEXT_SELECTOR_MIN_LEN = 3;
+/** Longitud máxima (exclusiva). Textos más largos son casi siempre
+ *  `textContent` de un contenedor con los hijos pegados. */
+export const TEXT_SELECTOR_MAX_LEN = 30;
+
+/**
+ * Normaliza un texto capturado del DOM para usarlo como selector.
+ *
+ * Hace, en orden:
+ *   1. Normalización Unicode NFC (los acentos compuestos de Wikipedia
+ *      llegan a veces como `a` + combining accent).
+ *   2. Reemplaza NBSP / narrow-NBSP por espacio normal.
+ *   3. Elimina zero-width, BOM y separadores de línea Unicode.
+ *   4. Reemplaza caracteres de control por espacio.
+ *   5. Colapsa runs de whitespace a UN espacio y trimea.
+ *
+ * Debe mantenerse en sync con `normalizeText()` del init-script del browser.
+ */
+export function normalizeSelectorText(raw: string | null | undefined): string {
+  if (typeof raw !== "string") return "";
+  let s = raw;
+  try {
+    s = s.normalize("NFC");
+  } catch {
+    // Entornos sin ICU completo — seguimos con el string original.
+  }
+  s = s.replace(/[\u00a0\u1680\u2000-\u200a\u2007\u202f\u205f\u3000]/g, " ");
+  s = s.replace(/[\u200b-\u200f\u2028\u2029\u2060\ufeff]/g, "");
+  // eslint-disable-next-line no-control-regex
+  s = s.replace(/[\u0000-\u001f\u007f]/g, " ");
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * ¿Sirve este texto como selector `getByText`?
+ *
+ * Rechaza:
+ *   - <3 chars (ruido: "x", "•", "1")
+ *   - >=30 chars (es `textContent` de un contenedor, con los hijos pegados:
+ *     "Juliciudad en Puno, PerúJulián Alvarezfutbolista a…")
+ *   - patrones "pegados" tipo `PerúJulián` (minúscula seguida de mayúscula
+ *     sin espacio) — señal inequívoca de concatenación de nodos hermanos.
+ */
+export function isUsableTextSelector(text: string | null | undefined): boolean {
+  const t = normalizeSelectorText(text);
+  if (t.length < TEXT_SELECTOR_MIN_LEN) return false;
+  if (t.length >= TEXT_SELECTOR_MAX_LEN) return false;
+  if (/[\p{Ll}][\p{Lu}]/u.test(t)) return false;
+  return true;
 }
 
 /**
@@ -104,18 +171,23 @@ export function isPasswordField(el: Element | null): boolean {
  * @returns objeto SerializedElementFull o null si no es un Element válido
  */
 /**
- * Mapea el role ARIA implicito de un elemento HTML segun su tag + atributos.
- * Esto matchea lo que Playwright codegen hace internamente: para cada
- * elemento determina el role semantico (searchbox, combobox, button,
- * link, etc.) y emite `page.getByRole(role, { name })`.
+ * Mapea el role ARIA implícito de un elemento HTML según su tag + `type`.
  *
- * Si el elemento tiene `role` attribute EXPLICITO, gana sobre el implicito.
+ * Versión PURA basada en strings — no necesita un `Element`, así que se
+ * puede reusar desde `paso-repo` (defense in depth cuando el init-script
+ * del browser es viejo y no manda `role`).
+ *
+ * Esto matchea lo que `playwright codegen` hace internamente: para cada
+ * elemento determina el role semántico (searchbox, combobox, button, link…)
+ * y emite `page.getByRole(role, { name })`.
  */
-function implicitRole(el: Element): string | null {
-  const tag = el.tagName.toLowerCase();
-  // Inputs: el role depende del type
-  if (tag === "input") {
-    const type = ((el as unknown as { type?: string }).type ?? "text").toLowerCase();
+export function implicitRoleFor(
+  tag: string | null | undefined,
+  inputType?: string | null,
+): string | null {
+  const t = (tag ?? "").toLowerCase();
+  if (t === "input") {
+    const type = (inputType ?? "text").toLowerCase();
     switch (type) {
       case "search":
         return "searchbox";
@@ -125,6 +197,8 @@ function implicitRole(el: Element): string | null {
         return "radio";
       case "range":
         return "slider";
+      case "number":
+        return "spinbutton";
       case "email":
       case "tel":
       case "url":
@@ -133,7 +207,6 @@ function implicitRole(el: Element): string | null {
       case "submit":
       case "button":
       case "reset":
-        return "button";
       case "image":
         return "button";
       case "password":
@@ -144,23 +217,106 @@ function implicitRole(el: Element): string | null {
         return "textbox";
     }
   }
-  if (tag === "button") return "button";
-  if (tag === "select") return "combobox";
-  if (tag === "textarea") return "textbox";
-  if (tag === "a") return "link";
-  if (tag === "nav") return "navigation";
-  if (tag === "main") return "main";
-  if (tag === "header") return "banner";
-  if (tag === "footer") return "contentinfo";
-  if (tag === "aside") return "complementary";
-  if (tag === "nav") return "navigation";
-  if (tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4" || tag === "h5" || tag === "h6") {
+  if (t === "button") return "button";
+  if (t === "select") return "combobox";
+  if (t === "textarea") return "textbox";
+  if (t === "a") return "link";
+  if (t === "nav") return "navigation";
+  if (t === "main") return "main";
+  if (t === "header") return "banner";
+  if (t === "footer") return "contentinfo";
+  if (t === "aside") return "complementary";
+  if (t === "form") return "form";
+  if (t === "table") return "table";
+  if (t === "option") return "option";
+  if (t === "h1" || t === "h2" || t === "h3" || t === "h4" || t === "h5" || t === "h6") {
     return "heading";
   }
-  if (tag === "ul" || tag === "ol") return "list";
-  if (tag === "li") return "listitem";
-  if (tag === "img" && el.getAttribute?.("alt")) return "img";
+  if (t === "ul" || t === "ol") return "list";
+  if (t === "li") return "listitem";
   return null;
+}
+
+/**
+ * Resuelve el role efectivo: el atributo `role` explícito gana; si no hay,
+ * usamos el implícito del tag; si tampoco, `null`.
+ *
+ * `null` significa "este elemento no tiene role accesible" → el codegen
+ * debe caer a otra estrategia (id / aria-label / text / css).
+ */
+export function resolveRole(
+  tag: string | null | undefined,
+  explicitRole?: string | null,
+  inputType?: string | null,
+): string | null {
+  const explicit = normalizeSelectorText(explicitRole);
+  if (explicit) return explicit;
+  return implicitRoleFor(tag, inputType);
+}
+
+/**
+ * Calcula el *accessible name* de un elemento, aproximando el algoritmo de
+ * accname que usa Playwright para `getByRole(role, { name })`:
+ *
+ *   aria-label > aria-labelledby > <label for> / <label> ancestro >
+ *   placeholder > title > alt > textContent (solo si no es form control)
+ *
+ * Devuelve "" cuando no hay nombre accesible utilizable.
+ */
+export function accessibleNameFor(el: Element | null | undefined): string {
+  if (!el) return "";
+  const attr = (n: string): string =>
+    typeof el.getAttribute === "function" ? normalizeSelectorText(el.getAttribute(n)) : "";
+
+  const ariaLabel = attr("aria-label");
+  if (ariaLabel) return ariaLabel;
+
+  const doc = (el as unknown as { ownerDocument?: Document | null }).ownerDocument ?? null;
+
+  const labelledBy = attr("aria-labelledby");
+  if (labelledBy && doc && typeof doc.getElementById === "function") {
+    const joined = labelledBy
+      .split(/\s+/)
+      .map((id) => doc.getElementById(id)?.textContent ?? "")
+      .join(" ");
+    const name = normalizeSelectorText(joined);
+    if (name) return name;
+  }
+
+  const id = el.id || "";
+  if (id && doc && typeof doc.querySelector === "function") {
+    try {
+      const lbl = doc.querySelector(`label[for="${id.replace(/"/g, '\\"')}"]`);
+      const name = normalizeSelectorText(lbl?.textContent ?? "");
+      if (name) return name;
+    } catch {
+      // selector inválido (id con caracteres raros) — seguimos.
+    }
+  }
+
+  if (typeof (el as unknown as { closest?: unknown }).closest === "function") {
+    try {
+      const wrapping = el.closest("label");
+      if (wrapping && wrapping !== el) {
+        const name = normalizeSelectorText(wrapping.textContent ?? "");
+        if (name) return name;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const a of ["placeholder", "title", "alt"]) {
+    const v = attr(a);
+    if (v) return v;
+  }
+
+  const tag = (el.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") {
+    return "";
+  }
+  const text = normalizeSelectorText(el.textContent ?? "");
+  return text.length > 0 && text.length < 80 ? text : "";
 }
 
 export function serializeElement(
@@ -169,20 +325,19 @@ export function serializeElement(
   if (!el || (el as Node).nodeType !== 1) return null;
 
   const tag = (el.tagName || "").toLowerCase();
-  // Role explicito gana sobre implicito. Si no hay explicito, calculamos
-  // el implicito segun tag+atributos (input type=search -> searchbox, etc).
+  const inputType = (el as unknown as { type?: string }).type ?? null;
+  // Role explicito gana sobre implicito. Si no hay ninguno, `role` cae al
+  // tag por compatibilidad del campo, pero NO se emite candidato 'role'.
   const explicitRole = el.getAttribute?.("role") || "";
-  const computedRole = explicitRole || implicitRole(el) || tag;
-  const role = computedRole;
-  // Normalizar texto para evitar que whitespace del HTML (\n, espacios
-  // multiples, etc) se incluya en el selector text. Playwright SI
-  // normaliza whitespace internamente pero trailing/leading newlines
-  // hacen que el selector text NO matchee elementos como labels que
-  // tienen textContent con indentacion por el HTML.
-  //   <label>Correo electronico\n                        \n      </label>
+  const semanticRole = resolveRole(tag, explicitRole, inputType);
+  const role = semanticRole ?? tag;
+  const accessibleName = accessibleNameFor(el);
+  // Normalizar texto (whitespace, NBSP, zero-width, NFC). Sin esto el
+  // codegen emite selectores con el indentado del HTML que no matchean:
+  //   <label>Correo electronico\n      \n  </label>
   //   -> getByText("Correo electronico") ✓
-  //   -> getByText("Correo electronico\n \n      ") ✗ (lo que generabamos)
-  const rawText = ((el.textContent || "")).replace(/\s+/g, " ").trim();
+  //   -> getByText("Correo electronico\n \n ") ✗
+  const rawText = normalizeSelectorText(el.textContent);
   const text = rawText.slice(0, 50);
 
   // FIX bug: antes se colapsaba aria-label/name/id en un solo campo "aria"
@@ -190,24 +345,29 @@ export function serializeElement(
   // que `getByLabel("username")` se generara para un input que SOLO
   // tenia id="username" (sin aria-label real) y por lo tanto Playwright
   // esperaba 180s sin encontrar el locator.
-  const ariaLabelAttr = el.getAttribute?.("aria-label") || "";
+  const ariaLabelAttr = normalizeSelectorText(el.getAttribute?.("aria-label"));
   const idAttr = el.id || "";
   const nameAttr = el.getAttribute?.("name") || "";
   const testIdAttr = el.getAttribute?.("data-testid") || "";
 
-  const candidates: Array<{ strategy: string; value: string }> = [];
+  const candidates: SelectorCandidate[] = [];
   if (testIdAttr) {
     candidates.push({
       strategy: "testid",
       value: `[data-testid="${escapeSelectorText(testIdAttr)}"]`,
     });
   }
-  // Role (explicito o implicito segun tag/type): esto es lo que Playwright
-  // codegen usa — getByRole('combobox', { name }) matchea semanticamente.
-  // El rol implicito cubre inputs sin role explicito (search->searchbox,
-  // select->combobox, button->button, etc).
-  if (role && role !== tag) {
-    candidates.push({ strategy: "role", value: role });
+  // HU-G14 / FIX bug 3: `role` va SEGUNDO en la prioridad porque es lo que
+  // emite `playwright codegen`. Se emite siempre que exista un role
+  // semantico (explicito o implicito), incluso si coincide con el tag
+  // (`<button>` -> role 'button'): antes el guard `role !== tag` lo
+  // descartaba y el codegen caia a getByLabel/getByText.
+  if (semanticRole) {
+    candidates.push({
+      strategy: "role",
+      value: semanticRole,
+      ...(accessibleName ? { name: accessibleName } : {}),
+    });
   }
   if (idAttr) {
     candidates.push({ strategy: "id", value: `#${idAttr}` });
@@ -224,7 +384,7 @@ export function serializeElement(
       value: `[name="${escapeSelectorText(nameAttr)}"]`,
     });
   }
-  if (text && text.length < 30) {
+  if (isUsableTextSelector(text)) {
     candidates.push({ strategy: "text", value: text });
   }
   if (typeof el.getAttribute === "function") {
@@ -251,6 +411,7 @@ export function serializeElement(
     // no tiene). Antes era el fallback name/id — eso era el bug.
     aria: ariaLabelAttr,
     name: nameAttr,
+    accessibleName,
     candidates,
     bbox,
   };

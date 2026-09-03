@@ -110,13 +110,16 @@ describe("dom-utils — serializeElement", () => {
     });
     const out = serializeElement(el)!;
     expect(out.tag).toBe("input");
-    expect(out.role).toBe("input");
+    // FIX (HU-G14): `<input>` tiene implicit role 'textbox', ya no cae al tag.
+    expect(out.role).toBe("textbox");
     expect(out.testId).toBe("user-input");
     expect(out.aria).toBe("Username"); // aria-label takes priority
     expect(out.name).toBe("user");
+    // FIX (HU-G14): ahora `accessibleName` se computa siempre.
+    expect(out.accessibleName).toBe("Username");
   });
 
-  it("builds candidate selectors in priority order: testid, id, aria-label, name, text, css", () => {
+  it("builds candidate selectors in priority order: testid, role, id, aria-label, name, text, css", () => {
     const el = mockElement({
       tag: "button",
       id: "submit-btn",
@@ -129,8 +132,12 @@ describe("dom-utils — serializeElement", () => {
     });
     const out = serializeElement(el)!;
     const strategies = out.candidates.map((c) => c.strategy);
+    // FIX (HU-G14): `role` se emite siempre que exista role semantico,
+    // en posicion 2 (entre testid e id). El codegen lo prefiere sobre
+    // aria-label y name porque es mas estable.
     expect(strategies).toEqual([
       "testid",
+      "role",
       "id",
       "aria-label",
       "name",
@@ -141,23 +148,31 @@ describe("dom-utils — serializeElement", () => {
       strategy: "testid",
       value: `[data-testid="btn-submit"]`,
     });
+    // FIX: role candidate incluye `name` con el accessible name
+    // computado. Con aria-label explicito gana el aria-label sobre
+    // el textContent ("Submit form" vs "Send").
     expect(out.candidates[1]).toEqual({
+      strategy: "role",
+      value: "button",
+      name: "Submit form",
+    });
+    expect(out.candidates[2]).toEqual({
       strategy: "id",
       value: `#submit-btn`,
     });
-    expect(out.candidates[2]).toEqual({
+    expect(out.candidates[3]).toEqual({
       strategy: "aria-label",
       value: `[aria-label="Submit form"]`,
     });
-    expect(out.candidates[3]).toEqual({
+    expect(out.candidates[4]).toEqual({
       strategy: "name",
       value: `[name="submit"]`,
     });
-    expect(out.candidates[4]).toEqual({
+    expect(out.candidates[5]).toEqual({
       strategy: "text",
       value: "Send",
     });
-    expect(out.candidates[5].strategy).toBe("css");
+    expect(out.candidates[6].strategy).toBe("css");
   });
 
   it("skips text candidate when text is >= 30 chars (avoid unwieldy selectors)", () => {
@@ -180,7 +195,10 @@ describe("dom-utils — serializeElement", () => {
     });
     const out = serializeElement(el)!;
     expect(out.candidates[0].value).toBe(`[data-testid="weird\\"id"]`);
-    expect(out.candidates[1].value).toBe(`[aria-label="say \\"hi\\""]`);
+    // FIX: candidates ahora tiene `role` en pos 1 entre testid y aria-label
+    // (input sin type → implicit role 'textbox').
+    expect(out.candidates[1].value).toBe("textbox");
+    expect(out.candidates[2].value).toBe(`[aria-label="say \\"hi\\""]`);
   });
 
   it("uses role attribute when present, falls back to tag", () => {
@@ -256,6 +274,7 @@ describe("dom-utils — toSelectorPrincipal", () => {
       testId: "user",
       aria: "Username",
       name: "user",
+      accessibleName: "Username",
       candidates: [],
       bbox: null,
     };

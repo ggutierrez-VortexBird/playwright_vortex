@@ -31,7 +31,14 @@
 import {
   pickBestSelector,
   type SerializedElementFull,
+  type SelectorCandidate,
 } from "@/lib/grabador/dom-utils";
+
+/** Cap absoluto para `waitForTimeout` en el codegen.
+ *  Más que esto = Playwright auto-wait ya cubre. Si llega un wait
+ *  mayor a este cap, lo SKIPEAMOS entero (no emitimos nada).
+ *  Esto matchea lo que hace `playwright codegen` para esperas largas. */
+export const MAX_WAIT_PERSIST_MS = 1500;
 
 /** Forma mínima que el serializer necesita de un PasoGrabado. */
 export interface PasoParaSerializar {
@@ -73,11 +80,11 @@ const TYPE_STRATEGY_FALLBACK = "locator";
  * prioridades distintas, gana la estrategia más prioritaria sin importar
  * la posición.
  */
-function candidatesFromPaso(paso: PasoParaSerializar): Array<{ strategy: string; value: string }> {
+function candidatesFromPaso(paso: PasoParaSerializar): SelectorCandidate[] {
   const respaldo = paso.selectoresRespaldo;
   if (Array.isArray(respaldo)) {
     return respaldo.filter(
-      (c): c is { strategy: string; value: string } =>
+      (c): c is SelectorCandidate =>
         typeof c === "object" &&
         c !== null &&
         typeof (c as { strategy?: unknown }).strategy === "string" &&
@@ -85,6 +92,7 @@ function candidatesFromPaso(paso: PasoParaSerializar): Array<{ strategy: string;
     );
   }
   // Fallback: build candidates from selectorPrincipal primitives.
+  // (sin `name` — el selectorPrincipal viejo no tenía accessible name).
   if (
     typeof paso.selectorPrincipal === "object" &&
     paso.selectorPrincipal !== null
@@ -96,7 +104,7 @@ function candidatesFromPaso(paso: PasoParaSerializar): Array<{ strategy: string;
       aria?: string;
       text?: string;
     };
-    const candidates: Array<{ strategy: string; value: string }> = [];
+    const candidates: SelectorCandidate[] = [];
     if (sp.testId) {
       candidates.push({
         strategy: "testid",
@@ -194,26 +202,53 @@ function playwrightArgFor(strategy: string, value: string): string {
  * Para strategies que necesitan opciones (ej. role → { name: 'Ingresar' }),
  * devuelve el sufijo del locator call. Cadena vacía si no aplica.
  *
- * Extrae el nombre del elemento de la descripcion (formato "Clic en
- * «name»" / "Escribir «x» en «name»") para que el codegen emita
- * `getByRole('button', { name: 'Ingresar' })` igual que Playwright.
+ * La fuente de verdad del `name` es el `accessibleName` que ya calculó
+ * el `serializeElement` (browser-side) y viaja en `candidate.name`.
+ * Solo si eso no viene caemos al regex sobre `paso.descripcion` como
+ * fallback para pasos viejos (pre-fix de dom-utils).
+ *
+ * Formatos que matchea el fallback:
+ *   "Clic en «NAME»" / "Escribir «x» en «NAME»" / "Tecla en «NAME»"
  */
 function playwrightRoleOptionsFor(
-  paso: { tipo: string; valor: string | null; descripcion: string },
-  roleValue: string,
+  _paso: { tipo: string; valor: string | null; descripcion: string },
+  _roleValue: string,
+  accessibleNameFromCandidate?: string,
 ): string {
-  if (paso.tipo === "navegar") return "";
-  // Intentar extraer el nombre del elemento de la descripcion.
-  // Formatos: "Clic en «NAME»", "Escribir «x» en «NAME»", "Tecla en «NAME»"
-  const m = paso.descripcion.match(/«([^»]+)»/);
-  let name = m && m[1] ? m[1].trim() : "";
-  // Fallback: valor si existe
-  if (!name && paso.valor) name = paso.valor.trim();
-  if (!name) return "";
-  // Limpiar prefijos comunes del name (ej "Clic en " si no se pudo parsear)
-  name = name.replace(/^(Clic en|Tecla en)\s+/i, "").trim();
-  if (!name) return "";
+  if (_paso.tipo === "navegar") return "";
+  // FIX ronda 5: SOLO usar el name que viene del candidate (browser-side).
+  // NO usar `descripcion` como fallback para el accessible name de getByRole.
+  // La descripcion es para humanos y puede contener el atributo HTML `name`
+  // (ej. "login-button") que NO es el accessible name real (ej. "Login").
+  // Usar la descripcion genera getByRole('button', { name: 'login-button' })
+  // que NUNCA matchea → timeout de 60s.
+  let name = (accessibleNameFromCandidate ?? "").trim();
+  if (!isUsefulRoleName(name)) return "";
   return `, { name: \`${jsStringEscape(name.slice(0, 50))}\` }`;
+}
+
+/**
+ * ¿Es un `accessibleName` útil para `getByRole(role, { name })`?
+ *
+ * Playwright codegen rechaza names que:
+ *   - Sean solo caracteres Private Use (\p{Co}) — icon fonts
+ *   - Sean muy cortos (< 2 chars) — matchean demasiados elementos
+ *   - Sean whitespace-only
+ *
+ * Referencia: packages/injected/src/selectorGenerator.ts en Playwright:
+ *   `if (ariaName && !ariaName.match(/^\p{Co}+$/u)) { ... }`
+ */
+function isUsefulRoleName(name: string | null | undefined): boolean {
+  if (!name) return false;
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return false;
+  // Rechazar si es SOLO caracteres Private Use (icon fonts)
+  if (/^\p{Co}+$/u.test(trimmed)) return false;
+  // Rechazar si parece un atributo HTML `name` (kebab-case identifier).
+  // Ej: "login-button", "user-name" — son IDs programáticos, NO accessible names.
+  // Los accessible names reales son texto humano: "Login", "Buscar en Wikipedia".
+  if (/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(trimmed)) return false;
+  return true;
 }
 
 /** Template literal-safe: escapa backticks y ${ en strings. */
@@ -268,7 +303,14 @@ export function serializarPaso(
   indent: string = "  ",
 ): string | null {
   const candidates = candidatesFromPaso(paso);
-  const best = pickBestSelector(candidates);
+  // `pickBestSelector` retorna `{ strategy, value }` pero los candidates
+  // pueden traer `name` (cuando strategy='role'). Cast para acceder al
+  // `name` en los cases que lo necesitan. El cast es seguro porque los
+  // candidates vienen de `candidatesFromPaso` que devuelve `SelectorCandidate[]`.
+  const best = pickBestSelector(candidates) as (SelectorCandidate & {
+    strategy: string;
+    value: string;
+  }) | null;
 
   // FIX: si el mejor selector tiene value vacio o solo whitespace, NO
   // emitir codigo Playwright invalido tipo `page.locator(\`\`)` que falla
@@ -280,6 +322,42 @@ export function serializarPaso(
     best !== null && typeof best.value === "string" && best.value.trim().length > 0
       ? best
       : null;
+
+  /**
+   * Resuelve el candidate efectivo aplicando fallbacks de seguridad.
+   *   1. Si es 'text' con texto sospechoso → cae al siguiente candidate.
+   *   2. Si es 'role' sin name útil → cae al siguiente candidate.
+   *      El "name útil" incluye fallbacks de descripcion/valor, no solo
+   *      candidate.name directo. (Playwright codegen hace esto:
+   *      `kRoleWithoutNameScore = 510` es casi tan malo como CSS fallback).
+   */
+  function resolveEffectiveBest(
+    initial: typeof bestValid,
+    allCandidates: SelectorCandidate[],
+    pasoRef: { tipo: string; valor: string | null; descripcion: string },
+  ): typeof bestValid {
+    if (!initial) return null;
+    let effective = initial;
+    if (effective.strategy === "text" && !isUsableTextSelectorValue(effective.value)) {
+      const fallback = allCandidates.find(
+        (c) => c.strategy !== "text" && c.value && c.value.trim().length > 0,
+      );
+      if (fallback) effective = fallback as typeof effective;
+    }
+    if (effective.strategy === "role") {
+      // FIX ronda 5: solo considerar candidate.name directo. NO usar
+      // descripcion/valor como fallback porque pueden contener atributos
+      // HTML (ej. name="login-button") que NO son el accessible name real.
+      const effectiveName = (effective.name ?? "").trim();
+      if (!isUsefulRoleName(effectiveName)) {
+        const fallback = allCandidates.find(
+          (c) => c.strategy !== "role" && c.value && c.value.trim().length > 0,
+        );
+        if (fallback) effective = fallback as typeof effective;
+      }
+    }
+    return effective;
+  }
 
   switch (paso.tipo) {
     case "navegar": {
@@ -295,38 +373,64 @@ export function serializarPaso(
     }
     case "clic": {
       if (!bestValid) return `${indent}// Paso ${paso.numero}: clic sin selector valido — revisar manualmente`;
-      const method = playwrightMethodFor(bestValid.strategy);
-      const arg = playwrightArgFor(bestValid.strategy, bestValid.value);
+      const effectiveBest = resolveEffectiveBest(bestValid, candidates, paso);
+      if (!effectiveBest) return `${indent}// Paso ${paso.numero}: clic sin selector unico — revisar manualmente`;
+      const method = playwrightMethodFor(effectiveBest.strategy);
+      const arg = playwrightArgFor(effectiveBest.strategy, effectiveBest.value);
       const argJs = jsStringEscape(arg);
-      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
-      // FIX: agregar .first() como defensa contra strict mode violation
-      // cuando hay multiples elementos con el mismo selector (ej. inputs
-      // duplicados en header/mobile del mismo DOM). Playwright tambien
-      // emite .first() en casos ambiguos. Sin esto, el test falla con
-      // "strict mode violation: resolved to 2 elements".
-      return `${indent}await page.${method}(\`${argJs}\`${options}).first().click();`;
+      const options =
+        effectiveBest.strategy === "role"
+          ? playwrightRoleOptionsFor(paso, effectiveBest.value, effectiveBest.name)
+          : "";
+      // NOTA: NO agregamos .first() en acciones (clic/fill/press).
+      // Si hay multiples matches, es mejor que falle rapido con strict mode
+      // violation a que se cuelgue 3 minutos esperando un elemento invisible.
+      // Playwright strict mode es una feature, no un bug, para acciones.
+      return `${indent}await page.${method}(\`${argJs}\`${options}).click();`;
     }
     case "escribir": {
       if (!bestValid) return `${indent}// Paso ${paso.numero}: escribir sin selector valido — revisar manualmente`;
-      // FIX: para passwords (valor=null por seguridad) NO emitimos fill
-      // con string vacio. El test puede fallar porque llenar password con
-      // "" borra el valor. En su lugar emitimos un comentario y dejamos
-      // que el usuario agregue un parametro de credencial via HU-G13
-      // (CSV data-driven) o via setup del credential en el caso.
+      const effectiveBest = resolveEffectiveBest(bestValid, candidates, paso);
+      if (!effectiveBest) return `${indent}// Paso ${paso.numero}: escribir sin selector unico — revisar manualmente`;
+      // FIX CRITICO: para passwords (valor=null por seguridad) emitimos un
+      // fill REAL contra `params.password`, no un comentario. Antes el codegen
+      // emitía solo `// Paso N: escribir credencial — agregar parametro` y el
+      // test fallaba en login porque el input quedaba vacío. Ahora: el test
+      // se autogenera con `params.password = ""` en el objeto params, y el
+      // usuario edita el valor (o usa env var / CSV data-driven) ANTES de
+      // correr. El nombre del param (`password`) puede sobreescribirse via
+      // `descripcion` matcheando `{{nombre}}` luego.
       if (paso.valor === null && paso.esValorSensible) {
-        return `${indent}// Paso ${paso.numero}: escribir credencial — agregar parametro o credential setup`;
+        const method = playwrightMethodFor(effectiveBest.strategy);
+        const arg = jsStringEscape(playwrightArgFor(effectiveBest.strategy, effectiveBest.value));
+        const options =
+          effectiveBest.strategy === "role"
+            ? playwrightRoleOptionsFor(paso, effectiveBest.value, effectiveBest.name)
+            : "";
+        return `${indent}await page.${method}(\`${arg}\`${options}).first().fill(params.password);`;
       }
-      const method = playwrightMethodFor(bestValid.strategy);
-      const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
+      const method = playwrightMethodFor(effectiveBest.strategy);
+      const arg = jsStringEscape(playwrightArgFor(effectiveBest.strategy, effectiveBest.value));
       const valor = paso.valor ?? "";
       const valorRef = findParamRef(valor, parametros);
       const finalValor = valorRef ? inlineParamRef(valor) : jsStringEscape(valor);
-      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
+      const options =
+        effectiveBest.strategy === "role"
+          ? playwrightRoleOptionsFor(paso, effectiveBest.value, effectiveBest.name)
+          : "";
       return `${indent}await page.${method}(\`${arg}\`${options}).first().fill(\`${finalValor}\`);`;
     }
     case "esperar": {
       const ms = Number.parseInt(paso.valor ?? "1000", 10);
       const safeMs = Number.isFinite(ms) && ms >= 0 ? ms : 1000;
+      // FIX: cap absoluto en MAX_WAIT_PERSIST_MS. Playwright ya tiene
+      // auto-wait built-in para todo lo >1.5s, asi que waits grandes en
+      // el codegen SON RUIDO (reducen velocidad, no aportan robustez).
+      // Si llega un wait mayor, SKIPPEAMOS el paso entero (comentario
+      // explicativo para que se vea en el .spec.ts que el wait existia).
+      if (safeMs > MAX_WAIT_PERSIST_MS) {
+        return `${indent}// Paso ${paso.numero}: esperar ${safeMs}ms omitido (>${MAX_WAIT_PERSIST_MS}ms — Playwright auto-wait cubre)`;
+      }
       return `${indent}await page.waitForTimeout(${safeMs});`;
     }
     case "tecla": {
@@ -339,53 +443,83 @@ export function serializarPaso(
       if (!bestValid) {
         return `${indent}await page.keyboard.press(${JSON.stringify(key)});`;
       }
-      const method = playwrightMethodFor(bestValid.strategy);
-      const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
-      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
+      const effectiveBest = resolveEffectiveBest(bestValid, candidates, paso);
+      if (!effectiveBest) {
+        return `${indent}await page.keyboard.press(${JSON.stringify(key)});`;
+      }
+      const method = playwrightMethodFor(effectiveBest.strategy);
+      const arg = jsStringEscape(playwrightArgFor(effectiveBest.strategy, effectiveBest.value));
+      const options =
+        effectiveBest.strategy === "role"
+          ? playwrightRoleOptionsFor(paso, effectiveBest.value, effectiveBest.name)
+          : "";
       return `${indent}await page.${method}(\`${arg}\`${options}).first().press(${JSON.stringify(key)});`;
     }
     case "verificar": {
       if (!bestValid) return `${indent}// Paso ${paso.numero}: verificacion sin selector valido — revisar manualmente`;
-      const method = playwrightMethodFor(bestValid.strategy);
-      const arg = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
-      const options = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
+      const effectiveBest = resolveEffectiveBest(bestValid, candidates, paso);
+      if (!effectiveBest) return `${indent}// Paso ${paso.numero}: verificacion sin selector unico — revisar manualmente`;
+      const method = playwrightMethodFor(effectiveBest.strategy);
+      const arg = jsStringEscape(playwrightArgFor(effectiveBest.strategy, effectiveBest.value));
+      const options =
+        effectiveBest.strategy === "role"
+          ? playwrightRoleOptionsFor(paso, effectiveBest.value, effectiveBest.name)
+          : "";
       const expected = paso.valor ?? "";
       const expectedRef = findParamRef(expected, parametros);
       const finalExpected = expectedRef ? inlineParamRef(expected) : jsStringEscape(expected);
 
       switch (paso.assertionKind) {
         case "visible":
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toBeVisible();`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toBeVisible();`;
         case "texto_igual":
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveText(\`${finalExpected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toHaveText(\`${finalExpected}\`);`;
         case "texto_contiene":
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toContainText(\`${finalExpected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toContainText(\`${finalExpected}\`);`;
         case "valor_igual":
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveValue(\`${finalExpected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toHaveValue(\`${finalExpected}\`);`;
         case "count":
           const n = Number.parseInt(expected, 10);
           const nSafe = Number.isFinite(n) && n >= 0 ? n : 1;
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toHaveCount(${nSafe});`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toHaveCount(${nSafe});`;
         case "snapshot":
           // HU-G6 snapshot: el `valor` ya viene siendo el YAML del aria tree
           // (capturado por el worker en pick_result.ariaSnapshot). Lo
           // emitimos como template literal de TS preservando saltos de linea.
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toMatchAriaSnapshot(\`${expected}\`);`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toMatchAriaSnapshot(\`${expected}\`);`;
         default:
           // Default to toBeVisible for unknown assertion kinds.
-          return `${indent}await expect(page.${method}(\`${arg}\`${options})).toBeVisible();`;
+          return `${indent}await expect(page.${method}(\`${arg}\`${options}).first()).toBeVisible();`;
       }
     }
     case "seleccionar":
       if (!bestValid) return `${indent}// Paso ${paso.numero}: select sin selector`;
       const method2 = playwrightMethodFor(bestValid.strategy);
       const arg2 = jsStringEscape(playwrightArgFor(bestValid.strategy, bestValid.value));
-      const options2 = bestValid.strategy === "role" ? playwrightRoleOptionsFor(paso, bestValid.value) : "";
+      const options2 =
+        bestValid.strategy === "role"
+          ? playwrightRoleOptionsFor(paso, bestValid.value, bestValid.name)
+          : "";
       return `${indent}await page.${method2}(\`${arg2}\`${options2}).selectOption(/* value */);`;
     case "generico":
     default:
       return null;
   }
+}
+
+/** Versión inline de `isUsableTextSelector` (lib/grabador/dom-utils.ts).
+ *  Recheaza textos:
+ *    - vacíos
+ *    - >=30 chars (típico `textContent` con hijos concatenados)
+ *    - con patron "PerúJulián" (lowercase pegado a uppercase) — concat
+ *      inequívoca de nodos hermanos.
+ *  Esto evita que el codegen emita `getByText` que NO matchea el locator. */
+function isUsableTextSelectorValue(text: string): boolean {
+  const t = (text ?? "").replace(/\s+/g, " ").trim();
+  if (t.length < 3) return false;
+  if (t.length >= 30) return false;
+  if (/[\p{Ll}][\p{Lu}]/u.test(t)) return false;
+  return true;
 }
 
 /**
@@ -410,26 +544,86 @@ export function serializarPasos(
   pasos: PasoParaSerializar[],
   options: SerializarPasosOptions,
 ): string {
-  const { nombreDelCaso, parametros = [], indent = "  " } = options;
+  const { nombreDelCaso, parametros: userParams = [], indent = "  " } = options;
+
+  // FIX CREDENCIALES: detectar si hay pasos sensibles (password). Si los hay,
+  // auto-agregar `password: ""` al objeto params para que el `fill(params.password)`
+  // emitido por serializarPaso() tenga algo que resolver en runtime.
+  // Antes el params = {} y el codegen emitía solo un comment → login fallaba
+  // con "Username and password do not match" porque el input quedaba vacío.
+  const hasPasswordStep = pasos.some(
+    (p) => p.tipo === "escribir" && p.esValorSensible && p.valor === null,
+  );
+  const parametros = [...userParams];
+  if (hasPasswordStep && !parametros.some((p) => p.nombre === "password")) {
+    parametros.push({ nombre: "password", valorDefecto: "" });
+  }
+
   const paramsLiteral = buildParamsObject(parametros);
 
   const lineas: string[] = [];
+  let emittedAnyExpect = false; // FIX ronda 4: track si emitimos al menos 1 expect()
+  let lastFillKey = ""; // FIX ronda 4: dedupe de fills consecutivos idénticos
+
   lineas.push(`import { test, expect } from '@playwright/test';`);
   lineas.push("");
   lineas.push(
     `test(${JSON.stringify(nombreDelCaso)}, async ({ page }) => {`,
   );
+  // Si auto-agregamos password, dejamos un comentario TODO explicativo arriba
+  // del objeto params para que el usuario edite el valor antes de correr.
+  if (hasPasswordStep && !userParams.some((p) => p.nombre === "password")) {
+    lineas.push(`${indent}// TODO: reemplazar el valor de \`password\` antes de ejecutar (o leerlo de process.env.PASSWORD).`);
+  }
   lineas.push(`${indent}const params = ${paramsLiteral};`);
   lineas.push("");
 
   for (const paso of pasos) {
-    lineas.push(`${indent}// Paso ${paso.numero}: ${paso.descripcion}`);
     const code = serializarPaso(paso, parametros, indent);
-    if (code !== null) {
-      lineas.push(code);
-    } else {
-      lineas.push(`${indent}// (paso manual sin code-gen: revisar en UI)`);
+    if (code === null) {
+      // FIX ronda 4: NO emitir comentarios "paso manual sin code-gen" para
+      // pasos 'generico' (keydowns no-especiales, etc). Antes generaban 13+
+      // líneas de ruido en tests típicos. El codegen ahora los SKIP silencioso.
+      // Si en el futuro se necesita depurar, agregar `if (paso.tipo !== 'generico')`.
+      continue;
     }
+
+    // FIX ronda 4: dedupe de fills consecutivos idénticos. El grabador
+    // actualmente genera 2+ fills para el mismo campo (1º input event sin
+    // `name` capturado, 2º con todo, etc.). Si el (selector, valor) es
+    // exactamente el mismo que el ÚLTIMO fill que emitimos (no importa qué
+    // haya entremedio — waits, keydowns, clicks a otros campos cuentan como
+    // "entremedio"), NO emitimos el duplicado.
+    if (
+      paso.tipo === "escribir" &&
+      code.includes(".fill(")
+    ) {
+      // Captura strategy + selector + fill_arg. El fill_arg puede ser:
+      //   - backtick-delimited:  `value`
+      //   - template interp:     ${params.password} (sin backticks)
+      //   - string literal:      "value"
+      const fillKey = code.match(/page\.(\w+)\(([\s\S]+?)\)\.first\(\)\.fill\(([\s\S]+?)\);/);
+      const key = fillKey ? `${fillKey[1]}|${fillKey[2]}|${fillKey[3]}` : "";
+      if (key && key === lastFillKey) {
+        continue;
+      }
+      lastFillKey = key;
+    }
+
+    lineas.push(`${indent}// Paso ${paso.numero}: ${paso.descripcion}`);
+    lineas.push(code);
+    if (code.includes("expect(")) emittedAnyExpect = true;
+  }
+
+  // FIX ronda 4: fallback assertion. Si el test no emitió NINGÚN expect()
+  // (típico: usuario grabó un flujo pero nunca agregó un verify), emitimos
+  // uno al final que valide que la página cargó algo. ANTES el test "pasaba"
+  // vacíamente sin校验 nada — Playwright lo daba por bueno.
+  if (!emittedAnyExpect) {
+    lineas.push("");
+    lineas.push(`${indent}// FIX: fallback assertion para que el test no pase vacíamente.`);
+    lineas.push(`${indent}// Reemplazar por una verificación específica del flujo.`);
+    lineas.push(`${indent}await expect(page.locator("body").first()).toBeVisible();`);
   }
 
   lineas.push("});");

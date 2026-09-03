@@ -195,6 +195,12 @@ function buildFullFromPrimitives(p: {
   }
   candidates.push({ strategy: "css", value: "" }); // css path requires DOM walk, N/A from primitives
 
+  // Best-effort accessible name: aria-label si existe, si no vacío. El codegen
+  // usa este campo para emitir `getByRole(role, { name })`. El DOM completo
+  // (label[for], aria-labelledby) se calcula en dom-utils.serializeElement —
+  // acá solo recibimos los primitivos via WS.
+  const accessibleName = (p.aria ?? "").trim();
+
   return {
     tag: p.tag,
     role: p.role,
@@ -202,6 +208,7 @@ function buildFullFromPrimitives(p: {
     name: p.name,
     testId: p.testId,
     text: p.text,
+    accessibleName,
     candidates,
     bbox: p.bbox,
   };

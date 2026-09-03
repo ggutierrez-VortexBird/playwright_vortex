@@ -91,38 +91,57 @@ describe("serializarPaso — priority end-to-end (HU-G14)", () => {
       ],
     });
     expect(serializarPaso(paso)).toBe(
-      "  await page.getByTestId(`[data-testid=\"submit\"]`).click();",
+      "  await page.getByTestId(`submit`).click();",
     );
   });
 
-  it("emits getByRole when role is the best candidate", () => {
+  it("emits getByRole when role is the best candidate WITH useful name", () => {
     const paso = basePaso({
-      selectoresRespaldo: [{ strategy: "role", value: "button" }],
+      selectoresRespaldo: [{ strategy: "role", value: "button", name: "Enviar" }],
     });
     const code = serializarPaso(paso);
-    // El método es getByRole y la primera estrategia priorizada es role.
-    expect(code).toContain("getByRole(`button`");
+    // Role CON name util → se emite getByRole con { name }.
+    expect(code).toContain("getByRole(`button`, { name: `Enviar` })");
+  });
+
+  it("falls back from role WITHOUT name to next candidate", () => {
+    const paso = basePaso({
+      selectoresRespaldo: [
+        { strategy: "role", value: "button" },
+        { strategy: "id", value: "#submit" },
+      ],
+    });
+    const code = serializarPaso(paso);
+    // Role sin name util → cae a id.
+    expect(code).toContain("locator(`#submit`)");
+    expect(code).not.toContain("getByRole");
   });
 
   it("uses id strategy → page.locator", () => {
     const paso = basePaso({
       selectoresRespaldo: [{ strategy: "id", value: "#submit" }],
     });
-    expect(serializarPaso(paso)).toBe("  await page.locator(`#submit`).click();");
+    expect(serializarPaso(paso)).toBe(
+      "  await page.locator(`#submit`).click();",
+    );
   });
 
   it("uses aria-label strategy → page.getByLabel", () => {
     const paso = basePaso({
       selectoresRespaldo: [{ strategy: "aria-label", value: "Submit" }],
     });
-    expect(serializarPaso(paso)).toBe("  await page.getByLabel(`Submit`).click();");
+    expect(serializarPaso(paso)).toBe(
+      "  await page.getByLabel(`Submit`).click();",
+    );
   });
 
   it("uses text strategy → page.getByText", () => {
     const paso = basePaso({
       selectoresRespaldo: [{ strategy: "text", value: "Submit" }],
     });
-    expect(serializarPaso(paso)).toBe("  await page.getByText(`Submit`).click();");
+    expect(serializarPaso(paso)).toBe(
+      "  await page.getByText(`Submit`).click();",
+    );
   });
 
   it("falls back to css when only css available", () => {
@@ -147,17 +166,41 @@ describe("serializarPaso — priority end-to-end (HU-G14)", () => {
     expect(code).not.toContain("getByRole");
   });
 
-  it("prefers role even when id is also available", () => {
+  it("prefers role WITH name even when id is also available", () => {
     const paso = basePaso({
       selectoresRespaldo: [
         { strategy: "css", value: "body > button" },
         { strategy: "id", value: "#go" },
-        { strategy: "role", value: "button" },
+        { strategy: "role", value: "button", name: "Enviar" },
     ],
     });
     const code = serializarPaso(paso);
     expect(code).toContain("getByRole");
     expect(code).not.toContain("locator(`#go`");
+  });
+
+  it("emits getByRole with { name } when candidate.name is present", () => {
+    // Caso HU-G14 / HU-G11: el codegen debe matchear Playwright y emitir
+    // `page.getByRole('searchbox', { name: 'Buscar en Wikipedia' })`.
+    const paso = basePaso({
+      selectoresRespaldo: [
+        { strategy: "role", value: "searchbox", name: "Buscar en Wikipedia" },
+      ],
+    });
+    expect(serializarPaso(paso)).toBe(
+      "  await page.getByRole(`searchbox`, { name: `Buscar en Wikipedia` }).click();",
+    );
+  });
+
+  it("uses getByRole even without name when it is the only candidate", () => {
+    const paso = basePaso({
+      selectoresRespaldo: [{ strategy: "role", value: "button" }],
+    });
+    const code = serializarPaso(paso) ?? "";
+    // Role sin name util pero sin fallback disponible → getByRole como ultimo
+    // recurso. Playwright strict mode se encarga de detectar ambiguedad.
+    expect(code).toContain("getByRole(`button`)");
+    expect(code).not.toContain("sin selector unico");
   });
 });
 
@@ -195,13 +238,13 @@ describe("serializarPaso — respaldo fallback chain (HU-G14)", () => {
     expect(code).toContain("getByRole(`button`");
   });
 
-  it("falls back through chain: testid → role → id → aria → css", () => {
+  it("falls back through chain: testid → role(with name) → id → aria → css", () => {
     // Cuando selectoresRespaldo es array, se usa SOLO esa lista.
-    // role es el más prioritario de los disponibles → getByRole.
+    // role CON name util es el más prioritario de los disponibles → getByRole.
     const paso = basePaso({
       selectorPrincipal: { tag: "button", testId: "go" },
       selectoresRespaldo: [
-        { strategy: "role", value: "button" },
+        { strategy: "role", value: "button", name: "Enviar" },
         { strategy: "id", value: "#go" },
         { strategy: "css", value: "body > button" },
       ],
