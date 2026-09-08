@@ -10,7 +10,7 @@ stack: nextjs-prisma-postgres
 mode: hybrid
 strict_tdd: true
 language: es
-status: stack-planned-not-installed
+status: stack-installed-in-active-development
 
 # --- Contexto detectado ---
 # ACTA = plataforma interna de Vortexbird para ejecutar pruebas Playwright
@@ -34,19 +34,23 @@ context: |
   Strict TDD: true (test runner pending install at Fase 1 del plan).
   Language: es (specs, docs, commits messages pueden ser en inglés).
 
-# --- Testing capabilities (lo que habrá cuando esté instalado) ---
+# --- Testing capabilities ---
+# NOTA (2026-09-08): este bloque quedó desactualizado desde Fase 0 — el
+# stack sí está instalado y en desarrollo activo desde hace semanas. Se
+# corrigen acá solo los campos verificados en esta sesión; el resto del
+# archivo (contexto, "Ultima HU completada") no se tocó porque requiere
+# reconstruir el historial real de HUs, que no es seguro inferir a ciegas.
 testing:
   strict_tdd: true
-  runner_installed: false
-  runner_install_phase: "Fase 1 del plan (esqueleto Next.js) = Fase 7 del pipeline Vorkan / IMPLEMENTER"
-  unit: TODO                   # Vitest o Jest — a decidir en Fase 4 DESIGNER
-  integration: TODO
-  e2e: Playwright              # producto, no test del producto
-  linter: TODO                 # ESLint — a confirmar
-  formatter: TODO              # Prettier — a confirmar
+  runner_installed: true
+  unit: Jest + Testing Library
+  integration: Jest (route handlers con mocks de Prisma/auth)
+  e2e: Playwright (./e2e, requiere `npm run dev` corriendo)
+  linter: "sin configurar — `npm run lint` dispara el asistente interactivo de `next lint`, no hay .eslintrc/eslint.config"
+  formatter: TODO
   type_checker: typescript-strict
-  test_command: ""             # se completa cuando se instale el runner
-  build_command: ""            # se completa cuando se instale Next.js
+  test_command: "npm test"
+  build_command: "next build"
   coverage_threshold: 0
 
 # --- Convenciones detectadas ---

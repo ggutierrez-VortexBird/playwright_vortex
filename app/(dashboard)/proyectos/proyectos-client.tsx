@@ -93,19 +93,19 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   return (
     <div className="flex flex-col gap-6">
       {/* Topbar — mockup style */}
-      <div className="topbar -mx-6 -mt-6 rounded-none">
-        <h2>Proyectos</h2>
-        <span className="sub">
+      <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
+        <h2 className="font-headline text-headline-lg text-m3-primary">Proyectos</h2>
+        <span className="font-body text-body-sm text-m3-on-surface-variant">
           {proyectos.length} proyectos · {espacios.length} espacios
         </span>
-        <span className="spacer" />
+        <span className="ml-auto" />
         {canEdit && (
           <button
             onClick={() => {
               setShowForm(true);
               setEditingProyecto(null);
             }}
-            className="btn btn-primary"
+            className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
           >
             + Nuevo Proyecto
           </button>
@@ -132,8 +132,8 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
 
       {/* Proyectos grouped by espacio */}
       {espacios.length === 0 ? (
-        <div className="rounded-lg border border-rule bg-surface p-8 text-center">
-          <p className="text-ink-3">No hay espacios creados aún.</p>
+        <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+          <p className="text-m3-on-surface-variant">No hay espacios creados aún.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-10">
@@ -149,8 +149,8 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
                     className="h-4 w-4 rounded"
                     style={{ backgroundColor: espacio.color }}
                   />
-                  <h2 className="text-lg font-semibold text-ink">{espacio.nombre}</h2>
-                  <span className="text-sm text-ink-3">
+                  <h2 className="font-headline text-headline-md text-m3-primary">{espacio.nombre}</h2>
+                  <span className="font-body text-body-sm text-m3-on-surface-variant">
                     ({espacioProyectos.length} proyecto{espacioProyectos.length !== 1 ? "s" : ""})
                   </span>
                 </div>

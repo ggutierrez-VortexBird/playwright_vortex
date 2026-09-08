@@ -29,7 +29,7 @@ export function ReRunButton({ casoPruebaId }: ReRunButtonProps) {
 
   return (
     <button
-      className="btn"
+      className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
       onClick={handleReRun}
       disabled={loading}
       title="Volver a ejecutar este caso de prueba"

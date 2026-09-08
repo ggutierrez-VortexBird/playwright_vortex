@@ -8,8 +8,8 @@ interface Props {
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="sm:col-span-1">
-      <dt className="text-[11px] font-semibold text-gray-500 uppercase">{label}</dt>
-      <dd className="mt-1 text-sm font-medium text-gray-900">{value ?? '—'}</dd>
+      <dt className="font-label text-[11px] font-semibold uppercase text-m3-on-surface-variant">{label}</dt>
+      <dd className="mt-1 font-body text-body-sm font-medium text-m3-on-surface">{value ?? '—'}</dd>
     </div>
   )
 }

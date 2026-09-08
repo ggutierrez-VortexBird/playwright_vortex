@@ -12,6 +12,7 @@ out/
 # Prisma
 prisma/migrations/*/
 !prisma/migrations/migration_lock.toml
+!prisma/migrations/20260907212500_pivot_pw_codegen_spec_text/
 
 # Docker
 postgres-data/

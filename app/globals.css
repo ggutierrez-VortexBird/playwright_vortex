@@ -6,19 +6,6 @@
 
 @layer base {
   :root {
-    --ink: #131e2b;
-    --ink-2: #3a4b5c;
-    --ink-3: #6b7c8d;
-    --paper: #eef2f5;
-    --surface: #ffffff;
-    --rule: #d7e0e7;
-    --rule-soft: #e7edf1;
-    --stamp: #a8322a;
-    --seal: #0e6b4f;
-    --amber: #a9741a;
-    --param: #3f3a7a;
-    --client: #c9822f;
-    --rail: 224px;
     --radius: 0.5rem;
   }
 
@@ -34,16 +21,16 @@
   }
 
   body {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--m3-background);
+    color: var(--m3-on-surface);
+    font-family: var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }
 
   :focus-visible {
-    outline: 2px solid var(--stamp);
+    outline: 2px solid var(--m3-secondary);
     outline-offset: 2px;
   }
 
@@ -57,12 +44,11 @@
 }
 
 /* ============================================================
- * Visual identity classes — match `documentacion/acta-mockups.html`
- * These are utility-classes declared once and composed across
- * components instead of re-stamping the same Tailwind soup.
+ * Identidad visual del espacio (HU-2.5) — franja lateral, marcador
+ * del switcher, e ícono de la scope-bar. Independiente del sistema
+ * de diseño de cada pantalla: son marcas de color por espacio, no
+ * componentes de chrome.
  * ============================================================ */
-
-/* ---------- shell helpers ---------- */
 .client-band {
   position: absolute;
   top: 0;
@@ -85,335 +71,33 @@
   flex: 0 0 8px;
 }
 
-/* ---------- primitives ---------- */
+.scope-bar i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 8px;
+  background: var(--m3-secondary);
+}
+
+/* ============================================================
+ * Grid de tarjetas de proyecto — solo layout (sin color), lo usan
+ * proyectos-client.tsx y proyecto-grid.tsx junto con ProyectoCard
+ * (que trae su propio estilo Material 3 inline).
+ * ============================================================ */
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(298px, 1fr));
+  gap: 16px;
+}
+
+/* ============================================================
+ * Video de ejecución — chrome oscuro del reproductor. Se mantiene
+ * oscuro a propósito independientemente del tema de la pantalla:
+ * es el fondo de un <video>, no una superficie de la UI.
+ * ============================================================ */
 @layer components {
-  .btn {
-    padding: 8px 15px;
-    border-radius: 5px;
-    font-size: 13px;
-    font-weight: 500;
-    border: 1px solid var(--rule);
-    background: var(--surface);
-    color: var(--ink-2);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition:
-      border-color 0.15s,
-      color 0.15s,
-      background 0.15s;
-  }
-  .btn:hover {
-    border-color: var(--ink-3);
-    color: var(--ink);
-  }
-  .btn-primary {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
-  }
-  .btn-primary:hover {
-    background: #0b141f;
-    color: #fff;
-  }
-  .btn-stop {
-    background: var(--stamp);
-    border-color: var(--stamp);
-    color: #fff;
-  }
-  .btn-stop:hover {
-    background: #8e2921;
-    color: #fff;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 7px;
-  }
-
-  .eyebrow {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 9px;
-    border-radius: 20px;
-    border: 1px solid;
-    white-space: nowrap;
-  }
-  .p-pass {
-    color: var(--seal);
-    border-color: #b4d9c9;
-    background: #edf7f3;
-  }
-  .p-fail {
-    color: var(--stamp);
-    border-color: #e4c0bc;
-    background: #fbefee;
-  }
-  .p-heal {
-    color: var(--amber);
-    border-color: #e5d3ae;
-    background: #fbf5e9;
-  }
-  .p-idle {
-    color: var(--ink-3);
-    border-color: var(--rule);
-    background: var(--paper);
-  }
-  .p-running {
-    color: var(--client);
-    border-color: #e7c89d;
-    background: #fcf2e3;
-  }
-
-  .chip-param {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11.5px;
-    color: var(--param);
-    background: #efeef7;
-    border: 1px solid #cfcbe6;
-    border-radius: 4px;
-    padding: 1px 6px;
-  }
-  .chip-secret {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11.5px;
-    color: var(--ink-3);
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    padding: 1px 6px;
-  }
-
-  /* ---------- stamp (signature element) ---------- */
-  .stamp {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 700;
-    font-size: 11.5px;
-    letter-spacing: 0.19em;
-    text-transform: uppercase;
-    color: var(--stamp);
-    border: 2.5px solid var(--stamp);
-    padding: 5px 11px;
-    border-radius: 3px;
-    transform: rotate(-2.4deg);
-    opacity: 0.88;
-  }
-  .stamp .ink {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--stamp);
-    animation: stampPulse 1.6s ease-in-out infinite;
-  }
-  @keyframes stampPulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.25;
-    }
-  }
-
-  /* ---------- ledger (steps acta) ---------- */
-  .ledger {
-    display: flex;
-    flex-direction: column;
-  }
-  .ledger-head {
-    padding: 15px 18px;
-    border-bottom: 1px solid var(--rule);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .steps {
-    list-style: none;
-    padding: 6px 0;
-  }
-  .step {
-    display: grid;
-    grid-template-columns: 38px 1fr;
-    gap: 12px;
-    padding: 9px 18px 9px 14px;
-    position: relative;
-    align-items: start;
-  }
-  .step + .step {
-    border-top: 1px solid var(--rule-soft);
-  }
-  .step:hover {
-    background: #f7fafb;
-  }
-  .step .no {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11.5px;
-    font-weight: 500;
-    color: var(--ink-3);
-    padding-top: 2px;
-    text-align: right;
-  }
-  .step .txt {
-    font-size: 13.2px;
-    color: var(--ink);
-    line-height: 1.5;
-  }
-  .step .meta {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    color: var(--ink-3);
-    margin-top: 3px;
-  }
-  .step-assert {
-    background: #fbf9f1;
-  }
-  .step-assert .txt::before {
-    content: "⚑ ";
-    color: var(--amber);
-  }
-  .step.new {
-    animation: stepWrite 0.34s ease-out;
-  }
-  @keyframes stepWrite {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  /* ---------- tables (mockup editorial table) ---------- */
-  .table-mockup {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .table-mockup th {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    text-align: left;
-    font-weight: 500;
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--rule);
-  }
-  .table-mockup td {
-    padding: 13px 16px;
-    border-bottom: 1px solid var(--rule-soft);
-    font-size: 13.2px;
-    vertical-align: middle;
-  }
-  .table-mockup tbody tr:last-child td {
-    border-bottom: none;
-  }
-  .table-mockup tbody tr:hover {
-    background: #f7fafb;
-  }
-  .tname {
-    font-weight: 500;
-  }
-  .tmeta {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    color: var(--ink-3);
-  }
-
-  /* ---------- run view (mockup execution grid) ---------- */
-  .run-grid {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 18px;
-    align-items: start;
-  }
-  @media (max-width: 1100px) {
-    .run-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-  .run-stat {
-    display: flex;
-    gap: 26px;
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--rule);
-    flex-wrap: wrap;
-  }
-  .run-stat div .k {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-  .run-stat div .v {
-    font-size: 17px;
-    font-weight: 600;
-    margin-top: 4px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-  }
-  .rstep {
-    display: grid;
-    grid-template-columns: 38px 1fr auto;
-    gap: 12px;
-    padding: 10px 18px 10px 14px;
-    align-items: center;
-  }
-  .rstep + .rstep {
-    border-top: 1px solid var(--rule-soft);
-  }
-  .rstep .no {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11.5px;
-    color: var(--ink-3);
-    text-align: right;
-  }
-  .rstep .dur {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    color: var(--ink-3);
-  }
-  .rstep .desc {
-    font-size: 13.2px;
-    color: var(--ink);
-    line-height: 1.5;
-  }
-  .rstep .desc-meta {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    color: var(--ink-3);
-    margin-top: 3px;
-  }
-  .rstep.fail {
-    background: #fcf3f2;
-  }
-  .rstep.heal {
-    background: #fcf8ee;
-  }
-
-  /* ---------- video + shots (mockup execution evidence) ---------- */
   .video {
-    background: var(--ink);
+    background: var(--m3-inverse-surface);
     border-radius: 6px;
     height: 206px;
     position: relative;
@@ -426,9 +110,8 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    background: rgba(168, 50, 42, 0.92);
+    background: rgba(186, 26, 26, 0.92);
     color: #fff;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 10.5px;
     padding: 3px 8px;
     border-radius: 3px;
@@ -452,349 +135,57 @@
     display: block;
   }
   .video .bar i.done {
-    background: var(--stamp);
+    background: var(--m3-error);
   }
   .video .bar i.chapter {
     transition: width 0.3s ease;
   }
-  .shot img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 4px;
-  }
-  .shots {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 16px;
-  }
-  .shot {
-    aspect-ratio: 4 / 3;
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    position: relative;
-  }
-  .shot span {
-    position: absolute;
-    left: 5px;
-    bottom: 4px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 9.5px;
-    color: var(--ink-3);
-  }
 
-  /* ---------- credenciales ---------- */
-  .cred-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 15px 18px;
-    border-bottom: 1px solid var(--rule-soft);
+  /* HU-G18 — barra segmentada clickable con capítulos por paso */
+  .video-chapter-bar {
+    cursor: pointer;
   }
-  .cred-row:last-child {
-    border-bottom: none;
-  }
-  .cred-row .nm {
-    font-weight: 500;
-    font-size: 13.5px;
-  }
-  .cred-row .dt {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    color: var(--ink-3);
-    margin-top: 2px;
-  }
-
-  /* ---------- proyectos (mockup editorial grid) ---------- */
-  .proj-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(298px, 1fr));
-    gap: 16px;
-  }
-  .proj-card {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 7px;
-    overflow: hidden;
-    text-align: left;
-    width: 100%;
-    display: block;
-    transition: border-color 0.15s;
-  }
-  .proj-card:hover {
-    border-color: var(--ink-3);
-  }
-  .pc-top {
-    padding: 15px 18px;
-    border-top: 3px solid;
-  }
-  .pc-client {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-  .pc-name {
-    font-size: 15px;
-    font-weight: 600;
-    margin-top: 5px;
-    letter-spacing: -0.01em;
-  }
-  .pc-stats {
-    display: flex;
-    gap: 20px;
-    padding: 13px 18px;
-    border-top: 1px solid var(--rule-soft);
-    background: #fafcfd;
-  }
-  .pc-stats .k {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 9.5px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-  .pc-stats .v {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    margin-top: 3px;
-  }
-  .pc-foot {
-    padding: 11px 18px;
-    border-top: 1px solid var(--rule-soft);
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    color: var(--ink-3);
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  /* ---------- scope-bar (mockup client/space indicator) ---------- */
-  .scope-bar {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    color: var(--ink-3);
-  }
-  .scope-bar i {
-    width: 8px;
-    height: 8px;
+  .video-chapter-bar button.chapter {
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.28);
     border-radius: 2px;
-    flex: 0 0 8px;
-    background: var(--client);
+    display: block;
+    transition: background 0.15s ease, height 0.15s ease;
+  }
+  .video-chapter-bar button.chapter:hover {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .video-chapter-bar button.chapter.active {
+    background: var(--m3-secondary-fixed-dim, #ffb95f);
+    height: 6px;
+  }
+  .video-chapter-bar button.chapter.done {
+    background: var(--m3-error, #ba1a1a);
+  }
+  .video-chapter-bar button.chapter.done.active {
+    background: var(--m3-secondary, #855300);
   }
 
-  /* ---------- topbar + body helpers (mockup shell) ---------- */
-  .topbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--rule);
-    padding: 16px 26px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    flex-wrap: wrap;
-  }
-  .topbar h2 {
-    font-size: 17px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-  .topbar .sub {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* HU-G18 — overlay "Paso N · descripción" */
+  .video-chapter-overlay {
+    position: absolute;
+    bottom: 30px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
     font-size: 11px;
-    color: var(--ink-3);
-  }
-  .topbar .spacer {
-    margin-left: auto;
-  }
-
-  /* ---------- rail (mockup dark sidebar) ---------- */
-  .rail {
-    width: var(--rail);
-    flex: 0 0 var(--rail);
-    background: var(--ink);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-  }
-  .rail .brand {
-    padding: 22px 20px 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  }
-  .rail .brand h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    color: #fff;
-    text-transform: uppercase;
-  }
-  .rail .brand p {
-    font-size: 11px;
-    color: #fff;
-    margin-top: 3px;
-    letter-spacing: 0.02em;
-  }
-  .rail .nav {
-    padding: 14px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-  }
-  .rail .nav a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: 5px;
-    font-size: 13.5px;
-    color: #fff;
-    text-decoration: none;
-  }
-  .rail .nav a:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-  }
-  .rail .nav a[aria-current="true"] {
-    background: rgba(255, 255, 255, 0.11);
-    color: #fff;
-    font-weight: 500;
-  }
-  .rail .nav .dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.5;
-    flex: 0 0 5px;
-  }
-  .rail .rail-foot {
-    margin-top: auto;
-    padding: 16px 20px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10.5px;
-    color: #fff;
-    line-height: 1.6;
-    border-top: 1px solid rgba(255, 255, 255, 0.09);
-  }
-
-  /* ---------- editor / param row (mockup) ---------- */
-  .ed-grid {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 18px;
-    align-items: start;
-  }
-  @media (max-width: 1100px) {
-    .ed-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-  .param-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--rule-soft);
-  }
-  .param-row:last-child {
-    border-bottom: none;
-  }
-  .param-val {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 12px;
-    color: var(--ink-2);
-  }
-
-  /* ---------- acta (mockup evidence document) ---------- */
-  .acta-wrap {
-    display: flex;
-    justify-content: center;
-    padding: 8px 0 26px;
-  }
-  .acta {
-    width: min(760px, 100%);
-    background: var(--surface);
-    border: 1px solid var(--rule);
+    padding: 4px 8px;
     border-radius: 3px;
-    padding: 44px 52px;
-    box-shadow: 0 2px 18px rgba(19, 30, 43, 0.07);
-  }
-  .acta-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    padding-bottom: 18px;
-    border-bottom: 2px solid var(--ink);
-  }
-  .acta-head h3 {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  .meta-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    margin: 22px 0;
-  }
-  .meta-grid div {
-    padding: 9px 0;
-    border-bottom: 1px solid var(--rule-soft);
-  }
-  .meta-grid .k {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-  }
-  .meta-grid .v {
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 12px;
-    color: var(--ink);
-    margin-top: 3px;
-    word-break: break-all;
-  }
-  .hashbox {
-    margin-top: 26px;
-    padding: 14px 16px;
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    color: var(--ink-2);
-    line-height: 1.7;
-    word-break: break-all;
-  }
-
-  /* ---------- note (mockup footer note) ---------- */
-  .note {
-    font-size: 12.5px;
-    color: var(--ink-3);
-    line-height: 1.6;
-    padding: 14px 18px;
-    border-left: 2px solid var(--rule);
-    margin-top: 18px;
-    background: var(--surface);
-    border-radius: 0 5px 5px 0;
-  }
-  .note b {
-    color: var(--ink-2);
-    font-weight: 600;
+    pointer-events: none;
+    max-width: calc(100% - 24px);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    z-index: 2;
   }
 }
 
@@ -856,5 +247,138 @@ dialog[open] {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* ============================================================
+ * Material Design 3 — tokens del sistema de diseño único de la app
+ * (fase2/mockups/*.html). Fuente de verdad del diseño desde el
+ * 2026-09-08 (antes convivía con un segundo sistema documental,
+ * ahora retirado — ver `documentacion/acta-mockups.html`, que queda
+ * como referencia histórica).
+ * ============================================================ */
+
+@layer base {
+  :root {
+    --m3-primary: #000000;
+    --m3-on-primary: #ffffff;
+    --m3-primary-container: #131b2e;
+    --m3-on-primary-container: #7c839b;
+    --m3-primary-fixed: #dae2fd;
+    --m3-primary-fixed-dim: #bec6e0;
+    --m3-on-primary-fixed: #131b2e;
+    --m3-on-primary-fixed-variant: #3f465c;
+    --m3-secondary: #855300;
+    --m3-on-secondary: #ffffff;
+    --m3-secondary-container: #fea619;
+    --m3-on-secondary-container: #684000;
+    --m3-secondary-fixed: #ffddb8;
+    --m3-secondary-fixed-dim: #ffb95f;
+    --m3-on-secondary-fixed: #2a1700;
+    --m3-on-secondary-fixed-variant: #653e00;
+    --m3-background: #f7f9fb;
+    --m3-surface: #f7f9fb;
+    --m3-surface-dim: #d8dadc;
+    --m3-surface-bright: #f7f9fb;
+    --m3-surface-container-lowest: #ffffff;
+    --m3-surface-container-low: #f2f4f6;
+    --m3-surface-container: #eceef0;
+    --m3-surface-container-high: #e6e8ea;
+    --m3-surface-container-highest: #e0e3e5;
+    --m3-surface-variant: #e0e3e5;
+    --m3-surface-tint: #565e74;
+    --m3-on-surface: #191c1e;
+    --m3-on-surface-variant: #45464d;
+    --m3-on-background: #191c1e;
+    --m3-inverse-surface: #2d3133;
+    --m3-inverse-on-surface: #eff1f3;
+    --m3-inverse-primary: #bec6e0;
+    --m3-outline: #76777d;
+    --m3-outline-variant: #c6c6cd;
+    --m3-error: #ba1a1a;
+    --m3-on-error: #ffffff;
+    --m3-error-container: #ffdad6;
+    --m3-on-error-container: #93000a;
+    --m3-tertiary: #000000;
+    --m3-on-tertiary: #ffffff;
+    --m3-tertiary-container: #002113;
+    --m3-on-tertiary-container: #009668;
+    --m3-tertiary-fixed: #6ffbbe;
+    --m3-tertiary-fixed-dim: #4edea3;
+    --m3-on-tertiary-fixed: #002113;
+    --m3-on-tertiary-fixed-variant: #005236;
+  }
+}
+
+/* ---------- Material Symbols Outlined ----------
+ * Loaded via <link> in app/layout.tsx (next/font/google does not
+ * support this font family). Default FILL=0/wght=400/GRAD=0/opsz=24;
+ * individual icons opt-in to filled via inline style:
+ *   style={{ fontVariationSettings: "'FILL' 1" }}
+ */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ---------- pulse-red animation ----------
+ * Used by the REC badge and the EN VIVO elapsed-time indicator.
+ * Source: mockup grabar-test.html lines 102-108.
+ */
+@keyframes pulse-red {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.pulse-red {
+  animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ---------- step-divider ----------
+ * Vertical hairline between consecutive step rows in the right
+ * panel of the EN VIVO view. Source: mockup grabar-test.html
+ * lines 116-124.
+ */
+.step-divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--m3-outline-variant);
+  margin-left: 28px;
+  margin-top: -8px;
+  margin-bottom: -8px;
+  z-index: 0;
+}
+
+/* ---------- slide-in ----------
+ * Used by step rows when they enter the panel.
+ * Source: mockup grabar-test.html lines 109-115.
+ */
+.slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }

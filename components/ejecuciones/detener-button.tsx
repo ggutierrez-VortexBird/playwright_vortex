@@ -65,12 +65,12 @@ export function DetenerButton({ ejecucionId, visible }: Props) {
         onClick={handleDetener}
         disabled={submitting}
         aria-label="Detener ejecución"
-        className="btn btn-stop"
+        className="rounded bg-m3-error px-4 py-2 font-label text-label-md font-semibold text-white hover:opacity-90 transition-opacity"
       >
         {submitting ? '⏳ Deteniendo…' : '■ Detener'}
       </button>
       {error && (
-        <span className="font-mono text-[10px] text-stamp">{error}</span>
+        <span className="font-mono text-[10px] text-m3-error">{error}</span>
       )}
     </div>
   )

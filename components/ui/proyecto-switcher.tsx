@@ -90,7 +90,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-64 rounded border border-white/20 bg-ink py-1 shadow-lg"
+          className="absolute left-0 top-full z-50 mt-1 min-w-64 rounded border border-white/20 bg-m3-primary-container py-1 shadow-lg"
           role="listbox"
         >
           {proyectos.length === 0 ? (

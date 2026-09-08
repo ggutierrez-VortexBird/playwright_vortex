@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { CasoPruebaListItem } from "@/types/caso";
 
 interface CasoTableProps {
@@ -28,92 +29,115 @@ function truncateFileName(name: string | null, maxLen = 36): string {
   return "…" + name.slice(-(maxLen - 1));
 }
 
-function getEstadoPill(estado: CasoPruebaListItem["estado"], primerPasoFallidoNumero?: number | null) {
+function getEstadoBadge(
+  estado: CasoPruebaListItem["estado"],
+  primerPasoFallidoNumero?: number | null,
+) {
   const map: Record<
     CasoPruebaListItem["estado"],
-    { label: string; variant: string; tone: string }
+    { label: string; className: string }
   > = {
     "sin ejecuciones": {
       label: "Sin ejecutar",
-      variant: "p-idle",
-      tone: "var(--ink-3)",
+      className:
+        "bg-m3-surface-container-high text-m3-on-surface-variant border border-m3-outline-variant",
     },
     paso: {
       label: "Aprobado",
-      variant: "p-pass",
-      tone: "var(--seal)",
+      className:
+        "bg-m3-tertiary-container/15 text-m3-on-tertiary-container border border-m3-tertiary-container/40",
     },
     fallo: {
-      label: primerPasoFallidoNumero != null
-        ? `Falló en el paso ${primerPasoFallidoNumero}`
-        : "Falló",
-      variant: "p-fail",
-      tone: "var(--stamp)",
+      label:
+        primerPasoFallidoNumero != null
+          ? `Falló en el paso ${primerPasoFallidoNumero}`
+          : "Falló",
+      className: "bg-m3-error-container/60 text-m3-error border border-m3-error/25",
     },
     reparado: {
       label: "Reparado",
-      variant: "p-heal",
-      tone: "var(--amber)",
+      className:
+        "bg-m3-secondary-container/25 text-m3-on-secondary-container border border-m3-secondary/30",
     },
     errorMotor: {
       label: "Error motor",
-      variant: "p-idle",
-      tone: "var(--client)",
+      className: "bg-m3-error-container/60 text-m3-error border border-m3-error/25",
     },
   };
   // Fallback for unknown estados (e.g. "pendiente", "corriendo") coming from
   // legacy rows, API/DB drift, or future states not yet mapped. Without this
-  // guard, reading `pill.classes` (now `pill.variant`) would throw
-  // "Cannot read properties of undefined".
-  return map[estado] ?? {
-    label: estado,
-    variant: "p-idle",
-    tone: "var(--ink-3)",
-  };
+  // guard, reading `badge.className` would throw "Cannot read properties of
+  // undefined".
+  return (
+    map[estado] ?? {
+      label: estado,
+      className:
+        "bg-m3-surface-container-high text-m3-on-surface-variant border border-m3-outline-variant",
+    }
+  );
 }
 
 export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTableProps) {
   if (casos.length === 0) {
     return (
-      <div className="card p-8 text-center">
-        <p className="text-ink-3">No hay casos de prueba</p>
+      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+        <p className="font-body text-body-md text-m3-on-surface-variant">
+          No hay casos de prueba
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="card overflow-hidden">
-      <table className="table-mockup">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Responsable</th>
-            <th>Script</th>
-            <th>Estado</th>
-            <th>Última ejecución</th>
-            <th>Pasos</th>
-            <th className="text-right">Ejecutar</th>
-            {canEdit && <th className="text-right">Acciones</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {casos.map((caso) => {
-            const pill = getEstadoPill(caso.estado, caso.primerPasoFallidoNumero);
-            return (
-              <CasoRow
-                key={caso.id}
-                caso={caso}
-                pillVariant={pill.variant}
-                pillLabel={pill.label}
-                canEdit={canEdit}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
+            <tr>
+              {[
+                "Código",
+                "Nombre",
+                "Responsable",
+                "Script",
+                "Estado",
+                "Última ejecución",
+                "Pasos",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-3 font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant"
+                >
+                  {h}
+                </th>
+              ))}
+              <th className="px-4 py-3 text-right font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
+                Ejecutar
+              </th>
+              {canEdit && (
+                <th className="px-4 py-3 text-right font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
+                  Acciones
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-m3-outline-variant">
+            {casos.map((caso) => {
+              const badge = getEstadoBadge(caso.estado, caso.primerPasoFallidoNumero);
+              return (
+                <CasoRow
+                  key={caso.id}
+                  caso={caso}
+                  badgeClassName={badge.className}
+                  badgeLabel={badge.label}
+                  canEdit={canEdit}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <style jsx>{`
         @media (hover: none) {
           .media-hover\\:visible {
@@ -127,14 +151,14 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
 
 interface CasoRowProps {
   caso: CasoPruebaListItem;
-  pillVariant: string;
-  pillLabel: string;
+  badgeClassName: string;
+  badgeLabel: string;
   canEdit: boolean;
   onEdit?: (caso: CasoPruebaListItem) => void;
   onDelete?: (caso: CasoPruebaListItem) => void;
 }
 
-function CasoRow({ caso, pillVariant, pillLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -182,34 +206,51 @@ function CasoRow({ caso, pillVariant, pillLabel, canEdit, onEdit, onDelete }: Ca
   const hasEjecucion = !!caso.ultimaEjecucionId;
 
   return (
-    <tr 
-      className={`group${hasEjecucion ? ' cursor-pointer hover:bg-rule-soft' : ''}`}
+    <tr
+      className={`group${hasEjecucion ? " cursor-pointer hover:bg-m3-surface-container-high" : ""}`}
       onClick={handleRowClick}
     >
-      <td>
-        <div className="tmeta">{caso.codigo}</div>
+      <td className="px-4 py-3">
+        <Link
+          href={`/casos/${caso.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="font-mono-code text-mono-code text-m3-on-surface hover:text-m3-secondary hover:underline"
+        >
+          {caso.codigo}
+        </Link>
       </td>
-      <td>
-        <div className="tname">{caso.nombre}</div>
+      <td className="px-4 py-3">
+        <Link
+          href={`/casos/${caso.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="font-body text-body-md text-m3-on-surface hover:text-m3-secondary hover:underline"
+        >
+          {caso.nombre}
+        </Link>
       </td>
-      <td>
-        <div className="tmeta">{caso.responsableEmail}</div>
+      <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
+        {caso.responsableEmail}
       </td>
-      <td>
-        <div className="tmeta" title={caso.scriptFileName || undefined}>
-          {truncateFileName(caso.scriptFileName)}
-        </div>
+      <td
+        className="px-4 py-3 font-mono-code text-mono-code text-m3-on-surface-variant"
+        title={caso.scriptFileName || undefined}
+      >
+        {truncateFileName(caso.scriptFileName)}
       </td>
-      <td>
-        <span className={`pill ${pillVariant}`}>{pillLabel}</span>
+      <td className="px-4 py-3">
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${badgeClassName}`}
+        >
+          {badgeLabel}
+        </span>
       </td>
-      <td>
-        <div className="tmeta">{formatDate(caso.fechaUltimaEjecucion)}</div>
+      <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
+        {formatDate(caso.fechaUltimaEjecucion)}
       </td>
-      <td>
-        <div className="tmeta">{caso.pasosCount ?? 0}</div>
+      <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
+        {caso.pasosCount ?? 0}
       </td>
-      <td>
+      <td className="px-4 py-3">
         <div className="flex flex-col items-end gap-1">
           <button
             onClick={(e) => {
@@ -218,22 +259,29 @@ function CasoRow({ caso, pillVariant, pillLabel, canEdit, onEdit, onDelete }: Ca
             }}
             disabled={running}
             aria-label={`Ejecutar caso ${caso.codigo}`}
-            className="btn"
-            style={{
-              borderColor: "var(--client)",
-              color: "var(--client)",
-              padding: "4px 10px",
-              fontSize: 12,
-            }}
+            className="rounded border border-m3-secondary px-2.5 py-1 font-label text-label-sm font-medium text-m3-secondary transition-colors hover:bg-m3-secondary-fixed/20 disabled:opacity-50"
           >
             {running ? "Lanzando…" : "Ejecutar"}
           </button>
-          {error && <span className="tmeta" style={{ color: "var(--stamp)" }}>{error}</span>}
+          {error && (
+            <span className="font-label text-label-sm text-m3-error">{error}</span>
+          )}
         </div>
       </td>
       {canEdit && (
-        <td>
+        <td className="px-4 py-3">
           <div className="flex justify-end gap-2">
+            <Link
+              href={`/casos/${caso.id}?editarScript=1`}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Editar script de ${caso.codigo}`}
+              title="Editar script"
+              data-testid="editar-script-row-action"
+              className="invisible group-hover:visible flex items-center gap-1 rounded border border-m3-outline-variant px-2 py-1 font-label text-label-sm text-m3-on-surface hover:bg-m3-surface-container-high media-hover:visible"
+            >
+              <span className="material-symbols-outlined text-[14px]">terminal</span>
+              Script
+            </Link>
             {onEdit && (
               <button
                 onClick={(e) => {
@@ -241,7 +289,7 @@ function CasoRow({ caso, pillVariant, pillLabel, canEdit, onEdit, onDelete }: Ca
                   onEdit(caso);
                 }}
                 aria-label="Editar"
-                className="invisible group-hover:visible rounded border border-rule px-2 py-1 text-xs text-ink hover:bg-rule-soft media-hover:visible"
+                className="invisible group-hover:visible rounded border border-m3-outline-variant px-2 py-1 font-label text-label-sm text-m3-on-surface hover:bg-m3-surface-container-high media-hover:visible"
               >
                 Editar
               </button>
@@ -253,7 +301,7 @@ function CasoRow({ caso, pillVariant, pillLabel, canEdit, onEdit, onDelete }: Ca
                   onDelete(caso);
                 }}
                 aria-label="Eliminar"
-                className="invisible group-hover:visible rounded border border-stamp px-2 py-1 text-xs text-stamp hover:bg-red-50 media-hover:visible"
+                className="invisible group-hover:visible rounded border border-m3-error px-2 py-1 font-label text-label-sm text-m3-error hover:bg-m3-error-container/20 media-hover:visible"
               >
                 Eliminar
               </button>

@@ -60,36 +60,46 @@ export function EjecucionSummary({
               : estado === 'errorMotor'
                 ? 'Error motor'
                 : estado
-  const resultadoColor =
+  const resultadoColorClass =
     estado === 'paso'
-      ? 'var(--seal)'
+      ? 'text-m3-on-tertiary-container'
       : estado === 'fallo'
-        ? 'var(--stamp)'
+        ? 'text-m3-error'
         : estado === 'reparado'
-          ? 'var(--amber)'
-          : 'var(--ink)'
+          ? 'text-m3-on-secondary-container'
+          : 'text-m3-on-surface'
 
   return (
-    <div className="run-stat">
+    <div className="flex flex-wrap gap-6 border-b border-m3-outline-variant px-5 py-4">
       <div>
-        <div className="k">Resultado</div>
-        <div className="v" style={{ color: resultadoColor }}>
+        <div className="font-label text-[10.5px] uppercase tracking-wide text-m3-on-surface-variant">
+          Resultado
+        </div>
+        <div className={`mt-1 font-body text-[17px] font-semibold ${resultadoColorClass}`}>
           {resultadoLabel}
         </div>
       </div>
       <div>
-        <div className="k">Duración</div>
-        <div className="v">{formatDuration(duracionMs)}</div>
+        <div className="font-label text-[10.5px] uppercase tracking-wide text-m3-on-surface-variant">
+          Duración
+        </div>
+        <div className="mt-1 font-body text-[17px] font-semibold text-m3-on-surface">
+          {formatDuration(duracionMs)}
+        </div>
       </div>
       <div>
-        <div className="k">Inicio</div>
-        <div className="v" style={{ fontSize: 13 }}>
+        <div className="font-label text-[10.5px] uppercase tracking-wide text-m3-on-surface-variant">
+          Inicio
+        </div>
+        <div className="mt-1 font-body text-[13px] font-semibold text-m3-on-surface">
           {formatTimestamp(inicioAt)}
         </div>
       </div>
       <div>
-        <div className="k">Fin</div>
-        <div className="v" style={{ fontSize: 13 }}>
+        <div className="font-label text-[10.5px] uppercase tracking-wide text-m3-on-surface-variant">
+          Fin
+        </div>
+        <div className="mt-1 font-body text-[13px] font-semibold text-m3-on-surface">
           {formatTimestamp(finAt)}
         </div>
       </div>

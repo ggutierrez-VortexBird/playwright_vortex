@@ -1,5 +1,7 @@
 // ACTA — Prisma schema
 // HU-0.1: 11 tablas + 3 enums. Naming camelCase en DB. UUID v4. Postgres 16+.
+// HU-G21: +4 modelos (SesionGrabacion, PasoGrabado, ParametroGrabacion, JuegoDeDatos)
+//         +1 enum (CasoOrigen). Extensiones no-breaking a CasoPrueba, Ejecucion, PasoEjecucion.
 // Convenciones: Restrict en PKs de evidencia; Cascade en child rows.
 
 generator client {
@@ -37,6 +39,12 @@ enum ArtefactoTipo {
   trace
 }
 
+enum CasoOrigen {
+  subirScript
+  grabador
+  mixto
+}
+
 // ============================================================
 // Entidades de identidad y membresía (HU-1.1, HU-6.1)
 // ============================================================
@@ -49,8 +57,9 @@ model Usuario {
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
 
-  espacios        UsuarioEspacio[]
-  casosAsignados  CasoPrueba[]    @relation("CasoPruebaResponsable")
+  espacios       UsuarioEspacio[]
+  casosAsignados CasoPrueba[]      @relation("CasoPruebaResponsable")
+  sesiones       SesionGrabacion[]
 
   @@index([email])
 }
@@ -68,9 +77,9 @@ model Espacio {
 }
 
 model UsuarioEspacio {
-  usuarioId  String
-  espacioId  String
-  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  usuarioId String
+  espacioId String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Cascade)
@@ -94,32 +103,39 @@ model Proyecto {
   createdAt      DateTime @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @db.Timestamptz(6)
 
-  espacio     Espacio       @relation(fields: [espacioId], references: [id], onDelete: Restrict)
-  casosPrueba CasoPrueba[]
+  espacio      Espacio           @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  casosPrueba  CasoPrueba[]
   credenciales Credencial[]
+  sesiones     SesionGrabacion[]
 
   @@index([espacioId])
 }
 
 model CasoPrueba {
-  id             String   @id @default(uuid())
+  id             String     @id @default(uuid())
   proyectoId     String
   codigo         String
   nombre         String
-  script         String   @db.Text
+  script         String     @db.Text
   scriptFileName String?
   responsableId  String
-  activo         Boolean  @default(true)
-  createdAt      DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+  origen         CasoOrigen @default(subirScript)
+  activo         Boolean    @default(true)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(6)
 
-  proyecto    Proyecto    @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
-  responsable Usuario     @relation("CasoPruebaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
-  ejecuciones Ejecucion[]
+  proyecto      Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+  responsable   Usuario              @relation("CasoPruebaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  ejecuciones   Ejecucion[]
+  sesiones      SesionGrabacion[]
+  pasosGrabados PasoGrabado[]
+  parametros    ParametroGrabacion[]
+  juegosDeDatos JuegoDeDatos[]
 
   @@unique([proyectoId, codigo])
   @@index([responsableId])
   @@index([proyectoId])
+  @@index([origen])
 }
 
 // ============================================================
@@ -138,20 +154,22 @@ model Ejecucion {
   navegador        String?
   sistemaOperativo String?
   nodoEjecucion    String?
+  loteId           String?
   asercionesTotal  Int             @default(0)
   asercionesOk     Int             @default(0)
   asercionesFail   Int             @default(0)
   createdAt        DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime        @updatedAt @db.Timestamptz(6)
 
-  casoPrueba CasoPrueba      @relation(fields: [casoPruebaId], references: [id], onDelete: Restrict)
-  pasos      PasoEjecucion[]
+  casoPrueba  CasoPrueba      @relation(fields: [casoPruebaId], references: [id], onDelete: Restrict)
+  pasos       PasoEjecucion[]
   subacciones PasoSubaccion[]
-  artefactos Artefacto[]
-  acta       Acta?
+  artefactos  Artefacto[]
+  acta        Acta?
 
   @@index([casoPruebaId])
   @@index([estado])
+  @@index([loteId])
 }
 
 model PasoEjecucion {
@@ -167,10 +185,12 @@ model PasoEjecucion {
   resultadoObtenido String?
   errorCount        Int                 @default(0)
   logs              Json?
+  videoInicioMs     Int?
+  videoFinMs        Int?
   createdAt         DateTime            @default(now()) @db.Timestamptz(6)
 
-  ejecucion  Ejecucion      @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
-  artefactos Artefacto[]
+  ejecucion   Ejecucion       @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  artefactos  Artefacto[]
   subacciones PasoSubaccion[]
 
   @@unique([ejecucionId, numero])
@@ -192,10 +212,10 @@ model PasoSubaccion {
   capturaReferenciaId String?
   createdAt           DateTime            @default(now()) @db.Timestamptz(6)
 
-  ejecucion         Ejecucion   @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  ejecucion         Ejecucion     @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
   pasoEjecucion     PasoEjecucion @relation(fields: [pasoEjecucionId], references: [id], onDelete: Cascade)
-  capturaActual     Artefacto?  @relation("CapturaActual", fields: [capturaActualId], references: [id])
-  capturaReferencia Artefacto?  @relation("CapturaReferencia", fields: [capturaReferenciaId], references: [id])
+  capturaActual     Artefacto?    @relation("CapturaActual", fields: [capturaActualId], references: [id])
+  capturaReferencia Artefacto?    @relation("CapturaReferencia", fields: [capturaReferenciaId], references: [id])
 
   @@index([ejecucionId])
   @@index([pasoEjecucionId])
@@ -213,9 +233,9 @@ model Artefacto {
   metadata        Json?
   createdAt       DateTime      @default(now()) @db.Timestamptz(6)
 
-  ejecucion         Ejecucion      @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
-  pasoEjecucion     PasoEjecucion? @relation(fields: [pasoEjecucionId], references: [id], onDelete: SetNull)
-  capturasActuales  PasoSubaccion[] @relation("CapturaActual")
+  ejecucion          Ejecucion       @relation(fields: [ejecucionId], references: [id], onDelete: Cascade)
+  pasoEjecucion      PasoEjecucion?  @relation(fields: [pasoEjecucionId], references: [id], onDelete: SetNull)
+  capturasActuales   PasoSubaccion[] @relation("CapturaActual")
   capturasReferencia PasoSubaccion[] @relation("CapturaReferencia")
 
   @@index([ejecucionId])
@@ -228,13 +248,13 @@ model Artefacto {
 // ============================================================
 
 model Acta {
-  id           String    @id @default(uuid())
-  ejecucionId  String    @unique
-  consecutivo  String    @unique
-  rutaPdf      String
-  generatedAt  DateTime?
-  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+  id          String    @id @default(uuid())
+  ejecucionId String    @unique
+  consecutivo String    @unique
+  rutaPdf     String
+  generatedAt DateTime?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
 
   ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Restrict)
 }
@@ -244,18 +264,137 @@ model Acta {
 // ============================================================
 
 model Credencial {
-  id             String    @id @default(uuid())
-  proyectoId     String
-  nombre         String
-  tipo           String
-  valor          Bytes     @db.ByteA
-  sesionVenceAt  DateTime?
-  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+  id            String    @id @default(uuid())
+  proyectoId    String
+  nombre        String
+  tipo          String
+  valor         Bytes     @db.ByteA
+  sesionVenceAt DateTime?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(6)
 
-  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+  proyecto Proyecto          @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+  sesiones SesionGrabacion[]
 
   @@index([proyectoId])
+}
+
+// ============================================================
+// Modo grabador — HU-G21
+// SesionGrabacion: 1 fila por intento de grabación iniciada.
+//   token HMAC persistido para reconexión post-reinicio (tokenUsado=true one-shot).
+//   storageState: snapshot Playwright descifrado server-side (no se persiste el `valor`
+//   de Credencial; el snapshot se usa solo mientras la sesión está activa).
+// ============================================================
+
+model SesionGrabacion {
+  id              String    @id @default(uuid())
+  proyectoId      String
+  usuarioId       String
+  casoPruebaId    String?
+  nombre          String
+  urlInicial      String
+  ambiente        String
+  navegador       String    @default("chromium")
+  credencialId    String?
+  storageState    Json?
+  token           String?
+  tokenUsado      Boolean   @default(false)
+  estado          String
+  mensajeError    String?
+  /// Pivot playwright-codegen (V2): spec.ts crudo emitido por `npx playwright codegen`.
+  /// Single source of truth del script. Los PasoGrabado rows se derivan en parseo
+  /// best-effort, NO se usan para regenerar el spec.
+  /// ACTA-Plan-Pivot-Playwright-Codegen (fase2/).
+  specCode        String?   @db.Text
+  /// Path absoluto al .spec.ts que escribe playwright-codegen. Permite replay
+  /// si la DB se pierde, o debug local. VIVE en OS tempdir (linux/macOS /tmp,
+  /// Windows %TEMP%) y se borra al reiniciar el SO.
+  codegenFilePath String?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+
+  proyecto   Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
+  usuario    Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  casoPrueba CasoPrueba?          @relation(fields: [casoPruebaId], references: [id], onDelete: SetNull)
+  credencial Credencial?          @relation(fields: [credencialId], references: [id], onDelete: SetNull)
+  pasos      PasoGrabado[]
+  parametros ParametroGrabacion[]
+
+  @@index([proyectoId])
+  @@index([usuarioId])
+  @@index([estado])
+  @@index([casoPruebaId])
+}
+
+// ============================================================
+// PasoGrabado — unidad mínima del modo grabador (HU-G21, HU-G3)
+// Cada paso se persiste mientras la grabación está activa; se cablea
+// desde el recorder-worker cuando G3 implemente el traductor de eventos.
+// ============================================================
+
+model PasoGrabado {
+  id                 String   @id @default(uuid())
+  sesionId           String
+  casoPruebaId       String?
+  numero             Int
+  tipo               String
+  origen             String   @default("grabado")
+  descripcion        String
+  selectorPrincipal  Json
+  selectoresRespaldo Json
+  valor              String?
+  esValorSensible    Boolean  @default(false)
+  assertionKind      String?
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+
+  sesion     SesionGrabacion @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  casoPrueba CasoPrueba?     @relation(fields: [casoPruebaId], references: [id], onDelete: SetNull)
+
+  @@unique([sesionId, numero])
+  @@index([sesionId])
+  @@index([casoPruebaId])
+}
+
+// ============================================================
+// ParametroGrabacion — clave/valor capturado durante la grabación (HU-G21, HU-G7)
+// `origen='credencial'` indica que el valor proviene de Credencial.valor descifrado.
+// ============================================================
+
+model ParametroGrabacion {
+  id           String   @id @default(uuid())
+  sesionId     String?
+  casoPruebaId String?
+  nombre       String
+  valorDefecto String?
+  origen       String
+  credencialId String?
+  enUso        Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  sesion     SesionGrabacion? @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  casoPrueba CasoPrueba?      @relation(fields: [casoPruebaId], references: [id], onDelete: Cascade)
+
+  @@unique([sesionId, nombre])
+  @@index([casoPruebaId])
+}
+
+// ============================================================
+// JuegoDeDatos — datos tabares para ejecución data-driven (HU-G13, stub)
+// ============================================================
+
+model JuegoDeDatos {
+  id            String   @id @default(uuid())
+  casoPruebaId  String
+  nombreArchivo String
+  filas         Json
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  casoPrueba CasoPrueba @relation(fields: [casoPruebaId], references: [id], onDelete: Cascade)
+
+  @@index([casoPruebaId])
 }
 
 // ============================================================

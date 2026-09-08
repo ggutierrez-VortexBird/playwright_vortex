@@ -56,10 +56,10 @@ function statusLabel(estado: string): string {
 
 function statusClasses(estado: string): string {
   switch (estado) {
-    case 'paso': return 'bg-green-50 text-green-700 border-green-200'
-    case 'fallo': return 'bg-red-50 text-red-700 border-red-200'
-    case 'reparado': return 'bg-amber-50 text-amber-700 border-amber-200'
-    default: return 'bg-gray-50 text-gray-700 border-gray-200'
+    case 'paso': return 'bg-m3-tertiary-container/15 text-m3-on-tertiary-container border-m3-tertiary-container/40'
+    case 'fallo': return 'bg-m3-error-container/15 text-m3-error border-m3-error/30'
+    case 'reparado': return 'bg-m3-secondary-container/40 text-m3-on-secondary-container border-m3-secondary/30'
+    default: return 'bg-m3-surface-container text-m3-on-surface-variant border-m3-outline-variant'
   }
 }
 
@@ -77,7 +77,7 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
     Array.isArray(paso.logs) ? paso.logs : []
 
   return (
-    <div className="border-b border-gray-100 last:border-b-0" data-purpose="step-container">
+    <div className="border-b border-m3-outline-variant last:border-b-0" data-purpose="step-container">
       {/* Header */}
       <button
         type="button"
@@ -87,46 +87,46 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
         onClick={onToggle}
         onKeyDown={handleKeyDown}
         className={`group w-full text-left cursor-pointer transition-colors px-6 py-4 flex items-start gap-4 ${
-          paso.estado === 'fallo' ? 'bg-red-50/20 hover:bg-red-50/50' : 'bg-white hover:bg-gray-50'
+          paso.estado === 'fallo' ? 'bg-m3-error-container/5 hover:bg-m3-error-container/10' : 'bg-m3-surface-container-lowest hover:bg-m3-surface-container-high'
         }`}
         data-purpose="step-row"
       >
-        <div className="text-sm font-medium text-gray-500 mono pt-1 w-8">
+        <div className="text-sm font-medium text-m3-on-surface-variant mono pt-1 w-8">
           {paso.numero.toString().padStart(2, '0')}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-gray-900 font-medium mb-1">{paso.descripcion}</h4>
+          <h4 className="text-m3-on-surface font-medium mb-1">{paso.descripcion}</h4>
           {paso.errorMsg && (
-            <p className="text-xs text-red-600 mono">{paso.errorMsg}</p>
+            <p className="text-xs text-m3-error mono">{paso.errorMsg}</p>
           )}
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusClasses(paso.estado)}`}>
             {statusLabel(paso.estado)}
           </span>
-          <span className="text-xs text-gray-400 mono">{formatDuration(paso.duracionMs)}</span>
+          <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(paso.duracionMs)}</span>
         </div>
       </button>
 
       {/* Panel */}
       {expanded && (
-        <div id={panelId} className="bg-[#fafafa] px-6 py-6 shadow-inner border-y border-gray-200">
+        <div id={panelId} className="bg-m3-surface-container px-6 py-6 shadow-inner border-y border-m3-outline-variant">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-6">
             {/* Left: Detalles Técnicos */}
             <div>
-              <h5 className="text-xs font-bold text-gray-800 mb-3 uppercase tracking-wider">Detalles Técnicos</h5>
+              <h5 className="text-xs font-bold text-m3-on-surface mb-3 uppercase tracking-wider">Detalles Técnicos</h5>
               <div className="space-y-4">
                 {paso.resultadoEsperado && (
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Resultado esperado</p>
-                    <p className="text-sm text-gray-700 bg-white p-3 border border-gray-200 rounded-md">{paso.resultadoEsperado}</p>
+                    <p className="text-[11px] font-semibold text-m3-on-surface-variant uppercase mb-1">Resultado esperado</p>
+                    <p className="text-sm text-m3-on-surface-variant bg-m3-surface-container-lowest p-3 border border-m3-outline-variant rounded-md">{paso.resultadoEsperado}</p>
                   </div>
                 )}
                 {paso.resultadoObtenido && (
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Resultado obtenido</p>
+                    <p className="text-[11px] font-semibold text-m3-on-surface-variant uppercase mb-1">Resultado obtenido</p>
                     <p className={`text-sm p-3 border rounded-md font-medium ${
-                      paso.estado === 'fallo' ? 'text-red-700 bg-red-50 border-red-100' : 'text-green-700 bg-green-50 border-green-100'
+                      paso.estado === 'fallo' ? 'text-m3-error bg-m3-error-container/15 border-m3-error/20' : 'text-m3-on-tertiary-container bg-m3-tertiary-container/15 border-m3-tertiary-container/30'
                     }`}>
                       {paso.resultadoObtenido}
                     </p>
@@ -137,16 +137,16 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
 
             {/* Right: Logs & Trace */}
             <div>
-              <h5 className="text-xs font-bold text-gray-800 mb-3 uppercase tracking-wider">Logs & Trace</h5>
+              <h5 className="text-xs font-bold text-m3-on-surface mb-3 uppercase tracking-wider">Logs & Trace</h5>
               <div className="space-y-4">
                 {logs.length > 0 ? (
-                  <pre className="bg-gray-900 text-gray-300 p-3 rounded-md text-xs mono overflow-x-auto border border-gray-800">
+                  <pre className="bg-m3-inverse-surface text-m3-inverse-on-surface p-3 rounded-md text-xs mono overflow-x-auto border border-m3-outline">
                     {logs.map((log, i) => (
                       <div key={i}>[{log.ts}] {log.level.toUpperCase()}: {log.msg}</div>
                     ))}
                   </pre>
                 ) : (
-                  <p className="text-sm text-gray-400 italic">Sin logs registrados.</p>
+                  <p className="text-sm text-m3-on-surface-variant/70 italic">Sin logs registrados.</p>
                 )}
               </div>
             </div>
@@ -154,8 +154,8 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
 
           {/* Sub-pasos (dentro del panel) */}
           {(paso.subacciones ?? []).length > 0 && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h5 className="text-xs font-bold text-gray-800 mb-3 uppercase tracking-wider">
+            <div className="mt-6 pt-6 border-t border-m3-outline-variant">
+              <h5 className="text-xs font-bold text-m3-on-surface mb-3 uppercase tracking-wider">
                 Sub-pasos ({paso.subacciones.length})
               </h5>
               <div className="space-y-2">

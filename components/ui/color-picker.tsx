@@ -40,7 +40,7 @@ export function ColorPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-ink">Color</label>
+      <label className="text-sm font-medium text-m3-on-surface">Color</label>
       <div className="flex flex-wrap items-center gap-2">
         {colors.map((color) => {
           const isSelected = value === color;
@@ -53,7 +53,7 @@ export function ColorPicker({
               onClick={() => onChange(color)}
               className={`h-8 w-8 rounded-full border-2 transition-all ${
                 isSelected
-                  ? "border-ink scale-110"
+                  ? "border-m3-outline scale-110"
                   : "border-transparent hover:scale-105"
               }`}
               style={{ backgroundColor: color }}
@@ -70,7 +70,7 @@ export function ColorPicker({
             onClick={handleCustomColorClick}
             className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${
               isCustomColor
-                ? "border-ink scale-110"
+                ? "border-m3-outline scale-110"
                 : "border-transparent hover:scale-105"
             }`}
             style={{ backgroundColor: isCustomColor ? value : "#e5e7eb" }}

@@ -116,9 +116,18 @@ playwright_vortex/
 El repositorio incluye `docker-compose.dev.yml` que levanta:
 
 - **PostgreSQL 16** (`acta-postgres`) con healthcheck
+- **`app`** — Next.js (migra, siembra y arranca `next dev`)
+- **`worker`** — motor de ejecución (`scripts/worker.ts`), antes ausente del compose: sin este servicio ningún "Ejecutar" corría dentro de Docker aunque `app` y `postgres` estuvieran sanos
+- **`recorder`** — recorder-worker del modo grabador
 - Volúmenes persistentes para datos, scripts de Playwright y artefactos
 
-> El servicio `app` dentro del compose requiere un `Dockerfile` que aún no está versionado. Para desarrollo se recomienda correr la app directamente con `npm run dev`.
+Los tres servicios de Node comparten el mismo `Dockerfile` (basado en la imagen oficial de Playwright, que trae Chromium/Firefox/WebKit y sus dependencias del sistema preinstaladas) y solo difieren en el `command:`.
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+> **Limitación conocida, sin verificar todavía:** el servicio `recorder` lanza un navegador `headed` (`headless: false`, ver `scripts/codegen-runner.ts`) para el modo grabador. Eso necesita una pantalla — dentro de un contenedor Linux normalmente vía Xvfb — y este compose todavía no lo configura ni fue probado con una grabación real de punta a punta en Docker. `app` y `worker` (que corren siempre headless) sí deberían funcionar tal cual.
 
 ---
 

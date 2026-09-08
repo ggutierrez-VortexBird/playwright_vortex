@@ -202,4 +202,33 @@ describe("GET /api/ejecuciones/[id]", () => {
     expect(body.pasos[0].subacciones).toHaveLength(1);
     expect(body.pasos[0].subacciones[0].descripcion).toBe("Sub-paso navegar");
   });
+
+  it("HU-G17: expone casoPrueba.origen en la respuesta JSON", async () => {
+    const mockEjecucion = {
+      id: "ejec-1",
+      estado: "paso",
+      inicioAt: new Date("2026-08-12T10:00:00Z"),
+      finAt: new Date("2026-08-12T10:02:00Z"),
+      duracionMs: 120000,
+      errorMsg: null,
+      casoPrueba: {
+        id: "caso-1",
+        nombre: "Caso Grabado",
+        codigo: "CP-G-01",
+        origen: "grabador", // HU-G17
+        proyecto: { id: "p", nombre: "P", espacio: { id: "e", nombre: "E" } },
+      },
+      pasos: [],
+      artefactos: [],
+    };
+    (getEjecucionConPasos as jest.Mock).mockResolvedValue(mockEjecucion);
+
+    const res = await GET(
+      {} as unknown as Request,
+      { params: Promise.resolve({ id: "ejec-1" }) }
+    );
+
+    const body = await readJson(res) as any;
+    expect(body.casoPrueba.origen).toBe("grabador");
+  });
 });

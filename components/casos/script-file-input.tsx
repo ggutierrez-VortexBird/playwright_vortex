@@ -55,15 +55,15 @@ export function ScriptFileInput({ fileName, onChange, disabled }: ScriptFileInpu
   return (
     <div>
       {currentName && (
-        <div className="mb-2 flex items-center gap-2 text-sm text-ink-3">
+        <div className="mb-2 flex items-center gap-2 text-sm text-m3-on-surface-variant">
           <span>
             Archivo:{" "}
-            <code className="rounded bg-rule px-1 py-0.5 text-ink">{currentName}</code>
+            <code className="rounded bg-m3-surface-container-high px-1 py-0.5 text-m3-on-surface">{currentName}</code>
           </span>
           <button
             type="button"
             onClick={handleReset}
-            className="text-stamp hover:underline"
+            className="text-m3-error hover:underline"
             disabled={disabled}
           >
             Cambiar
@@ -77,15 +77,15 @@ export function ScriptFileInput({ fileName, onChange, disabled }: ScriptFileInpu
           type="file"
           onChange={handleFileChange}
           disabled={disabled}
-          className="mt-1 block w-full text-sm text-ink file:mr-4 file:rounded-md file:border-0 file:bg-client file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-client/90 disabled:opacity-50"
+          className="mt-1 block w-full text-sm text-m3-on-surface file:mr-4 file:rounded-md file:border-0 file:bg-m3-secondary-container file:px-4 file:py-2 file:text-sm file:font-medium file:text-m3-on-secondary-container hover:file:bg-m3-secondary-fixed disabled:opacity-50"
         />
       )}
 
       {validationError && (
-        <p className="mt-1 text-xs text-stamp">{validationError}</p>
+        <p className="mt-1 text-xs text-m3-error">{validationError}</p>
       )}
 
-      <p className="mt-1 text-xs text-ink-3">
+      <p className="mt-1 text-xs text-m3-on-surface-variant">
         Archivos permitidos: {ALLOWED_EXTENSIONS.join(", ")}
       </p>
     </div>

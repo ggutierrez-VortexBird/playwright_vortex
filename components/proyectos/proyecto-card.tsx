@@ -43,8 +43,8 @@ export function ProyectoCard({
 }: ProyectoCardProps) {
   return (
     <article
-      className="proj-card group relative"
-      style={espacioColor ? { borderTopColor: espacioColor } : undefined}
+      className="group relative block w-full overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest text-left transition-colors hover:border-m3-outline"
+      style={espacioColor ? { borderTopWidth: 3, borderTopColor: espacioColor } : undefined}
     >
       {/* Action buttons — only visible on hover */}
       {(canEdit || onEdit || onDelete) && (
@@ -56,8 +56,7 @@ export function ProyectoCard({
                 e.stopPropagation();
                 onEdit(proyecto);
               }}
-              className="btn"
-              style={{ padding: "4px 10px", fontSize: 12 }}
+              className="rounded border border-m3-outline-variant bg-m3-surface-container-lowest px-2.5 py-1 font-label text-label-sm text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
             >
               Editar
             </button>
@@ -69,13 +68,7 @@ export function ProyectoCard({
                 e.stopPropagation();
                 onDelete(proyecto);
               }}
-              className="btn"
-              style={{
-                padding: "4px 10px",
-                fontSize: 12,
-                color: "var(--stamp)",
-                borderColor: "var(--stamp)",
-              }}
+              className="rounded border border-m3-error bg-m3-surface-container-lowest px-2.5 py-1 font-label text-label-sm text-m3-error hover:bg-m3-error-container/20 transition-colors"
             >
               Eliminar
             </button>
@@ -83,51 +76,51 @@ export function ProyectoCard({
         </div>
       )}
 
-      <Link
-        href={`/proyectos/${proyecto.id}/casos`}
-        className="block"
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <div
-          className="pc-top"
-          style={espacioColor ? { borderTopColor: espacioColor } : undefined}
-        >
+      <Link href={`/proyectos/${proyecto.id}/casos`} className="block no-underline">
+        <div className="px-4 py-3.5">
           {espacioNombre && (
-            <div className="pc-client">{espacioNombre}</div>
+            <div className="font-label text-label-sm uppercase tracking-wide text-m3-on-surface-variant">
+              {espacioNombre}
+            </div>
           )}
-          <div className="pc-name">{proyecto.nombre}</div>
-          <div
-            className="tmeta"
-            style={{ marginTop: 4, textTransform: "none", letterSpacing: 0 }}
-          >
+          <div className="mt-1 font-body text-body-lg font-semibold text-m3-on-surface">
+            {proyecto.nombre}
+          </div>
+          <div className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
             {proyecto.ambiente}
           </div>
         </div>
-        <div className="pc-stats">
+        <div className="flex gap-5 border-t border-m3-outline-variant bg-m3-surface-container px-4 py-3">
           <div>
-            <div className="k">Casos</div>
-            <div className="v">{proyecto.totalCasos}</div>
+            <div className="font-label text-label-sm uppercase tracking-wide text-m3-on-surface-variant">
+              Casos
+            </div>
+            <div className="mt-0.5 font-body text-body-lg font-semibold text-m3-on-surface">
+              {proyecto.totalCasos}
+            </div>
           </div>
           <div>
-            <div className="k">Conformes</div>
-            <div className="v" style={{ color: "var(--seal)" }}>
+            <div className="font-label text-label-sm uppercase tracking-wide text-m3-on-surface-variant">
+              Conformes
+            </div>
+            <div className="mt-0.5 font-body text-body-lg font-semibold text-m3-on-tertiary-container">
               {proyecto.casosConformes}
             </div>
           </div>
           <div>
-            <div className="k">No conformes</div>
+            <div className="font-label text-label-sm uppercase tracking-wide text-m3-on-surface-variant">
+              No conformes
+            </div>
             <div
-              className="v"
-              style={{
-                color:
-                  proyecto.casosNoConformes > 0 ? "var(--stamp)" : "var(--ink)",
-              }}
+              className={`mt-0.5 font-body text-body-lg font-semibold ${
+                proyecto.casosNoConformes > 0 ? "text-m3-error" : "text-m3-on-surface"
+              }`}
             >
               {proyecto.casosNoConformes}
             </div>
           </div>
         </div>
-        <div className="pc-foot">
+        <div className="flex justify-between gap-2.5 border-t border-m3-outline-variant px-4 py-2.5 font-body text-body-sm text-m3-on-surface-variant">
           <span>{proyecto.ambiente}</span>
           <span>{formatRelativeDate(proyecto.fechaUltimaEjecucion)}</span>
         </div>

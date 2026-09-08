@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { CasoTable } from "@/components/casos/caso-table";
 import { CreateCasoForm } from "@/components/casos/create-caso-form";
 import { EditCasoForm } from "@/components/casos/edit-caso-form";
+import { ModeSelectorModal } from "@/components/casos/mode-selector-modal";
 
 interface ProyectoOption {
   id: string;
@@ -23,6 +24,20 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
   const [casos, setCasos] = useState<CasoPruebaListItem[]>(casosIniciales);
   const [editingCaso, setEditingCaso] = useState<CasoPruebaListItem | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+
+  // HU-G20: el botón "Subir Script" del mode-selector emite un evento
+  // global para abrir el CreateCasoForm existente (no duplicamos lógica).
+  useEffect(() => {
+    function onOpenCreate() {
+      setShowForm(true);
+      setEditingCaso(null);
+    }
+    window.addEventListener("acta:open-create-caso-form", onOpenCreate);
+    return () => {
+      window.removeEventListener("acta:open-create-caso-form", onOpenCreate);
+    };
+  }, []);
 
   const refreshCasos = useCallback(async () => {
     try {
@@ -88,25 +103,34 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Topbar — mockup style */}
-      <div className="topbar -mx-6 -mt-6 rounded-none">
-        <h2>Casos de prueba</h2>
-        <span className="sub">
-          {casos.length} caso{casos.length !== 1 ? "s" : ""} · {proyectoNames.length} proyecto{proyectoNames.length !== 1 ? "s" : ""}
-        </span>
-        <span className="spacer" />
+      {/* Page header */}
+      <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
+        <div>
+          <h2 className="font-headline text-headline-lg text-m3-primary">Casos de prueba</h2>
+          <span className="font-body text-body-sm text-m3-on-surface-variant">
+            {casos.length} caso{casos.length !== 1 ? "s" : ""} · {proyectoNames.length} proyecto{proyectoNames.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <span className="ml-auto" />
         {canEdit && (
           <button
-            onClick={() => {
-              setShowForm(true);
-              setEditingCaso(null);
-            }}
-            className="btn btn-primary"
+            type="button"
+            onClick={() => setShowModeSelector(true)}
+            data-testid="nuevo-caso-button"
+            className="flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90"
           >
-            + Nuevo Caso
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Nuevo caso
           </button>
         )}
       </div>
+
+      {/* Mode selector modal (HU-G20) */}
+      <ModeSelectorModal
+        open={showModeSelector}
+        onClose={() => setShowModeSelector(false)}
+        {...(proyectoId ? { proyectoId } : {})}
+      />
 
       {/* Create form */}
       {showForm && (
@@ -129,12 +153,14 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
 
       {/* Casos grouped by proyecto, or flat when proyectoId is set */}
       {casos.length === 0 ? (
-        <div className="rounded-lg border border-rule bg-surface p-8 text-center">
-          <p className="text-ink-3">No hay casos de prueba registrados.</p>
+        <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+          <p className="font-body text-body-md text-m3-on-surface-variant">
+            No hay casos de prueba registrados.
+          </p>
           {canEdit && (
             <button
               onClick={() => setShowForm(true)}
-              className="mt-2 text-sm text-client hover:underline"
+              className="mt-2 font-label text-label-md text-m3-secondary hover:underline"
             >
               Crear el primer caso
             </button>
@@ -154,8 +180,8 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
             return (
               <div key={proyectoNombre} className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-ink">{proyectoNombre}</h2>
-                  <span className="text-sm text-ink-3">
+                  <h2 className="font-headline text-headline-md text-m3-primary">{proyectoNombre}</h2>
+                  <span className="font-body text-body-sm text-m3-on-surface-variant">
                     ({proyectoCasos.length} caso{proyectoCasos.length !== 1 ? "s" : ""})
                   </span>
                 </div>

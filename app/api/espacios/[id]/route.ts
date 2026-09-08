@@ -73,7 +73,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
   try {
     const result = await deleteEspacio(id, session);
-    return NextResponse.json(result, { status: 204 });
+    // 204 No Content no permite body — devolvemos 200 con el resultado
+    return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });

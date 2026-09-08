@@ -90,6 +90,21 @@ describe("CasoTable", () => {
     expect(truncated).toBeInTheDocument();
   });
 
+  it("links the row action 'Script' directly to the script editor", () => {
+    // Editar el script debe ser una acción de la fila, no algo escondido
+    // detrás de entrar al detalle y buscar el botón ahí.
+    render(<CasoTable casos={mockCasos} canEdit />);
+    const row = screen.getByText("CP-TEST-01").closest("tr");
+    if (!row) throw new Error("Row not found");
+    const link = row.querySelector('[data-testid="editar-script-row-action"]');
+    expect(link).toHaveAttribute("href", "/casos/caso-1?editarScript=1");
+  });
+
+  it("does not show the 'Script' row action when canEdit is false", () => {
+    render(<CasoTable casos={mockCasos} canEdit={false} />);
+    expect(screen.queryByTestId("editar-script-row-action")).not.toBeInTheDocument();
+  });
+
   it("calls onEdit when edit button clicked", () => {
     const onEdit = jest.fn();
     render(<CasoTable casos={mockCasos} canEdit onEdit={onEdit} />);
@@ -110,6 +125,17 @@ describe("CasoTable", () => {
     expect(deleteBtn).toBeInTheDocument();
     fireEvent.click(deleteBtn!);
     expect(onDelete).toHaveBeenCalledWith(mockCasos[0]);
+  });
+
+  it("links código and nombre to the caso detail page", () => {
+    // Antes de este fix no había forma de llegar a /casos/[id] desde
+    // ningún lado de la interfaz — quedaba inalcanzable.
+    render(<CasoTable casos={mockCasos} />);
+    expect(screen.getByText("CP-TEST-01")).toHaveAttribute("href", "/casos/caso-1");
+    expect(screen.getByText("Caso de prueba A")).toHaveAttribute(
+      "href",
+      "/casos/caso-1",
+    );
   });
 
   it("does not show action buttons when canEdit is false", () => {

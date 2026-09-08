@@ -20,9 +20,11 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
 
   if (espacios.length === 0) {
     return (
-      <div className="rounded-lg border border-rule bg-surface p-8 text-center">
-        <p className="text-ink-3">No hay espacios creados aún.</p>
-        <p className="mt-1 text-sm text-ink-3">
+      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+        <p className="font-body text-body-md text-m3-on-surface-variant">
+          No hay espacios creados aún.
+        </p>
+        <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
           Usa el formulario de arriba para crear el primero.
         </p>
       </div>
@@ -34,15 +36,16 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
       {espacios.map((espacio) => (
         <div
           key={espacio.id}
-          className="group relative flex flex-col rounded-lg border border-rule bg-surface p-4 transition-colors hover:border-ink-3"
+          className="group relative flex flex-col rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-4 transition-colors hover:border-m3-outline"
           style={{ borderLeftWidth: "4px", borderLeftColor: espacio.color }}
         >
-          <span className="truncate font-medium text-ink">{espacio.nombre}</span>
-          <div className="mt-3 flex items-center gap-1 border-t border-rule-soft pt-3">
+          <span className="truncate font-body text-body-md font-medium text-m3-on-surface">
+            {espacio.nombre}
+          </span>
+          <div className="mt-3 flex items-center gap-1 border-t border-m3-outline-variant pt-3">
             <button
               onClick={() => handleViewProyectos(espacio.id)}
-              className="rounded p-1.5 text-ink-3 hover:bg-rule-soft"
-              style={{ color: "rgb(243, 155, 43)" }}
+              className="rounded p-1.5 text-m3-secondary hover:bg-m3-surface-container-high"
               title="Ver proyectos"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -55,8 +58,7 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
                 e.stopPropagation();
                 onEdit(espacio);
               }}
-              className="rounded p-1.5 hover:bg-rule-soft"
-              style={{ color: "rgb(28, 173, 199)" }}
+              className="rounded p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
               title="Editar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -68,8 +70,7 @@ function EspaciosList({ espacios, onEdit, onDelete }: EspaciosListProps) {
                 e.stopPropagation();
                 onDelete(espacio);
               }}
-              className="rounded p-1.5 hover:bg-red-50"
-              style={{ color: "#DC2626" }}
+              className="rounded p-1.5 text-m3-on-surface-variant hover:bg-m3-error-container/20 hover:text-m3-error"
               title="Eliminar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -176,8 +177,7 @@ export function EspaciosClient({ initialEspacios }: EspaciosClientProps) {
       <div className="flex justify-end">
         <button
           onClick={openCreateModal}
-          className="rounded px-4 py-2 text-black hover:opacity-90"
-          style={{ background: "linear-gradient(90deg, rgb(250, 182, 98), rgb(243, 155, 43))" }}
+          className="rounded bg-m3-secondary-container px-4 py-2 font-label text-label-lg font-semibold text-m3-on-secondary-container transition-colors hover:bg-m3-secondary-fixed"
         >
           + Crear espacio
         </button>
@@ -187,16 +187,16 @@ export function EspaciosClient({ initialEspacios }: EspaciosClientProps) {
       <dialog
         ref={dialogRef}
         onClick={handleDialogClick}
-        className="rounded-lg border border-rule bg-surface p-0 shadow-xl backdrop:bg-black/50"
+        className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50"
       >
         <div className="max-w-md p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-ink">
+            <h3 className="font-headline text-headline-md text-m3-primary">
               {editingEspacio ? "Editar espacio" : "Nuevo espacio"}
             </h3>
             <button
               onClick={closeModal}
-              className="rounded p-1 text-ink-3 hover:bg-rule-soft hover:text-ink"
+              className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
               aria-label="Cerrar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -215,7 +215,9 @@ export function EspaciosClient({ initialEspacios }: EspaciosClientProps) {
 
       {/* Espacios List */}
       <div>
-        <h3 className="mb-3 text-lg font-semibold text-ink">Espacios activos</h3>
+        <h3 className="mb-3 font-headline text-headline-md text-m3-primary">
+          Espacios activos
+        </h3>
         <EspaciosList espacios={espacios} onEdit={handleEdit} onDelete={handleDelete} />
       </div>
     </div>

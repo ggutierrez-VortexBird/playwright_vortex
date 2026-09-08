@@ -33,6 +33,9 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
         casoPrueba: {
           nombre: ejecucion.casoPrueba.nombre,
           codigo: ejecucion.casoPrueba.codigo,
+          // HU-G17: exponer origen para que el chip pueda distinguir
+          // casos del grabador vs. casos subidos como script.
+          origen: ejecucion.casoPrueba.origen,
         },
         pasos: ejecucion.pasos.map(p => ({
           id: p.id,
@@ -45,6 +48,9 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
           resultadoEsperado: p.resultadoEsperado,
           resultadoObtenido: p.resultadoObtenido,
           errorCount: p.errorCount,
+          // HU-G18 — chapter timestamps del video.
+          videoInicioMs: p.videoInicioMs,
+          videoFinMs: p.videoFinMs,
           logs: p.logs,
           createdAt: p.createdAt.toISOString(),
           subacciones: p.subacciones.map(s => ({

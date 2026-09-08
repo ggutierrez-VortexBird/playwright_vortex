@@ -7,6 +7,7 @@ import { listProyectosActivos } from "@/lib/proyectos/actions";
 import { ClientBand } from "@/components/ui/client-band";
 import { EspacioSwitcher } from "@/components/ui/espacio-switcher";
 import { ProyectoSwitcher } from "@/components/ui/proyecto-switcher";
+import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
 import { ProjectProvider } from "@/components/project-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
 
@@ -15,12 +16,12 @@ interface DashboardLayoutProps {
   params: Promise<{ id?: string }>;
 }
 
-const NAV_ITEMS = [
-  { href: "/espacios", label: "Espacios", color: "var(--client)" },
-  { href: "/proyectos", label: "Proyectos", color: "var(--seal)" },
-  { href: "/casos", label: "Casos", color: "var(--amber)" },
-  { href: "/ejecuciones", label: "Ejecuciones", color: "var(--param)" },
-  { href: "/credenciales", label: "Credenciales", color: "var(--client)" },
+const NAV_ITEMS: SidebarNavItem[] = [
+  { href: "/espacios", label: "Espacios", icon: "workspaces" },
+  { href: "/proyectos", label: "Proyectos", icon: "folder_open" },
+  { href: "/casos", label: "Casos", icon: "fact_check" },
+  { href: "/ejecuciones", label: "Ejecuciones", icon: "play_circle" },
+  { href: "/credenciales", label: "Credenciales", icon: "vpn_key" },
 ];
 
 export default async function DashboardLayout({
@@ -49,37 +50,32 @@ export default async function DashboardLayout({
 
   return (
     <ProjectProvider>
-      <div className="flex min-h-screen bg-paper">
-        {/* Rail — mockup dark sidebar */}
-        <aside className="rail">
+      <div className="flex min-h-screen bg-m3-background">
+        {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html) */}
+        <aside className="sticky top-0 flex h-screen w-60 flex-none flex-col bg-m3-primary-container text-m3-on-primary">
           <ClientBand espacioColor={espacio?.color ?? null} />
-          <div className="brand">
+          <div className="px-5 py-6">
             <Image
               src="/icons/logo.svg"
               alt="QAtheApp"
-              width={260}
-              height={75}
+              width={200}
+              height={58}
               priority
             />
-            <p>Automatización de pruebas</p>
+            <p className="mt-1 font-label text-label-sm text-m3-on-primary-container">
+              Automatización de pruebas
+            </p>
           </div>
-          <nav className="nav">
-            {NAV_ITEMS.map((item) => (
-              <a key={item.href} href={item.href}>
-                <span className="dot" style={{ color: item.color }} />
-                {item.label}
-              </a>
-            ))}
+          <nav className="flex flex-1 flex-col gap-1 px-3">
+            <SidebarNav items={NAV_ITEMS} />
           </nav>
-          <div className="border-t border-white/10 px-5 py-3">
+          <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3">
             <ProyectoSwitcher proyectos={proyectos} />
           </div>
-          <div className="rail-foot">
-            <div className="truncate" style={{ color: "#9FB2C2" }}>
-              {usuario.email}
-            </div>
-            <div style={{ marginTop: 2 }}>{usuario.rol}</div>
-            <div style={{ marginTop: 10, color: "#7D91A3" }}>
+          <div className="border-t border-m3-on-primary-fixed-variant/30 px-5 py-4 font-label text-label-sm text-m3-on-primary-container">
+            <div className="truncate">{usuario.email}</div>
+            <div className="mt-0.5">{usuario.rol}</div>
+            <div className="mt-2.5 text-m3-on-primary-container/70">
               Ambiente QA
               <br />
               Playwright 1.62.1
@@ -87,16 +83,7 @@ export default async function DashboardLayout({
             <form action="/api/logout" method="post" className="mt-3">
               <button
                 type="submit"
-                className="btn w-full"
-                style={{
-                  justifyContent: "center",
-                  fontSize: 11,
-                  padding: "6px 10px",
-                  borderRadius: 4,
-                  background: "linear-gradient(90deg, rgb(250, 182, 98), rgb(243, 155, 43))",
-                  borderColor: "rgb(243, 155, 43)",
-                  color: "#000",
-                }}
+                className="w-full rounded bg-m3-secondary-container px-3 py-2 text-center font-label text-label-sm font-semibold text-m3-on-secondary-container transition-colors hover:bg-m3-secondary-fixed"
               >
                 Cerrar sesión
               </button>
@@ -104,15 +91,11 @@ export default async function DashboardLayout({
           </div>
         </aside>
 
-        {/* Main — topbar + body */}
+        {/* Main — TopAppBar + body */}
         <div className="flex flex-1 flex-col">
-          <header
-            className="topbar"
-            style={{ background: "var(--ink)", color: "#fff" }}
-          >
+          <header className="sticky top-0 z-10 flex h-16 flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6">
             <ScopeBarWithContext />
             <EspacioSwitcher espacios={espacios} />
-            <span className="spacer" />
           </header>
           <main className="flex-1 p-6">{children}</main>
         </div>

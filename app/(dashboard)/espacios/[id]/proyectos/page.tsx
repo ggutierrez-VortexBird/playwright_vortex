@@ -36,15 +36,15 @@ function ProyectoSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="animate-pulse rounded-lg border border-rule bg-surface p-4"
+          className="animate-pulse rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-4"
         >
-          <div className="h-4 w-20 rounded bg-rule-soft" />
-          <div className="mt-2 h-6 w-32 rounded bg-rule-soft" />
-          <div className="mt-1 h-4 w-16 rounded bg-rule-soft" />
-          <div className="mt-4 grid grid-cols-3 gap-4 border-t border-rule pt-4">
-            <div className="h-8 rounded bg-rule-soft" />
-            <div className="h-8 rounded bg-rule-soft" />
-            <div className="h-8 rounded bg-rule-soft" />
+          <div className="h-4 w-20 rounded bg-m3-surface-container-high" />
+          <div className="mt-2 h-6 w-32 rounded bg-m3-surface-container-high" />
+          <div className="mt-1 h-4 w-16 rounded bg-m3-surface-container-high" />
+          <div className="mt-4 grid grid-cols-3 gap-4 border-t border-m3-outline-variant pt-4">
+            <div className="h-8 rounded bg-m3-surface-container-high" />
+            <div className="h-8 rounded bg-m3-surface-container-high" />
+            <div className="h-8 rounded bg-m3-surface-container-high" />
           </div>
         </div>
       ))}
@@ -62,8 +62,8 @@ export default async function ProyectosPage({ params }: PageProps) {
 
   if (!espacio) {
     return (
-      <div className="rounded-lg border border-rule bg-surface p-8 text-center">
-        <p className="text-ink-3">Espacio no encontrado.</p>
+      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+        <p className="text-m3-on-surface-variant">Espacio no encontrado.</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default async function ProyectosPage({ params }: PageProps) {
       {/* Header */}
       <div>
         <ScopeBar espacioNombre={espacio.nombre} espacioColor={espacio.color} />
-        <p className="mt-1 text-ink-3">Proyectos del espacio</p>
+        <p className="mt-1 text-m3-on-surface-variant">Proyectos del espacio</p>
       </div>
 
       {/* Proyectos Grid with Suspense */}

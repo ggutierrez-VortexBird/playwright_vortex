@@ -95,23 +95,23 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
     return (
       <div className="space-y-4">
         {canEdit && (
-          <div className="rounded-lg border border-rule bg-surface p-6">
-            <div className="h-8 w-32 animate-pulse rounded bg-rule-soft" />
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6">
+            <div className="h-8 w-32 animate-pulse rounded bg-m3-surface-container-high" />
           </div>
         )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="animate-pulse rounded-lg border border-rule bg-surface p-4"
+              className="animate-pulse rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-4"
             >
-              <div className="h-4 w-20 rounded bg-rule-soft" />
-              <div className="mt-2 h-6 w-32 rounded bg-rule-soft" />
-              <div className="mt-1 h-4 w-16 rounded bg-rule-soft" />
-              <div className="mt-4 grid grid-cols-3 gap-4 border-t border-rule pt-4">
-                <div className="h-8 rounded bg-rule-soft" />
-                <div className="h-8 rounded bg-rule-soft" />
-                <div className="h-8 rounded bg-rule-soft" />
+              <div className="h-4 w-20 rounded bg-m3-surface-container-high" />
+              <div className="mt-2 h-6 w-32 rounded bg-m3-surface-container-high" />
+              <div className="mt-1 h-4 w-16 rounded bg-m3-surface-container-high" />
+              <div className="mt-4 grid grid-cols-3 gap-4 border-t border-m3-outline-variant pt-4">
+                <div className="h-8 rounded bg-m3-surface-container-high" />
+                <div className="h-8 rounded bg-m3-surface-container-high" />
+                <div className="h-8 rounded bg-m3-surface-container-high" />
               </div>
             </div>
           ))}
@@ -122,7 +122,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-stamp bg-red-50 p-4 text-stamp">
+      <div className="rounded-lg border border-m3-error bg-red-50 p-4 text-m3-error">
         Error: {error}
       </div>
     );
@@ -136,7 +136,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
           {!showForm && !editingProyecto && (
             <button
               onClick={() => setShowForm(true)}
-              className="rounded-md bg-client px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-client/90"
+              className="rounded-md bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90"
             >
               + Nuevo Proyecto
             </button>
@@ -162,12 +162,12 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
       {/* Grid de proyectos */}
       {proyectos.length === 0 && !showForm ? (
-        <div className="rounded-lg border border-rule bg-surface p-8 text-center">
-          <p className="text-ink-3">No hay proyectos en este espacio.</p>
+        <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+          <p className="text-m3-on-surface-variant">No hay proyectos en este espacio.</p>
           {canEdit && (
             <button
               onClick={() => setShowForm(true)}
-              className="mt-2 text-sm text-client hover:underline"
+              className="mt-2 text-sm text-m3-secondary hover:underline"
             >
               Crear el primer proyecto
             </button>

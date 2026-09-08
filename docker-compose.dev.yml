@@ -11,11 +11,24 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: acta-dev
+    # Aplica las migraciones pendientes y siembra el usuario/credencial
+    # demo antes de levantar Next.js. `migrate deploy` (no `migrate dev`)
+    # porque en un contenedor no hay a quién preguntarle nada de forma
+    # interactiva; las migraciones ya deben existir versionadas.
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             node --import tsx prisma/seed.ts &&
+             npm run dev:web"
     ports:
       - "3000:3000"
     environment:
       - PLAYWRIGHT_SCRIPTS_ROOT=/app/playwright-scripts
       - DATABASE_URL=postgresql://acta:acta@postgres:5432/acta?schema=public
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
+      - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD required}
+      # Apunta al servicio `recorder` del compose (HTTP interno, no el WS público).
+      - RECORDER_INTERNAL_URL=http://recorder:3100
+      - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:-dev-recorder-secret-change-me-in-prod-32chars}
     volumes:
       # Volumen nombrado para scripts de Playwright.
       # En desarrollo se puede sustituir por un bind mount si se desea editar
@@ -23,8 +36,53 @@ services:
       - playwright-scripts:/app/playwright-scripts
       # Persistencia de artefactos de ejecución (evidencias, screenshots, traces).
       - artefactos:/app/artefactos
-    # El worker corre como proceso dentro del mismo contenedor (long-lived Node).
-    # No se usa restart: always en dev para evitar bucles si el build falla.
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    # Motor de ejecución (scripts/worker.ts): toma Ejecucion en estado
+    # 'pendiente' cada 5s y corre el .spec.ts con Playwright headless.
+    # No necesitaba servicio propio hasta ahora porque nunca se había
+    # completado este compose — sin él, ningún "Ejecutar" corre dentro de
+    # Docker aunque `app` y `postgres` estén sanos.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acta-worker
+    command: ["node", "--import", "tsx", "scripts/worker.ts"]
+    environment:
+      - PLAYWRIGHT_SCRIPTS_ROOT=/app/playwright-scripts
+      - DATABASE_URL=postgresql://acta:acta@postgres:5432/acta?schema=public
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
+    volumes:
+      - playwright-scripts:/app/playwright-scripts
+      - artefactos:/app/artefactos
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  recorder:
+    # El recorder-worker comparte imagen con app pero ejecuta el proceso Node
+    # dedicado. Aísla memoria/CPU del Chromium y permite escalado independiente.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acta-recorder
+    command: ["node", "--import", "tsx", "scripts/recorder-worker.ts"]
+    ports:
+      - "3100:3100"
+    environment:
+      - DATABASE_URL=postgresql://acta:acta@postgres:5432/acta?schema=public
+      # Apunta al app para HTTP /internal/start (mismo docker network)
+      - RECORDER_PUBLIC_URL=ws://localhost:3100
+      - RECORDER_WS_PORT=3100
+      - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:-dev-recorder-secret-change-me-in-prod-32chars}
+      - RECORDER_MAX_SESSIONS=${RECORDER_MAX_SESSIONS:-3}
+      - RECORDER_HEARTBEAT_TIMEOUT_MS=${RECORDER_HEARTBEAT_TIMEOUT_MS:-600000}
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
     restart: "no"
     depends_on:
       postgres:

@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+coverage
+test-results
+runtime
+storage
+*.log
+.env
+.env.local
+e2e
+__tests__

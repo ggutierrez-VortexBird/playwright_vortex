@@ -73,6 +73,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
       }
       updateData.script = await scriptFile.text();
       updateData.scriptFileName = fileName;
+    } else {
+      // Edición directa del script desde el editor del detalle de caso
+      // (sin reemplazar el archivo completo). Solo se toma si no vino un
+      // archivo — subir un archivo siempre gana.
+      const script = formData.get("script");
+      if (typeof script === "string") {
+        updateData.script = script;
+      }
     }
 
     const caso = await updateCaso(id, updateData, session);

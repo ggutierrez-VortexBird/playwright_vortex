@@ -14,14 +14,14 @@ export default function ProyectoCasosError({
   }, [error]);
 
   return (
-    <div className="rounded-lg border border-stamp bg-red-50 p-8 text-center">
-      <h2 className="text-lg font-semibold text-stamp">Error al cargar casos del proyecto</h2>
-      <p className="mt-2 text-sm text-ink-3">
+    <div className="rounded-lg border border-m3-error bg-m3-error-container/10 p-8 text-center">
+      <h2 className="text-lg font-semibold text-m3-error">Error al cargar casos del proyecto</h2>
+      <p className="mt-2 text-sm text-m3-on-surface-variant">
         {error.message || "Ocurrió un error inesperado."}
       </p>
       <button
         onClick={reset}
-        className="mt-4 rounded-md border border-rule bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-rule-soft"
+        className="mt-4 rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-4 py-2 text-sm font-medium text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
       >
         Reintentar
       </button>

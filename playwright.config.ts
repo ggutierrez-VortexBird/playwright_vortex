@@ -8,8 +8,10 @@ const isRunner = process.env.PLAYWRIGHT_VORTEX_RUNNER === '1'
 
 export default defineConfig({
   testDir: './runtime/ejecuciones',
-  outputDir: process.env.PLAYWRIGHT_VORTEX_OUTPUT_DIR,
-  timeout: 3 * 60 * 1000, // 10 minutes per execution
+  // HU-FIX: si PLAYWRIGHT_VORTEX_OUTPUT_DIR no está definido (edge case en cache
+  // de config o carga temprana), caemos a test-results/ para evitar undefined.
+  outputDir: process.env.PLAYWRIGHT_VORTEX_OUTPUT_DIR || path.resolve(process.cwd(), 'test-results'),
+  timeout: 1 * 60 * 1000, // 10 minutes per execution
   retries: 0,
   workers: 1,
   // Reporter custom que emite JSON por stdout.

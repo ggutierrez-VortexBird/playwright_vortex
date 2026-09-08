@@ -9,6 +9,10 @@ import { EjecucionStatus } from './ejecucion-status'
 import { EjecucionSummary } from './ejecucion-summary'
 import { DetenerButton } from './detener-button'
 import { ReRunButton } from './re-run-button'
+import { OrigenChip } from './origen-chip'
+import { ReparadosCounter } from './reparados-counter'
+import { VideoChapterBar } from './video-chapter-bar'
+import { GenerarActaButton } from './generar-acta-button'
 
 interface Subaccion {
   id: string
@@ -36,12 +40,17 @@ interface Paso {
   errorCount: number
   logs: unknown
   createdAt: string
+  // HU-G18 — chapter timestamps del video.
+  videoInicioMs: number | null
+  videoFinMs: number | null
   subacciones: Subaccion[]
 }
 
 interface CasoPrueba {
   nombre: string
   codigo: string
+  // HU-G17: origen del caso (subirScript | grabador | mixto)
+  origen?: string | null
 }
 
 interface Artefacto {
@@ -71,6 +80,8 @@ interface Ejecucion {
   casoPrueba: CasoPrueba
   pasos: Paso[]
   artefactos: Artefacto[]
+  // HU-G19 — acta ya generada (si existe).
+  acta?: { id: string; consecutivo: string; rutaPdf: string } | null
 }
 
 interface Props {
@@ -81,6 +92,14 @@ interface Props {
 export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props) {
   const [ejecucion, setEjecucion] = useState<Ejecucion>(initialEjecucion)
   const expandedPasoIdRef = useRef<string | null>(null)
+  // HU-G18 — ref al <video> para que VideoChapterBar pueda hacer seek.
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [videoDurationMs, setVideoDurationMs] = useState(0)
+  const handleLoadedMetadata = useCallback(() => {
+    const v = videoRef.current
+    if (!v) return
+    setVideoDurationMs(Math.round((v.duration || 0) * 1000))
+  }, [])
 
   const poll = useCallback(async () => {
     try {
@@ -122,9 +141,9 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
   return (
     <div className="flex flex-col gap-6 accordion-panel">
       {/* Topbar */}
-      <div className="topbar -mx-6 -mt-6 rounded-none">
-        <h2>Ejecución {ejecucionId.slice(0, 8)}</h2>
-        <span className="sub">
+      <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
+        <h2 className="font-headline text-headline-lg text-m3-primary">Ejecución {ejecucionId.slice(0, 8)}</h2>
+        <span className="font-body text-body-sm text-m3-on-surface-variant">
           {caso.nombre} · {caso.codigo} ·{' '}
           {ejecucion.inicioAt
             ? new Date(ejecucion.inicioAt).toLocaleString('es-ES', {
@@ -136,13 +155,33 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
               })
             : '—'}
         </span>
-        <span className="spacer" />
+        {/* HU-G17: chip de origen (grabador vs. script) */}
+        {caso.origen && <OrigenChip origen={caso.origen} />}
+        {/* HU-G15 — contador de pasos auto-reparados en ejecución */}
+        <ReparadosCounter pasos={ejecucion.pasos} />
+        <span className="ml-auto" />
+        {/* HU-G19 — generar/descargar acta de evidencia (solo en estados terminales) */}
+        {!isRunning && ejecucion.estado !== 'pendiente' && (
+          <GenerarActaButton
+            ejecucionId={ejecucion.id}
+            initialActa={
+              ejecucion.acta
+                ? {
+                    id: ejecucion.acta.id,
+                    consecutivo: ejecucion.acta.consecutivo,
+                    pdfPath: ejecucion.acta.rutaPdf,
+                    downloadUrl: `/api/actas/${ejecucion.acta.id}/download`,
+                  }
+                : null
+            }
+          />
+        )}
         {canReRun && (
           <ReRunButton casoPruebaId={ejecucion.casoPruebaId} />
         )}
         {isRunning ? (
-          <span className="stamp">
-            <span className="ink" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-m3-secondary/30 bg-m3-secondary-container/25 px-2.5 py-1 font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-secondary-container">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-m3-secondary" aria-hidden="true" />
             Corriendo
           </span>
         ) : (
@@ -164,7 +203,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         {/* Left column */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           {/* Summary Card */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden" data-purpose="summary-header">
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm overflow-hidden" data-purpose="summary-header">
             <EjecucionSummary
               estado={ejecucion.estado}
               duracionMs={ejecucion.duracionMs}
@@ -176,10 +215,10 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
           </div>
 
           {/* Steps accordion */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col flex-grow" data-purpose="test-steps-section">
-            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center rounded-t-lg">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pasos ejecutados</h3>
-              <span className="text-xs font-semibold text-gray-500">{ejecucion.pasos.length}</span>
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm flex flex-col flex-grow" data-purpose="test-steps-section">
+            <div className="bg-m3-surface-container px-6 py-3 border-b border-m3-outline-variant flex justify-between items-center rounded-t-lg">
+              <h3 className="font-label text-label-sm font-semibold text-m3-on-surface-variant uppercase tracking-wide">Pasos ejecutados</h3>
+              <span className="font-label text-label-sm font-semibold text-m3-on-surface-variant">{ejecucion.pasos.length}</span>
             </div>
             <div className="flex flex-col flex-grow overflow-y-auto steps-scroll max-h-[800px]" data-purpose="steps-list">
               <PasoAccordionList
@@ -194,8 +233,8 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         {/* Right column */}
         <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-[90px] self-start w-full">
           {/* Video */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2">Video de la ejecución</h3>
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm p-4">
+            <h3 className="font-label text-label-sm font-semibold text-m3-on-surface-variant uppercase tracking-wide mb-4 px-2">Video de la ejecución</h3>
             {isRunning && ejecucion.artefactos.length === 0 ? (
               <div className="video" data-testid="generando-evidencia">
                 <div className="ann">En curso</div>
@@ -209,25 +248,42 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
                   {ejecucion.estado === 'fallo' ? 'Fallo · verificación' : 'Paso destacado'}
                 </div>
                 <video
+                  ref={videoRef}
                   data-testid="video-player"
                   src={`/api/artefactos/${videoArtefacto.id}`}
                   controls
+                  onLoadedMetadata={handleLoadedMetadata}
                   className="w-full h-full object-contain"
                 />
-                {totalDuracionMs > 0 && (
-                  <div className="bar">
-                    {ejecucion.pasos.map((p) => (
-                      <i
-                        key={p.id}
-                        data-testid="chapter-bar"
-                        className={`chapter ${p.estado === 'fallo' ? 'done' : ''}`}
-                        style={{
-                          width: `${Math.round(((p.duracionMs ?? 0) / totalDuracionMs) * 100)}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* HU-G18 — barra segmentada con click-to-seek + overlay "Paso N · …".
+                    Si los pasos no tienen timestamps, el componente cae al
+                    fallback por duracionMs (no necesitamos duplicar la lógica). */}
+                <VideoChapterBar
+                  pasos={ejecucion.pasos}
+                  videoDurationMs={videoDurationMs}
+                  videoRef={videoRef}
+                />
+                {/* Backwards-compat: para grabaciones legacy sin videoInicioMs/FinMs,
+                    renderizamos la barra proporcional a duracionMs. Se muestra solo
+                    cuando la nueva barra no encontró capítulos por timestamp. */}
+                {videoDurationMs === 0 &&
+                  totalDuracionMs > 0 &&
+                  !ejecucion.pasos.some(
+                    (p) => p.videoInicioMs != null && p.videoFinMs != null,
+                  ) && (
+                    <div className="bar">
+                      {ejecucion.pasos.map((p) => (
+                        <i
+                          key={p.id}
+                          data-testid="chapter-bar"
+                          className={`chapter ${p.estado === 'fallo' ? 'done' : ''}`}
+                          style={{
+                            width: `${Math.round(((p.duracionMs ?? 0) / totalDuracionMs) * 100)}%`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
               </div>
             ) : (
               <div className="video">
@@ -242,9 +298,9 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
           </div>
 
           {/* Environment + Assertions card */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 rounded-t-lg">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Detalles de entorno</h3>
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+            <div className="bg-m3-surface-container px-6 py-3 border-b border-m3-outline-variant rounded-t-lg">
+              <h3 className="font-label text-label-sm font-semibold text-m3-on-surface-variant uppercase tracking-wide">Detalles de entorno</h3>
             </div>
             <div className="p-6">
               <EntornoDetails
@@ -253,8 +309,8 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
                 sistemaOperativo={ejecucion.sistemaOperativo}
                 nodoEjecucion={ejecucion.nodoEjecucion}
               />
-              <div className="mt-6 pt-6 border-t border-gray-100">
-                <dt className="text-[11px] font-semibold text-gray-500 uppercase mb-3">Resumen de Aserciones</dt>
+              <div className="mt-6 pt-6 border-t border-m3-outline-variant">
+                <dt className="font-label text-[11px] font-semibold text-m3-on-surface-variant uppercase mb-3">Resumen de Aserciones</dt>
                 <AsercionesResumen
                   total={ejecucion.asercionesTotal}
                   ok={ejecucion.asercionesOk}
@@ -266,8 +322,8 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         </div>
       </div>
 
-      <div className="note">
-        <b>Cómo leer esta pantalla:</b> a la izquierda, el acta paso a paso con
+      <div className="mt-4 rounded-r border-l-2 border-m3-outline-variant bg-m3-surface-container-lowest px-4 py-3.5 font-body text-body-sm leading-relaxed text-m3-on-surface-variant">
+        <b className="font-semibold text-m3-on-surface">Cómo leer esta pantalla:</b> a la izquierda, el acta paso a paso con
         detalle expandible. A la derecha, el video de la ejecución y los detalles
         de entorno con resumen de aserciones.
       </div>

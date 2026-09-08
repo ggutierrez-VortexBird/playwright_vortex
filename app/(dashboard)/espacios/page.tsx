@@ -12,8 +12,8 @@ export default async function EspaciosPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold text-ink">Espacios</h2>
-        <p className="mt-1 text-ink-3">
+        <h2 className="font-headline text-headline-lg text-m3-primary">Espacios</h2>
+        <p className="mt-1 font-body text-body-md text-m3-on-surface-variant">
           Organiza tu trabajo por cliente o área. Cada espacio tiene un color
           propio que se propaga a sus proyectos, casos y ejecuciones.
         </p>

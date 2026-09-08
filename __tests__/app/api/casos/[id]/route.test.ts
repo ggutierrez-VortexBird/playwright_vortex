@@ -193,6 +193,69 @@ describe("PUT /api/casos/[id]", () => {
     expect(updateCaso).toHaveBeenCalledWith("caso-1", { nombre: "Updated Name" }, mockSession);
   });
 
+  it("should accept a plain-text script field (inline editor save, no file upload)", async () => {
+    const mockUpdated = {
+      id: "caso-1",
+      proyectoId: "proyecto-1",
+      codigo: "CP-TEST-01",
+      nombre: "Caso A",
+      script: "await page.goto('https://edited.example');",
+      scriptFileName: "a.spec.ts",
+      responsableId: "user-456",
+      estado: "sin ejecuciones",
+      activo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (updateCaso as jest.Mock).mockResolvedValue(mockUpdated);
+
+    const request = createMockRequest("caso-1", {
+      script: "await page.goto('https://edited.example');",
+    });
+
+    const response = await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.script).toBe("await page.goto('https://edited.example');");
+    expect(updateCaso).toHaveBeenCalledWith(
+      "caso-1",
+      { script: "await page.goto('https://edited.example');" },
+      mockSession,
+    );
+  });
+
+  it("prefers the uploaded scriptFile over a plain-text script field if both are sent", async () => {
+    const mockUpdated = {
+      id: "caso-1",
+      proyectoId: "proyecto-1",
+      codigo: "CP-TEST-01",
+      nombre: "Caso A",
+      script: "mock file content",
+      scriptFileName: "file.spec.ts",
+      responsableId: "user-456",
+      estado: "sin ejecuciones",
+      activo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (updateCaso as jest.Mock).mockResolvedValue(mockUpdated);
+
+    const file = new File(["file content"], "file.spec.ts", { type: "text/typescript" });
+    const request = createMockRequest("caso-1", {
+      script: "esto no debería usarse",
+      scriptFile: file,
+    });
+
+    await PUT(request, { params: Promise.resolve({ id: "caso-1" }) });
+
+    expect(updateCaso).toHaveBeenCalledWith(
+      "caso-1",
+      expect.objectContaining({ script: "mock file content" }),
+      mockSession,
+    );
+  });
+
   it("should return 400 when script file has invalid extension", async () => {
     const file = new File(["test content"], "invalid.txt", { type: "text/plain" });
     const request = createMockRequest("caso-1", {
@@ -205,7 +268,9 @@ describe("PUT /api/casos/[id]", () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe("validation");
-    expect(data.message).toBe("El archivo debe ser .ts o .js");
+    expect(data.message).toBe(
+      "El archivo debe ser .spec.ts, .test.ts, .spec.js o .test.js",
+    );
   });
 
   it("should return 400 when updateCaso throws validation error", async () => {

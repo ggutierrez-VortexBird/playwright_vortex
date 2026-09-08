@@ -98,26 +98,26 @@ describe("PasoSubaccionItem", () => {
     render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "paso" })} expanded={false} onToggle={jest.fn()} />);
     const pill = screen.getByText("Conforme");
     expect(pill).toBeInTheDocument();
-    expect(pill).toHaveClass("bg-green-50");
-    expect(pill).toHaveClass("text-green-700");
-    expect(pill).toHaveClass("border-green-200");
+    expect(pill).toHaveClass("bg-m3-tertiary-container/15");
+    expect(pill).toHaveClass("text-m3-on-tertiary-container");
+    expect(pill).toHaveClass("border-m3-tertiary-container/40");
   });
 
   it("renders status pill 'No conforme' when estado is fallo", () => {
     render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "fallo" })} expanded={false} onToggle={jest.fn()} />);
     const pill = screen.getByText("No conforme");
     expect(pill).toBeInTheDocument();
-    expect(pill).toHaveClass("bg-red-50");
-    expect(pill).toHaveClass("text-red-700");
-    expect(pill).toHaveClass("border-red-200");
+    expect(pill).toHaveClass("bg-m3-error-container/15");
+    expect(pill).toHaveClass("text-m3-error");
+    expect(pill).toHaveClass("border-m3-error/30");
   });
 
   it("renders status pill 'Reparado' when estado is reparado", () => {
     render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "reparado" })} expanded={false} onToggle={jest.fn()} />);
     const pill = screen.getByText("Reparado");
     expect(pill).toBeInTheDocument();
-    expect(pill).toHaveClass("bg-amber-50");
-    expect(pill).toHaveClass("text-amber-700");
-    expect(pill).toHaveClass("border-amber-200");
+    expect(pill).toHaveClass("bg-m3-secondary-container/40");
+    expect(pill).toHaveClass("text-m3-on-secondary-container");
+    expect(pill).toHaveClass("border-m3-secondary/30");
   });
 });

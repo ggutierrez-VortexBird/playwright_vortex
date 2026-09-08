@@ -47,11 +47,11 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
   }
 
   return (
-    <div className="rounded-lg border border-rule bg-surface p-6">
-      <h2 className="mb-4 text-lg font-semibold text-ink">Editar Proyecto</h2>
+    <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6">
+      <h2 className="mb-4 font-headline text-headline-md text-m3-primary">Editar Proyecto</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label htmlFor="edit-nombre" className="block text-sm font-medium text-ink">
+          <label htmlFor="edit-nombre" className="block text-sm font-medium text-m3-on-surface">
             Nombre del proyecto
           </label>
           <input
@@ -61,13 +61,13 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
             onChange={(e) => setNombre(e.target.value)}
             required
             maxLength={100}
-            className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink placeholder:text-ink-3 focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
+            className="mt-1 block w-full rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 text-m3-on-surface placeholder:text-m3-on-surface-variant focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
             placeholder="Ej: Tests QA Bancoomeva"
           />
         </div>
 
         <div>
-          <label htmlFor="edit-ambiente" className="block text-sm font-medium text-ink">
+          <label htmlFor="edit-ambiente" className="block text-sm font-medium text-m3-on-surface">
             Ambiente
           </label>
           <input
@@ -77,13 +77,13 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
             onChange={(e) => setAmbiente(e.target.value)}
             required
             maxLength={50}
-            className="mt-1 block w-full rounded-md border border-rule bg-background px-3 py-2 text-ink placeholder:text-ink-3 focus:border-client focus:outline-none focus:ring-1 focus:ring-client"
+            className="mt-1 block w-full rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 text-m3-on-surface placeholder:text-m3-on-surface-variant focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
             placeholder="Ej: QA, PROD, DEV"
           />
         </div>
 
         {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-stamp">
+          <div className="rounded-md bg-red-50 p-3 text-sm text-m3-error">
             {error}
           </div>
         )}
@@ -92,7 +92,7 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
           <button
             type="submit"
             disabled={loading}
-            className="rounded-md bg-client px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-client/90 disabled:opacity-50"
+            className="rounded-md bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -100,7 +100,7 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-rule-soft"
+              className="rounded-md border border-m3-outline-variant px-4 py-2 text-sm font-medium text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
             >
               Cancelar
             </button>
