@@ -28,6 +28,8 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
     screenshot: isRunner ? 'on' : 'only-on-failure',
     video: isRunner ? 'on' : 'retain-on-failure',
+    locale: 'es-CO',
+    timezoneId: 'Europe/Madrid',
   },
   projects: [
     {
