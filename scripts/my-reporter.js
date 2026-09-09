@@ -7,10 +7,21 @@
 //
 // NOTA: Playwright Reporter API requiere una Clase.
 //
-// HU-4.6: Captura TODAS las categorías de TestStep de Playwright:
-// expect, test.step, pw:api, hook, fixture, test.attach
-// Además hace walk recursivo en step.steps[] para capturar sub-steps anidados.
-// Las categorías 'fixture' y 'test.attach' se skippean (ruido/no relevantes).
+// Sub-pasos: solo se emite un evento 'substep' por acción real del caso
+// (click, fill, navigate, expect...). Playwright ya llama a onStepEnd() una
+// vez por cada TestStep del árbol, sin importar el nivel de anidamiento, así
+// que NO hace falta (ni conviene) recorrer step.steps[] a mano: hacerlo
+// duplicaba cada substep (una vez por su propio onStepEnd, otra vez al
+// recorrer los hijos de su padre).
+//
+// Se descarta un step si su propia categoría es 'hook', 'fixture' o
+// 'test.attach', o si CUALQUIER ancestro (step.parent) tiene categoría
+// 'hook' o 'fixture'. Eso saca de encima:
+//   - Before Hooks / After Hooks / Worker Cleanup (categoría 'hook')
+//   - Fixture "browser"/"context"/"page" y su Launch/Create/Close interno
+//     (categoría 'fixture' y sus hijos 'pw:api')
+// y deja solo lo que un QA reconoce como paso: pw:api (click, fill, goto...)
+// y expect (aserciones), estén o no agrupados dentro de un test.step().
 
 class JsonReporter {
   constructor() {
@@ -52,6 +63,8 @@ class JsonReporter {
   }
 
   onStepEnd(test, result, step) {
+    if (!this._isMeaningfulStep(step)) return
+
     // emit assertion event for expect steps (accounting de ok/fail)
     if (step.category === 'expect') {
       this.assertionCounters.total++
@@ -66,29 +79,25 @@ class JsonReporter {
         ok,
       }
       this._emit(assertionEvent)
-      // También emitimos substep para que aparezca en el acordeón
-      this._emitSubstep(test, step)
-      // Walk recursivo por si hay steps anidados
-      this._walkStepSteps(test, step)
-      return
     }
 
-    // Skip 'fixture' (metadata interno) y 'test.attach' (metadata de attachment)
-    if (step.category === 'fixture' || step.category === 'test.attach') return
-
-    // hook, pw:api, test.step → emitimos substep
+    // También emitimos substep para que aparezca en el acordeón
     this._emitSubstep(test, step)
-    // Walk recursivo por si hay steps anidados
-    this._walkStepSteps(test, step)
   }
 
-  // Walk recursivo por step.steps[] (sub-steps anidados de Playwright)
-  _walkStepSteps(test, step) {
-    if (!step.steps || step.steps.length === 0) return
-    for (const childStep of step.steps) {
-      this._emitSubstep(test, childStep)
-      this._walkStepSteps(test, childStep)
+  // Descarta hooks, fixtures y cualquier step anidado dentro de ellos
+  // (ver comentario al inicio del archivo). No mira step.steps[] porque
+  // cada hijo llega a onStepEnd() por su cuenta.
+  _isMeaningfulStep(step) {
+    if (step.category === 'hook' || step.category === 'fixture' || step.category === 'test.attach') {
+      return false
     }
+    let ancestor = step.parent
+    while (ancestor) {
+      if (ancestor.category === 'hook' || ancestor.category === 'fixture') return false
+      ancestor = ancestor.parent
+    }
+    return true
   }
 
   // Helper para emitir un evento substep
@@ -157,9 +166,9 @@ class JsonReporter {
     }
   }
 
-  // Clasifica el tipo de step según categoría y título
+  // Clasifica el tipo de step según categoría y título.
+  // 'hook' nunca llega acá: _isMeaningfulStep() lo descarta antes.
   _classifyStepType(category, title) {
-    if (category === 'hook') return 'setup'
     if (category === 'expect') return 'assertion'
     const t = (title || '').toLowerCase()
     if (t.includes('navigate') || t.includes('goto') || t.includes('visit')) return 'navigate'

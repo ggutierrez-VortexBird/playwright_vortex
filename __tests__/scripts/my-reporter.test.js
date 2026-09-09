@@ -98,6 +98,66 @@ describe('JsonReporter — HU-4.5 multi-event emitter', () => {
     expect(substep.tipo).toBe('action')
   })
 
+  it('no emite substep para Before Hooks / After Hooks / Worker Cleanup (categoria hook)', () => {
+    const testMock = { title: 'parent', annotations: [] }
+    reporter.onTestBegin(testMock)
+
+    reporter.onStepEnd(testMock, {}, { title: 'Before Hooks', category: 'hook', error: null, duration: 100 })
+    reporter.onStepEnd(testMock, {}, { title: 'After Hooks', category: 'hook', error: null, duration: 100 })
+    reporter.onStepEnd(testMock, {}, { title: 'Worker Cleanup', category: 'hook', error: null, duration: 100 })
+
+    const events = parseLines()
+    expect(events.find((e) => e.type === 'substep')).toBeUndefined()
+  })
+
+  it('no emite substep para pasos anidados dentro de un hook o fixture (Launch browser, Close context...)', () => {
+    const testMock = { title: 'parent', annotations: [] }
+    reporter.onTestBegin(testMock)
+
+    const beforeHooks = { title: 'Before Hooks', category: 'hook', error: null, duration: 200 }
+    const fixtureBrowser = { title: 'Fixture "browser"', category: 'fixture', error: null, duration: 100, parent: beforeHooks }
+    const launchBrowser = { title: 'Launch browser', category: 'pw:api', error: null, duration: 90, parent: fixtureBrowser }
+
+    reporter.onStepEnd(testMock, {}, launchBrowser)
+    reporter.onStepEnd(testMock, {}, fixtureBrowser)
+    reporter.onStepEnd(testMock, {}, beforeHooks)
+
+    const events = parseLines()
+    expect(events.find((e) => e.type === 'substep')).toBeUndefined()
+  })
+
+  it('emite un solo substep por accion real, sin duplicarla via el step padre (test.step)', () => {
+    const testMock = { title: 'parent', annotations: [] }
+    reporter.onTestBegin(testMock)
+
+    const groupStep = { title: 'Verificar titulo', category: 'test.step', error: null, duration: 150 }
+    const clickStep = { title: "Click locator('h1')", category: 'pw:api', error: null, duration: 30, parent: groupStep }
+
+    // Playwright llama a onStepEnd una vez por cada step del arbol, hijo primero.
+    reporter.onStepEnd(testMock, {}, clickStep)
+    reporter.onStepEnd(testMock, {}, groupStep)
+
+    const events = parseLines().filter((e) => e.type === 'substep')
+    const clicks = events.filter((e) => e.descripcion === "Click locator('h1')")
+    expect(clicks).toHaveLength(1)
+  })
+
+  it('mantiene un assert anidado dentro de un test.step (no es hook/fixture)', () => {
+    const testMock = { title: 'parent', annotations: [] }
+    reporter.onTestBegin(testMock)
+
+    const groupStep = { title: 'Verificar titulo', category: 'test.step', error: null, duration: 150 }
+    const expectStep = { title: 'Expect "toHaveTitle"', category: 'expect', error: null, duration: 20, parent: groupStep }
+
+    reporter.onStepEnd(testMock, {}, expectStep)
+
+    const events = parseLines()
+    expect(events.find((e) => e.type === 'assertion')).toBeDefined()
+    const substep = events.find((e) => e.type === 'substep')
+    expect(substep).toBeDefined()
+    expect(substep.tipo).toBe('assertion')
+  })
+
   it('emite evento end en onEnd con estado y aserciones', () => {
     reporter.onEnd({ status: 'passed', duration: 5000 })
     const events = parseLines()

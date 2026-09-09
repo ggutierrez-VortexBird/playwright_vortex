@@ -16,6 +16,9 @@
 
 import { spawn } from "child_process";
 import { prisma } from "@/lib/db";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 jest.mock("child_process");
 jest.mock("@/lib/db", () => ({
@@ -25,6 +28,12 @@ jest.mock("@/lib/db", () => ({
       findFirst: jest.fn(),
     },
     pasoSubaccion: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+    },
+    artefacto: {
+      findFirst: jest.fn(),
       create: jest.fn(),
     },
   },
@@ -270,6 +279,52 @@ describe("runPlaywrightTest — state mapping (AC-11)", () => {
         }),
       })
     );
+  });
+
+  it("vincula la captura de nivel test (screenshot: 'on') al ÚLTIMO sub-paso sin captura, no al primero", async () => {
+    // Con hooks/fixtures ya filtrados en el reporter, el sub-paso más
+    // reciente sin captura es la acción real que estaba corriendo cuando
+    // Playwright tomó la screenshot (la que falló, o la última si pasó).
+    // Antes se buscaba con orderBy asc, lo que la pegaba al primer sub-paso
+    // (ej. la primera navegación) en vez de a la acción relevante.
+    const capturaPath = path.join(os.tmpdir(), `runner-captura-test-${Date.now()}.png`);
+    fs.writeFileSync(capturaPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+    const stdoutData =
+      '{"type":"step","numero":1,"descripcion":"Test","estado":"paso","duracionMs":100}\n' +
+      '{"type":"substep","parentTestId":1,"numero":1,"tipo":"navigate","descripcion":"Navigate to /","estado":"paso"}\n' +
+      '{"type":"substep","parentTestId":1,"numero":2,"tipo":"action","descripcion":"Click boton","estado":"fallo"}\n' +
+      `{"type":"captura-test","parentTestId":1,"capturaActualPath":${JSON.stringify(capturaPath)},"capturaReferenciaPath":null}\n`;
+
+    mockProcess({ stdoutData, exitCode: 0 });
+
+    (prisma.pasoEjecucion.findFirst as jest.Mock).mockResolvedValue({ id: "paso-1" });
+    (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({ id: "paso-1" });
+    (prisma.pasoSubaccion.create as jest.Mock).mockResolvedValue({ id: "substep-1" });
+    (prisma.pasoSubaccion.findFirst as jest.Mock).mockResolvedValue({ id: "substep-ultimo" });
+    (prisma.pasoSubaccion.update as jest.Mock).mockResolvedValue({});
+    (prisma.artefacto.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.artefacto.create as jest.Mock).mockResolvedValue({ id: "artefacto-1" });
+
+    try {
+      const { runPlaywrightTest } = await import("@/lib/worker/runner");
+      await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1");
+
+      expect(prisma.pasoSubaccion.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ pasoEjecucionId: "paso-1", capturaActualId: null }),
+          orderBy: { numero: "desc" },
+        })
+      );
+      expect(prisma.pasoSubaccion.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "substep-ultimo" },
+          data: expect.objectContaining({ capturaActualId: "artefacto-1" }),
+        })
+      );
+    } finally {
+      fs.unlinkSync(capturaPath);
+    }
   });
 });
 

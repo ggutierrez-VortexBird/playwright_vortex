@@ -412,8 +412,11 @@ async function handleAssertionEvent(state: RunnerState, event: AssertionEvent): 
 
 /**
  * Maneja el evento captura-test: vincula las capturas de nivel test
- * (screenshot: 'on') al siguiente substep disponible por orden de ejecución.
- * No sobrescribe capturas ya existentes.
+ * (screenshot: 'on') al ÚLTIMO substep sin captura del paso, es decir, al
+ * sub-paso real más reciente que se ejecutó — con hooks/fixtures ya fuera
+ * de la lista de sub-pasos (ver scripts/my-reporter.js), es la acción que
+ * estaba corriendo cuando Playwright tomó esta captura (la que falló, o la
+ * última si el test pasó). No sobrescribe capturas ya existentes.
  */
 async function handleCapturaTestEvent(state: RunnerState, event: CapturaTestEvent): Promise<void> {
   // Encontrar el paso por numero (parentTestId = testCounter = pasoNumero)
@@ -427,14 +430,14 @@ async function handleCapturaTestEvent(state: RunnerState, event: CapturaTestEven
     return
   }
 
-  // Buscar el siguiente substep sin capturaActualId, a partir del cursor
+  // Buscar el último substep sin capturaActualId (el sub-paso real más reciente)
   const subaccion = await prisma.pasoSubaccion.findFirst({
     where: {
       ejecucionId: state.ejecucionId,
       pasoEjecucionId: paso.id,
       capturaActualId: null,
     },
-    orderBy: { numero: 'asc' },
+    orderBy: { numero: 'desc' },
     select: { id: true },
   }).catch(() => null)
 
