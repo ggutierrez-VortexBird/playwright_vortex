@@ -45,7 +45,7 @@ export function ProyectoCard({
 }: ProyectoCardProps) {
   return (
     <article
-      className="group relative block w-full overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest text-left transition-colors hover:border-m3-outline"
+      className="group relative block w-full overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest text-left shadow-sm transition-shadow hover:shadow-md"
       style={espacioColor ? { borderTopWidth: 3, borderTopColor: espacioColor } : undefined}
     >
       {/* Action buttons — only visible on hover */}

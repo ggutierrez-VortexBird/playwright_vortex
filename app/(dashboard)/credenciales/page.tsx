@@ -44,7 +44,7 @@ export default async function CredencialesPage() {
         <button className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity">Agregar credencial</button>
       </div>
 
-      <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+      <div className="rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
         {PLACEHOLDER_CREDS.map((cred) => (
           <div
             key={cred.nombre}

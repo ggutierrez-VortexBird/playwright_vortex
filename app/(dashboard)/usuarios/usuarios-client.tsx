@@ -65,7 +65,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol }: UsuariosClie
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-4 rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm sm:flex-row sm:items-end sm:flex-wrap"
+        className="flex flex-col gap-4 rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm sm:flex-row sm:items-end sm:flex-wrap"
       >
         <div className="flex flex-1 min-w-[200px] flex-col gap-1">
           <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Email</label>
@@ -116,7 +116,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol }: UsuariosClie
         <div className="rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">{error}</div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-m3-outline-variant text-m3-on-surface-variant">

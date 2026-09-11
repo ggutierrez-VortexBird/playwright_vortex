@@ -89,7 +89,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest">
+    <div className="overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="border-b border-m3-outline-variant bg-m3-surface-container">

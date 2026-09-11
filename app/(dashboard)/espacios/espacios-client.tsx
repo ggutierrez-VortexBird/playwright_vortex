@@ -41,7 +41,7 @@ function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps
       {espacios.map((espacio) => (
         <div
           key={espacio.id}
-          className="group relative flex flex-col rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-4 transition-colors hover:border-m3-outline"
+          className="group relative flex flex-col rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm transition-shadow hover:shadow-md"
           style={{ borderLeftWidth: "4px", borderLeftColor: espacio.color }}
         >
           <span className="truncate font-body text-body-md font-medium text-m3-on-surface">
