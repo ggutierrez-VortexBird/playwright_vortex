@@ -63,7 +63,7 @@ describe("CasosPage", () => {
       },
     ]);
 
-    const jsx = await CasosPage();
+    const jsx = await CasosPage({ searchParams: Promise.resolve({}) });
     render(jsx);
 
     expect(screen.getByTestId("casos-client")).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe("CasosPage", () => {
     (prisma.proyecto.findMany as jest.Mock).mockResolvedValue([]);
     (listCasos as jest.Mock).mockResolvedValue([]);
 
-    const jsx = await CasosPage();
+    const jsx = await CasosPage({ searchParams: Promise.resolve({}) });
     render(jsx);
 
     expect(screen.getByTestId("can-edit")).toHaveTextContent("yes");
@@ -92,7 +92,7 @@ describe("CasosPage", () => {
     (prisma.proyecto.findMany as jest.Mock).mockResolvedValue([]);
     (listCasos as jest.Mock).mockResolvedValue([]);
 
-    const jsx = await CasosPage();
+    const jsx = await CasosPage({ searchParams: Promise.resolve({}) });
     render(jsx);
 
     expect(screen.getByTestId("can-edit")).toHaveTextContent("no");

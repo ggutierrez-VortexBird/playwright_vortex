@@ -27,6 +27,7 @@ jest.mock("next/navigation", () => ({
     push: jest.fn(),
   }),
   useSelectedLayoutSegments: jest.fn(() => []),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 describe("DashboardLayout", () => {

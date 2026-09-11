@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getSession, getUsuarioActual } from "@/lib/auth";
@@ -8,6 +9,7 @@ import { EspacioSwitcher } from "@/components/ui/espacio-switcher";
 import { ProyectoSwitcher } from "@/components/ui/proyecto-switcher";
 import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
 import { UserMenu } from "@/components/ui/user-menu";
+import { GlobalSearch } from "@/components/ui/global-search";
 import { ProjectProvider } from "@/components/project-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
 import type { RolUsuario } from "@/lib/auth";
@@ -82,7 +84,22 @@ export default async function DashboardLayout({
           <header className="sticky top-0 z-10 flex h-16 flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6">
             <ScopeBarWithContext />
             <EspacioSwitcher espacios={espacios} />
+            <Suspense fallback={null}>
+              <GlobalSearch />
+            </Suspense>
             <span className="ml-auto" />
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-m3-warn-container text-m3-secondary"
+            >
+              <span className="material-symbols-outlined text-[18px]">notifications</span>
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-m3-surface-container text-m3-on-surface-variant"
+            >
+              <span className="material-symbols-outlined text-[18px]">settings</span>
+            </span>
             <UserMenu email={usuario.email} rol={usuario.rol} />
           </header>
           <main className="flex-1 p-6">{children}</main>
