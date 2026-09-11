@@ -1,6 +1,6 @@
 ﻿# playwright_vortex
 
-Plataforma de automatización de pruebas con Playwright (ACTA).
+Plataforma de automatización de pruebas con Playwright (vorTest).
 
 ---
 
