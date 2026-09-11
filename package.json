@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -n web,worker,recorder -c blue,magenta,green \"next dev\" \"node --import tsx scripts/worker.ts\" \"node --import tsx scripts/recorder-worker.ts\"",
-    "dev:web": "next dev",
+    "dev": "concurrently -k -n web,worker,recorder -c blue,magenta,green \"next dev --turbo\" \"node --import tsx scripts/worker.ts\" \"node --import tsx scripts/recorder-worker.ts\"",
+    "dev:web": "next dev --turbo",
     "dev:worker": "node --import tsx scripts/worker.ts",
     "dev:recorder": "node --import tsx scripts/recorder-worker.ts",
     "build": "next build",
