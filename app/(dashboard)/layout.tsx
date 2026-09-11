@@ -7,6 +7,7 @@ import { ClientBand } from "@/components/ui/client-band";
 import { EspacioSwitcher } from "@/components/ui/espacio-switcher";
 import { ProyectoSwitcher } from "@/components/ui/proyecto-switcher";
 import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
+import { UserMenu } from "@/components/ui/user-menu";
 import { ProjectProvider } from "@/components/project-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
 import type { RolUsuario } from "@/lib/auth";
@@ -74,23 +75,6 @@ export default async function DashboardLayout({
           <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3">
             <ProyectoSwitcher proyectos={proyectos} />
           </div>
-          <div className="border-t border-m3-on-primary-fixed-variant/30 px-5 py-4 font-label text-label-sm text-m3-on-primary-container">
-            <div className="truncate">{usuario.email}</div>
-            <div className="mt-0.5">{usuario.rol}</div>
-            <div className="mt-2.5 text-m3-on-primary-container/70">
-              Ambiente QA
-              <br />
-              Playwright 1.62.1
-            </div>
-            <form action="/api/logout" method="post" className="mt-3">
-              <button
-                type="submit"
-                className="w-full rounded bg-m3-secondary-container px-3 py-2 text-center font-label text-label-sm font-semibold text-m3-on-secondary-container transition-colors hover:bg-m3-secondary-fixed"
-              >
-                Cerrar sesión
-              </button>
-            </form>
-          </div>
         </aside>
 
         {/* Main — TopAppBar + body */}
@@ -98,6 +82,8 @@ export default async function DashboardLayout({
           <header className="sticky top-0 z-10 flex h-16 flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6">
             <ScopeBarWithContext />
             <EspacioSwitcher espacios={espacios} />
+            <span className="ml-auto" />
+            <UserMenu email={usuario.email} rol={usuario.rol} />
           </header>
           <main className="flex-1 p-6">{children}</main>
         </div>

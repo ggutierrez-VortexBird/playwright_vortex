@@ -43,6 +43,9 @@ export function ProyectoCard({
   onManageTesters,
   canEdit = false,
 }: ProyectoCardProps) {
+  const evaluados = proyecto.casosConformes + proyecto.casosNoConformes;
+  const tasaExito = evaluados > 0 ? Math.round((proyecto.casosConformes / evaluados) * 100) : null;
+
   return (
     <article
       className="group relative block w-full overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest text-left shadow-sm transition-shadow hover:shadow-md"
@@ -103,6 +106,20 @@ export function ProyectoCard({
           <div className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
             {proyecto.ambiente}
           </div>
+          {tasaExito !== null && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between font-label text-label-sm text-m3-on-surface-variant">
+                <span>Tasa de éxito</span>
+                <span className="font-semibold text-m3-on-surface">{tasaExito}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-m3-outline-variant">
+                <div
+                  className="h-full rounded-full bg-m3-secondary-container"
+                  style={{ width: `${tasaExito}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex gap-5 border-t border-m3-outline-variant bg-m3-surface-container px-4 py-3">
           <div>
@@ -117,7 +134,7 @@ export function ProyectoCard({
             <div className="font-label text-label-sm uppercase tracking-wide text-m3-on-surface-variant">
               Conformes
             </div>
-            <div className="mt-0.5 font-body text-body-lg font-semibold text-m3-on-tertiary-container">
+            <div className="mt-0.5 font-body text-body-lg font-semibold text-m3-success">
               {proyecto.casosConformes}
             </div>
           </div>

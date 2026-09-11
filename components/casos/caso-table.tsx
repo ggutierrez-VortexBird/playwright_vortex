@@ -39,29 +39,26 @@ function getEstadoBadge(
   > = {
     "sin ejecuciones": {
       label: "Sin ejecutar",
-      className:
-        "bg-m3-surface-container-high text-m3-on-surface-variant border border-m3-outline-variant",
+      className: "bg-m3-surface-container-high text-m3-on-surface-variant",
     },
     paso: {
       label: "Aprobado",
-      className:
-        "bg-m3-tertiary-container/15 text-m3-on-tertiary-container border border-m3-tertiary-container/40",
+      className: "bg-m3-success-container text-m3-success",
     },
     fallo: {
       label:
         primerPasoFallidoNumero != null
           ? `Falló en el paso ${primerPasoFallidoNumero}`
           : "Falló",
-      className: "bg-m3-error-container/60 text-m3-error border border-m3-error/25",
+      className: "bg-m3-danger-container text-m3-error",
     },
     reparado: {
       label: "Reparado",
-      className:
-        "bg-m3-secondary-container/25 text-m3-on-secondary-container border border-m3-secondary/30",
+      className: "bg-m3-reparado-container text-m3-reparado",
     },
     errorMotor: {
       label: "Error motor",
-      className: "bg-m3-error-container/60 text-m3-error border border-m3-error/25",
+      className: "bg-m3-danger-container text-m3-error",
     },
   };
   // Fallback for unknown estados (e.g. "pendiente", "corriendo") coming from

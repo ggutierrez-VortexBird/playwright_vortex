@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import DashboardLayout from "@/app/(dashboard)/layout";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -65,8 +65,9 @@ describe("DashboardLayout", () => {
     const jsx = await DashboardLayout({ children: <div data-testid="content">Content</div>, params: Promise.resolve({}) });
     render(jsx);
 
+    fireEvent.click(screen.getByLabelText("Menú de usuario"));
     expect(screen.getByText("admin@admin.com")).toBeInTheDocument();
-    expect(screen.getByText("superadmin")).toBeInTheDocument();
+    expect(screen.getByText("Superadmin")).toBeInTheDocument();
     expect(screen.getByTestId("content")).toBeInTheDocument();
     // superadmin ve los 6 ítems, incluyendo Credenciales y Usuarios
     expect(screen.getByText("Credenciales")).toBeInTheDocument();

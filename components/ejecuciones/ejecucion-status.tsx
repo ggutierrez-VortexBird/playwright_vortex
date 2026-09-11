@@ -9,34 +9,32 @@ interface EjecucionStatusProps {
   pasos?: Paso[]
 }
 
+// Paridad exacta con los badges .b-paso/.b-fallo/.b-corriendo/.b-pendiente/
+// .b-reparado de documentacion/referencias-diseño/mockup-propuesta.html.
 const ESTADO_MAP: Record<string, { label: string; className: string }> = {
   pendiente: {
     label: 'Pendiente',
-    className:
-      'bg-m3-surface-container-high text-m3-on-surface-variant border border-m3-outline-variant',
+    className: 'bg-m3-info-container text-m3-info',
   },
   corriendo: {
     label: 'Corriendo',
-    className:
-      'bg-m3-secondary-container/25 text-m3-on-secondary-container border border-m3-secondary/30',
+    className: 'bg-m3-warn-container text-m3-secondary',
   },
   paso: {
     label: 'Pasó',
-    className:
-      'bg-m3-tertiary-container/15 text-m3-on-tertiary-container border border-m3-tertiary-container/40',
+    className: 'bg-m3-success-container text-m3-success',
   },
   fallo: {
     label: 'Falló',
-    className: 'bg-m3-error-container/60 text-m3-error border border-m3-error/25',
+    className: 'bg-m3-danger-container text-m3-error',
   },
   reparado: {
     label: 'Reparado',
-    className:
-      'bg-m3-secondary-container/25 text-m3-on-secondary-container border border-m3-secondary/30',
+    className: 'bg-m3-reparado-container text-m3-reparado',
   },
   errorMotor: {
     label: 'Error motor',
-    className: 'bg-m3-error-container/60 text-m3-error border border-m3-error/25',
+    className: 'bg-m3-danger-container text-m3-error',
   },
 }
 

@@ -75,6 +75,16 @@ const config: Config = {
           "on-error": "#FFFFFF",
           "error-container": "#FFDAD6",
           "on-error-container": "#93000A",
+          // Semánticos adicionales — paridad exacta con
+          // documentacion/referencias-diseño/mockup-propuesta.html
+          "success": "#12805C",
+          "success-container": "#E4F5EE",
+          "info": "#2F5FBD",
+          "info-container": "#E9EEFB",
+          "danger-container": "#FCE8E6",
+          "warn-container": "#FFF3DF",
+          "reparado": "#6741C9",
+          "reparado-container": "#EFEAFB",
           // Tertiary (mint)
           "tertiary": "#000000",
           "on-tertiary": "#FFFFFF",
@@ -121,6 +131,12 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // Radio de tarjeta del mockup de referencia (18px).
+        card: "18px",
+      },
+      boxShadow: {
+        // Sombra de tarjeta del mockup de referencia.
+        card: "0 1px 2px rgba(19,27,46,0.04), 0 8px 24px -12px rgba(19,27,46,0.18)",
       },
     },
   },
