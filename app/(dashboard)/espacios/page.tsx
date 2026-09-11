@@ -21,6 +21,16 @@ export default async function EspaciosPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const conteos = await prisma.proyecto.groupBy({
+    by: ["espacioId"],
+    where: { activo: true, espacioId: { in: espacios.map((e) => e.id) } },
+    _count: { _all: true },
+  });
+  const proyectoCounts: Record<string, number> = {};
+  for (const c of conteos) {
+    proyectoCounts[c.espacioId] = c._count._all;
+  }
+
   const canEdit = usuario?.rol === "superadmin";
 
   return (
@@ -34,7 +44,11 @@ export default async function EspaciosPage() {
         </p>
       </div>
       <div className="mt-2">
-        <EspaciosClient initialEspacios={espacios as Espacio[]} canEdit={canEdit} />
+        <EspaciosClient
+          initialEspacios={espacios as Espacio[]}
+          proyectoCounts={proyectoCounts}
+          canEdit={canEdit}
+        />
       </div>
     </div>
   );

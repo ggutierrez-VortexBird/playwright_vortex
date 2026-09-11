@@ -6,14 +6,89 @@ import { EspaciosForm } from "./espacios-form";
 import { AdminsDialog } from "@/components/espacios/admins-dialog";
 import type { Espacio } from "@/types/espacio";
 
-interface EspaciosListProps {
-  espacios: Espacio[];
+interface EspacioCardProps {
+  espacio: Espacio;
+  proyectoCount: number;
+  canEdit: boolean;
+  onEnter: (espacioId: string) => void;
+  onManageAdmins: (espacio: Espacio) => void;
   onEdit: (espacio: Espacio) => void;
   onDelete: (espacio: Espacio) => void;
+}
+
+function EspacioCard({
+  espacio,
+  proyectoCount,
+  canEdit,
+  onEnter,
+  onManageAdmins,
+  onEdit,
+  onDelete,
+}: EspacioCardProps) {
+  return (
+    <div className="group relative flex flex-col overflow-hidden rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
+      <div className="h-[5px]" style={{ backgroundColor: espacio.color }} />
+
+      {canEdit && (
+        <div className="absolute right-3 top-4 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            onClick={() => onManageAdmins(espacio)}
+            className="rounded-lg p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
+            title="Administradores del espacio"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => onEdit(espacio)}
+            className="rounded-lg p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
+            title="Editar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => onDelete(espacio)}
+            className="rounded-lg p-1.5 text-m3-on-surface-variant hover:bg-m3-danger-container hover:text-m3-error"
+            title="Eliminar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="truncate font-body text-body-lg font-bold text-m3-on-surface">
+          {espacio.nombre}
+        </div>
+        <div className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
+          {proyectoCount} proyecto{proyectoCount !== 1 ? "s" : ""}
+        </div>
+        <button
+          onClick={() => onEnter(espacio.id)}
+          className="mt-5 w-full rounded-lg border border-m3-outline-variant py-2 text-center font-label text-label-md font-semibold text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
+        >
+          Entrar →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface EspaciosListProps {
+  espacios: Espacio[];
+  proyectoCounts: Record<string, number>;
+  onEdit: (espacio: Espacio) => void;
+  onDelete: (espacio: Espacio) => void;
+  onCreate: () => void;
   canEdit: boolean;
 }
 
-function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps) {
+function EspaciosList({ espacios, proyectoCounts, onEdit, onDelete, onCreate, canEdit }: EspaciosListProps) {
   const router = useRouter();
   const [manageAdminsFor, setManageAdminsFor] = useState<Espacio | null>(null);
 
@@ -21,86 +96,39 @@ function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps
     router.push(`/espacios/${espacioId}/proyectos`);
   }
 
-  if (espacios.length === 0) {
+  if (espacios.length === 0 && !canEdit) {
     return (
-      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
+      <div className="rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center shadow-card">
         <p className="font-body text-body-md text-m3-on-surface-variant">
-          No hay espacios {canEdit ? "creados aún" : "asignados a tu cuenta"}.
+          No hay espacios asignados a tu cuenta.
         </p>
-        {canEdit && (
-          <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
-            Usa el formulario de arriba para crear el primero.
-          </p>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
       {espacios.map((espacio) => (
-        <div
+        <EspacioCard
           key={espacio.id}
-          className="group relative flex flex-col rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm transition-shadow hover:shadow-md"
-          style={{ borderLeftWidth: "4px", borderLeftColor: espacio.color }}
-        >
-          <span className="truncate font-body text-body-md font-medium text-m3-on-surface">
-            {espacio.nombre}
-          </span>
-          <div className="mt-3 flex items-center gap-1 border-t border-m3-outline-variant pt-3">
-            <button
-              onClick={() => handleViewProyectos(espacio.id)}
-              className="rounded p-1.5 text-m3-secondary hover:bg-m3-surface-container-high"
-              title="Ver proyectos"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-            {canEdit && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setManageAdminsFor(espacio);
-                  }}
-                  className="rounded p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
-                  title="Administradores del espacio"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(espacio);
-                  }}
-                  className="rounded p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
-                  title="Editar"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(espacio);
-                  }}
-                  className="rounded p-1.5 text-m3-on-surface-variant hover:bg-m3-error-container/20 hover:text-m3-error"
-                  title="Eliminar"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+          espacio={espacio}
+          proyectoCount={proyectoCounts[espacio.id] ?? 0}
+          canEdit={canEdit}
+          onEnter={handleViewProyectos}
+          onManageAdmins={setManageAdminsFor}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
+      {canEdit && (
+        <button
+          onClick={onCreate}
+          className="flex min-h-[168px] flex-col items-center justify-center gap-1.5 rounded-card border-2 border-dashed border-m3-outline-variant text-m3-on-surface-variant transition-colors hover:border-m3-outline hover:bg-m3-surface-container-high hover:text-m3-on-surface"
+        >
+          <span className="text-2xl leading-none">＋</span>
+          <span className="font-label text-label-md font-semibold">Crear espacio</span>
+        </button>
+      )}
       {manageAdminsFor && (
         <AdminsDialog
           espacioId={manageAdminsFor.id}
@@ -114,17 +142,16 @@ function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps
 
 interface EspaciosClientProps {
   initialEspacios: Espacio[];
+  proyectoCounts: Record<string, number>;
   canEdit: boolean;
 }
 
-export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps) {
+export function EspaciosClient({ initialEspacios, proyectoCounts, canEdit }: EspaciosClientProps) {
   const [espacios, setEspacios] = useState<Espacio[]>(initialEspacios);
   const [editingEspacio, setEditingEspacio] = useState<Espacio | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-
-  const isModalOpen = showCreateForm || editingEspacio !== null;
 
   function openCreateModal() {
     setShowCreateForm(true);
@@ -202,24 +229,12 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         </div>
       )}
 
-      {/* Create button */}
-      {canEdit && (
-        <div className="flex justify-end">
-          <button
-            onClick={openCreateModal}
-            className="rounded bg-m3-secondary-container px-4 py-2 font-label text-label-lg font-semibold text-m3-on-secondary-container transition-colors hover:bg-m3-secondary-fixed"
-          >
-            + Crear espacio
-          </button>
-        </div>
-      )}
-
       {/* Modal */}
       {canEdit && (
         <dialog
           ref={dialogRef}
           onClick={handleDialogClick}
-          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50"
+          className="rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50"
         >
           <div className="max-w-md p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -246,13 +261,14 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         </dialog>
       )}
 
-      {/* Espacios List */}
-      <div>
-        <h3 className="mb-3 font-headline text-headline-md text-m3-primary">
-          Espacios activos
-        </h3>
-        <EspaciosList espacios={espacios} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} />
-      </div>
+      <EspaciosList
+        espacios={espacios}
+        proyectoCounts={proyectoCounts}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onCreate={openCreateModal}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
