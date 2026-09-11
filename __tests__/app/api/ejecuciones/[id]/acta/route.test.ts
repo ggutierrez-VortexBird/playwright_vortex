@@ -19,10 +19,10 @@ jest.mock("next/server", () => ({
 }));
 
 const mockGetSession = jest.fn();
-const mockRequireSuperadmin = jest.fn();
+const mockRequireProyectoAccess = jest.fn();
 jest.mock("@/lib/auth", () => ({
   getSession: (...args: unknown[]) => mockGetSession(...args),
-  requireSuperadmin: (...args: unknown[]) => mockRequireSuperadmin(...args),
+  requireProyectoAccess: (...args: unknown[]) => mockRequireProyectoAccess(...args),
   FORBIDDEN_ERROR: new Error("FORBIDDEN"),
   NOT_FOUND_ERROR: new Error("NOT_FOUND"),
 }));
@@ -64,7 +64,7 @@ jest.mock("@/lib/acta/render-pdf", () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockRequireSuperadmin.mockResolvedValue(undefined);
+  mockRequireProyectoAccess.mockResolvedValue(undefined);
 });
 
 describe("POST /api/ejecuciones/[id]/acta", () => {
@@ -75,11 +75,17 @@ describe("POST /api/ejecuciones/[id]/acta", () => {
     expect(res.status).toBe(401);
   });
 
-  it("retorna 403 si el usuario no es superadmin", async () => {
+  it("retorna 403 si el usuario no tiene acceso al proyecto", async () => {
     mockGetSession.mockResolvedValue({ userId: "user-1" });
-    // Reject con un Error "FORBIDDEN" — el route handler matchea por mensaje
-    // (porque en tests el sentinel mockeado es una instancia distinta).
-    mockRequireSuperadmin.mockRejectedValue(new Error("FORBIDDEN"));
+    // La ejecución existe (se necesita su proyectoId para el guard), pero el
+    // usuario no tiene acceso — reject con un Error "FORBIDDEN" — el route
+    // handler matchea por mensaje (porque en tests el sentinel mockeado es
+    // una instancia distinta).
+    mockFindUniqueEjecucion.mockResolvedValue({
+      id: "ejec-1",
+      casoPrueba: { proyectoId: "proyecto-1" },
+    });
+    mockRequireProyectoAccess.mockRejectedValue(new Error("FORBIDDEN"));
     const req = new Request("http://localhost", { method: "POST" });
     const res = await POST(req, { params: Promise.resolve({ id: "ejec-1" }) });
     expect(res.status).toBe(403);

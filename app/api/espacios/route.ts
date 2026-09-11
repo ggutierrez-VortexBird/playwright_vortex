@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listEspacios, createEspacio } from "@/lib/espacios/actions";
 
 export async function GET() {
@@ -12,7 +12,8 @@ export async function GET() {
     );
   }
 
-  const espacios = await listEspacios();
+  const usuario = await getUsuarioActual(session);
+  const espacios = await listEspacios(usuario);
   return NextResponse.json(espacios);
 }
 

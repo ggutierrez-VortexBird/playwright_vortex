@@ -13,7 +13,7 @@
  */
 
 import { POST } from "@/app/api/grabador/sesiones/[id]/guardar/route";
-import { getSession, requireSuperadmin } from "@/lib/auth";
+import { getSession, requireProyectoAccess } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { dispararEjecucion } from "@/lib/ejecuciones/actions";
 
@@ -29,7 +29,7 @@ jest.mock("next/server", () => ({
 
 jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
-  requireSuperadmin: jest.fn(),
+  requireProyectoAccess: jest.fn(),
 }));
 
 jest.mock("@/lib/db", () => ({
@@ -77,7 +77,7 @@ const casoCreado = { id: "caso-1" };
 beforeEach(() => {
   jest.clearAllMocks();
   (getSession as jest.Mock).mockResolvedValue(mockSession);
-  (requireSuperadmin as jest.Mock).mockResolvedValue(undefined);
+  (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   (prisma.sesionGrabacion.findUnique as jest.Mock).mockResolvedValue(baseSesion);
   (prisma.casoPrueba.findFirst as jest.Mock).mockResolvedValue(null);
   (prisma.$transaction as jest.Mock).mockImplementation(async (cb) => {
@@ -165,8 +165,8 @@ describe("POST /api/grabador/sesiones/[id]/guardar", () => {
     expect(res.status).toBe(401);
   });
 
-  it("responde 403 si no es superadmin", async () => {
-    (requireSuperadmin as jest.Mock).mockRejectedValue(new Error("forbidden"));
+  it("responde 403 si el usuario no tiene acceso al proyecto", async () => {
+    (requireProyectoAccess as jest.Mock).mockRejectedValue(new Error("forbidden"));
     const res = await POST(makeRequest({}), makeParams());
     expect(res.status).toBe(403);
   });

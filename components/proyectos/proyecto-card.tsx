@@ -9,6 +9,7 @@ interface ProyectoCardProps {
   espacioColor?: string | null;
   onEdit?: (proyecto: ProyectoWithMetrics) => void;
   onDelete?: (proyecto: ProyectoWithMetrics) => void;
+  onManageTesters?: (proyecto: ProyectoWithMetrics) => void;
   canEdit?: boolean;
 }
 
@@ -39,6 +40,7 @@ export function ProyectoCard({
   espacioColor,
   onEdit,
   onDelete,
+  onManageTesters,
   canEdit = false,
 }: ProyectoCardProps) {
   return (
@@ -47,8 +49,20 @@ export function ProyectoCard({
       style={espacioColor ? { borderTopWidth: 3, borderTopColor: espacioColor } : undefined}
     >
       {/* Action buttons — only visible on hover */}
-      {(canEdit || onEdit || onDelete) && (
+      {(canEdit || onEdit || onDelete || onManageTesters) && (
         <div className="absolute right-3 top-3 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+          {canEdit && onManageTesters && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onManageTesters(proyecto);
+              }}
+              className="rounded border border-m3-outline-variant bg-m3-surface-container-lowest px-2.5 py-1 font-label text-label-sm text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
+            >
+              Testers
+            </button>
+          )}
           {canEdit && onEdit && (
             <button
               onClick={(e) => {

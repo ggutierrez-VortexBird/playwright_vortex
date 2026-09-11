@@ -18,7 +18,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
-  requireSuperadmin,
+  requireProyectoAccess,
   getSession,
   FORBIDDEN_ERROR,
   NOT_FOUND_ERROR,
@@ -41,17 +41,6 @@ export async function POST(_request: Request, { params }: RouteParams) {
   if (!session.userId) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
-  try {
-    await requireSuperadmin(session);
-  } catch (err) {
-    // Comparamos por identidad Y por mensaje porque en tests se mockea
-    // @/lib/auth y el FORBIDDEN_ERROR mockeado es una instancia distinta
-    // del real (pero ambos tienen el mismo mensaje).
-    if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === "FORBIDDEN") {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-    }
-    throw err;
-  }
 
   const { id } = await params;
 
@@ -69,6 +58,18 @@ export async function POST(_request: Request, { params }: RouteParams) {
 
   if (!ejecucion) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  try {
+    await requireProyectoAccess(session, ejecucion.casoPrueba.proyectoId);
+  } catch (err) {
+    // Comparamos por identidad Y por mensaje porque en tests se mockea
+    // @/lib/auth y el FORBIDDEN_ERROR mockeado es una instancia distinta
+    // del real (pero ambos tienen el mismo mensaje).
+    if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
+    throw err;
   }
 
   // Mapear a la shape de la plantilla (string fechas ya convertidas).

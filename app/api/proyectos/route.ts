@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listProyectosByEspacio, createProyecto, getMetrics } from "@/lib/proyectos/actions";
 
 export async function GET(request: Request) {
@@ -22,7 +22,8 @@ export async function GET(request: Request) {
     );
   }
 
-  const proyectos = await listProyectosByEspacio(espacioId);
+  const usuario = await getUsuarioActual(session);
+  const proyectos = await listProyectosByEspacio(espacioId, usuario);
 
   // Enrich with metrics
   const proyectosWithMetrics = await Promise.all(

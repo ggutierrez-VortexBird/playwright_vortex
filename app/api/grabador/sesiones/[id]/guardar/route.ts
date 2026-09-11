@@ -32,7 +32,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession, requireSuperadmin } from "@/lib/auth";
+import { getSession, requireProyectoAccess } from "@/lib/auth";
 import { dispararEjecucion } from "@/lib/ejecuciones/actions";
 
 interface RouteParams {
@@ -71,11 +71,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!session.userId) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    try {
-      await requireSuperadmin(session);
-    } catch {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
 
     const { id: sesionId } = await params;
 
@@ -103,6 +98,13 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!sesion) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
+
+    try {
+      await requireProyectoAccess(session, sesion.proyectoId);
+    } catch {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
     if (sesion.usuarioId !== session.userId) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }

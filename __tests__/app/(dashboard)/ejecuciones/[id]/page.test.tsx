@@ -4,9 +4,16 @@
 import { render, screen } from "@testing-library/react";
 import EjecucionDetallePage from "@/app/(dashboard)/ejecuciones/[id]/page";
 import { getEjecucionConPasos } from "@/lib/ejecuciones/queries";
+import { getSession, requireProyectoAccess } from "@/lib/auth";
 
 jest.mock("@/lib/ejecuciones/queries", () => ({
   getEjecucionConPasos: jest.fn(),
+}));
+
+jest.mock("@/lib/auth", () => ({
+  getSession: jest.fn(),
+  requireProyectoAccess: jest.fn(),
+  FORBIDDEN_ERROR: new Error("FORBIDDEN"),
 }));
 
 jest.mock("@/components/ejecuciones/ejecucion-detalle-client", () => ({
@@ -64,6 +71,7 @@ function makeEjecucion() {
       id: "cp-1",
       codigo: "CP-01",
       nombre: "Caso A",
+      proyecto: { id: "proyecto-1" },
     },
     pasos: [
       {
@@ -124,6 +132,8 @@ function makeEjecucion() {
 describe("EjecucionDetallePage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (getSession as jest.Mock).mockResolvedValue({ userId: "user-1", email: "a@b.com" });
+    (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   });
 
   it("mapea todos los campos nuevos de Ejecucion y PasoEjecucion", async () => {

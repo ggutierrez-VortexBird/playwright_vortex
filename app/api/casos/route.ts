@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listCasos, createCaso } from "@/lib/casos/actions";
 
 export async function GET(request: Request) {
@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const proyectoId = url.searchParams.get("proyectoId") || undefined;
 
-  const casos = await listCasos(proyectoId);
+  const usuario = await getUsuarioActual(session);
+  const casos = await listCasos(proyectoId, usuario);
 
   return NextResponse.json({ casos });
 }

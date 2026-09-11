@@ -1,18 +1,16 @@
 'use server'
 
 import { prisma } from '@/lib/db'
-import { getSession, requireSuperadmin, NOT_FOUND_ERROR } from '@/lib/auth'
+import { getSession, requireProyectoAccess, NOT_FOUND_ERROR } from '@/lib/auth'
 import {
   YA_EXISTE_EJECUCION_EN_CURSO_ERROR,
   EJECUCION_YA_TERMINADA_ERROR,
 } from './errors'
 
 export async function dispararEjecucion(casoPruebaId: string) {
-  // 1. Require superadmin
   const session = await getSession()
-  await requireSuperadmin(session)
 
-  // 2. Check if caso exists
+  // 1. Check if caso exists (necesitamos su proyectoId para el guard de acceso)
   const caso = await prisma.casoPrueba.findUnique({
     where: { id: casoPruebaId },
   })
@@ -20,6 +18,9 @@ export async function dispararEjecucion(casoPruebaId: string) {
   if (!caso) {
     throw NOT_FOUND_ERROR
   }
+
+  // 2. Requiere superadmin, admin del espacio del proyecto, o tester con acceso
+  await requireProyectoAccess(session, caso.proyectoId)
 
   // 3. Atomic check + create using $transaction with FOR UPDATE NOWAIT
   // Bug 3 fix: race condition between check and create is now prevented
@@ -76,9 +77,17 @@ export async function dispararEjecucion(casoPruebaId: string) {
  * - NO se registra quién canceló — solo el estado terminal `cancelado`.
  */
 export async function detenerEjecucion(ejecucionId: string) {
-  // 1. Require superadmin
   const session = await getSession()
-  await requireSuperadmin(session)
+
+  // 1. Resolver el proyecto dueño de la ejecución para el guard de acceso
+  const ejecucion = await prisma.ejecucion.findUnique({
+    where: { id: ejecucionId },
+    select: { casoPrueba: { select: { proyectoId: true } } },
+  })
+  if (!ejecucion) {
+    throw NOT_FOUND_ERROR
+  }
+  await requireProyectoAccess(session, ejecucion.casoPrueba.proyectoId)
 
   // 2. Transición atómica de estado: solo pendiente|corriendo → cancelado
   const result = await prisma.ejecucion.updateMany({

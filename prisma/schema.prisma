@@ -45,19 +45,29 @@ enum CasoOrigen {
   mixto
 }
 
+// HU-Fase3: roles jerárquicos. superadmin = acceso total; admin = administra
+// los Espacios que se le asignaron (UsuarioEspacio); tester = solo accede a
+// los Proyectos que se le asignaron (UsuarioProyecto).
+enum Rol {
+  superadmin
+  admin
+  tester
+}
+
 // ============================================================
-// Entidades de identidad y membresía (HU-1.1, HU-6.1)
+// Entidades de identidad y membresía (HU-1.1, HU-6.1, HU-Fase3)
 // ============================================================
 
 model Usuario {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String
-  rol          String   @default("superadmin")
+  rol          Rol      @default(tester)
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
 
   espacios       UsuarioEspacio[]
+  proyectos      UsuarioProyecto[]
   casosAsignados CasoPrueba[]      @relation("CasoPruebaResponsable")
   sesiones       SesionGrabacion[]
 
@@ -107,8 +117,24 @@ model Proyecto {
   casosPrueba  CasoPrueba[]
   credenciales Credencial[]
   sesiones     SesionGrabacion[]
+  testers      UsuarioProyecto[]
 
   @@index([espacioId])
+}
+
+// HU-Fase3: tester↔proyecto — un tester solo ve/opera los Proyectos donde
+// tiene una fila aquí. La crea/borra el admin del Espacio del proyecto (o
+// el superadmin).
+model UsuarioProyecto {
+  usuarioId  String
+  proyectoId String
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, proyectoId])
+  @@index([proyectoId])
 }
 
 model CasoPrueba {

@@ -1,18 +1,19 @@
 import { Suspense } from "react";
-import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getSession, getUsuarioActual, requireEspacioAdmin, FORBIDDEN_ERROR } from "@/lib/auth";
 import { listProyectosByEspacio, getMetrics } from "@/lib/proyectos/actions";
 import { getEspacioById } from "@/lib/espacios/actions";
 import { ProyectoGrid } from "./proyecto-grid";
 import { ScopeBar } from "@/components/ui/scope-bar";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
+import type { UsuarioActual } from "@/lib/auth";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-async function getProyectosWithMetrics(espacioId: string): Promise<ProyectoWithMetrics[]> {
-  const proyectos = await listProyectosByEspacio(espacioId);
+async function getProyectosWithMetrics(espacioId: string, usuario?: UsuarioActual | null): Promise<ProyectoWithMetrics[]> {
+  const proyectos = await listProyectosByEspacio(espacioId, usuario);
 
   const proyectosWithMetrics = await Promise.all(
     proyectos.map(async (proyecto) => {
@@ -55,9 +56,20 @@ function ProyectoSkeleton() {
 export default async function ProyectosPage({ params }: PageProps) {
   const { id: espacioId } = await params;
 
-  const [espacio, session] = await Promise.all([
+  const session = await getSession();
+
+  // Solo superadmin y el admin de este espacio pueden ver su detalle; un
+  // tester nunca tiene alcance a nivel Espacio.
+  try {
+    await requireEspacioAdmin(session, espacioId);
+  } catch (err) {
+    if (err === FORBIDDEN_ERROR) redirect("/proyectos");
+    throw err;
+  }
+
+  const [espacio, usuario] = await Promise.all([
     getEspacioById(espacioId),
-    getSession(),
+    getUsuarioActual(session),
   ]);
 
   if (!espacio) {
@@ -68,14 +80,7 @@ export default async function ProyectosPage({ params }: PageProps) {
     );
   }
 
-  const isSuperadmin = session?.userId
-    ? await prisma.usuario.findUnique({
-        where: { id: session.userId },
-        select: { rol: true },
-      })
-    : null;
-
-  const canCreate = isSuperadmin?.rol === "superadmin";
+  const canCreate = usuario?.rol === "superadmin" || usuario?.rol === "admin";
 
   return (
     <div className="flex flex-col gap-6">

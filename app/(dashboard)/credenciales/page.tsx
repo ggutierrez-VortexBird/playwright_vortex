@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import { getSession, getUsuarioActual } from "@/lib/auth";
+
 interface CredRow {
   nombre: string
   detalle: string
@@ -22,7 +25,16 @@ const PLACEHOLDER_CREDS: CredRow[] = [
   },
 ]
 
-export default function CredencialesPage() {
+export default async function CredencialesPage() {
+  const session = await getSession();
+  const usuario = await getUsuarioActual(session);
+
+  // Credenciales es 100% exclusivo del superadmin — admin y tester no la
+  // ven ni la usan.
+  if (usuario?.rol !== "superadmin") {
+    redirect("/proyectos");
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">

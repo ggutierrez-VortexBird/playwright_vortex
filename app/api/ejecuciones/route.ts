@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
     if (error === FORBIDDEN_ERROR) {
       return NextResponse.json(
-        { error: 'forbidden', message: 'Se requiere rol de superadmin' },
+        { error: 'forbidden', message: 'No tenés acceso a este proyecto' },
         { status: 403 }
       )
     }

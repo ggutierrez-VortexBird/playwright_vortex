@@ -18,7 +18,7 @@
 
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";
 import { CasoDetalleCliente } from "@/components/casos/caso-detalle-cliente";
 
 interface PageProps {
@@ -65,6 +65,13 @@ export default async function CasoDetallePage({ params, searchParams }: PageProp
 
   if (!caso) {
     notFound();
+  }
+
+  try {
+    await requireProyectoAccess(session, caso.proyectoId);
+  } catch (err) {
+    if (err === FORBIDDEN_ERROR) redirect("/casos");
+    throw err;
   }
 
   // HU-G12: calcular enUso dinámicamente.

@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/db'
 import { Prisma } from '@prisma/client'
+import { scopeProyectoWhere } from '@/lib/auth'
+import type { UsuarioActual } from '@/lib/auth'
 
 export async function getEjecucionConPasos(id: string) {
   return prisma.ejecucion.findUnique({
@@ -33,10 +35,12 @@ export async function getEjecucionConPasos(id: string) {
   })
 }
 
-export async function listEjecuciones(proyectoId?: string) {
+export async function listEjecuciones(proyectoId?: string, usuario?: UsuarioActual | null) {
   const where: Prisma.EjecucionWhereInput = {}
   if (proyectoId) {
     where.casoPrueba = { proyectoId }
+  } else if (usuario) {
+    where.casoPrueba = { proyecto: scopeProyectoWhere(usuario) }
   }
 
   const ejecuciones = await prisma.ejecucion.findMany({
@@ -56,8 +60,8 @@ export async function listEjecuciones(proyectoId?: string) {
   return ejecuciones
 }
 
-export async function listEjecucionesPorProyecto() {
-  const ejecuciones = await listEjecuciones()
+export async function listEjecucionesPorProyecto(usuario?: UsuarioActual | null) {
+  const ejecuciones = await listEjecuciones(undefined, usuario)
 
   // Agrupar por proyecto
   const porProyecto: Record<string, typeof ejecuciones> = {}

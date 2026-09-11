@@ -51,9 +51,13 @@ describe("GET /api/usuarios", () => {
     expect(data.error).toBe("No autenticado");
   });
 
-  it("should return 403 when user is not superadmin", async () => {
+  it("should return only itself when caller is a tester (no people management)", async () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({
+      id: "user-123",
+      email: "admin@example.com",
+      rol: "tester",
+    });
 
     const request = new Request("http://localhost/api/usuarios", {
       method: "GET",
@@ -62,16 +66,16 @@ describe("GET /api/usuarios", () => {
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(data.error).toBe("forbidden");
+    expect(response.status).toBe(200);
+    expect(data.usuarios).toEqual([{ id: "user-123", email: "admin@example.com", rol: "tester" }]);
   });
 
   it("should return 200 with user list for superadmin", async () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.usuario.findMany as jest.Mock).mockResolvedValue([
-      { id: "user-1", email: "alice@example.com" },
-      { id: "user-2", email: "bob@example.com" },
+      { id: "user-1", email: "alice@example.com", rol: "admin" },
+      { id: "user-2", email: "bob@example.com", rol: "tester" },
     ]);
 
     const request = new Request("http://localhost/api/usuarios", {
@@ -86,7 +90,7 @@ describe("GET /api/usuarios", () => {
     expect(data.usuarios[0].email).toBe("alice@example.com");
     expect(data.usuarios[1].id).toBe("user-2");
     expect(prisma.usuario.findMany).toHaveBeenCalledWith({
-      select: { id: true, email: true },
+      select: { id: true, email: true, rol: true },
       orderBy: { email: "asc" },
     });
   });

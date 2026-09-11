@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listEspacios, getEspacioById } from "@/lib/espacios/actions";
 import { listProyectosActivos } from "@/lib/proyectos/actions";
 import { ClientBand } from "@/components/ui/client-band";
@@ -10,18 +9,20 @@ import { ProyectoSwitcher } from "@/components/ui/proyecto-switcher";
 import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
 import { ProjectProvider } from "@/components/project-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
+import type { RolUsuario } from "@/lib/auth";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   params: Promise<{ id?: string }>;
 }
 
-const NAV_ITEMS: SidebarNavItem[] = [
-  { href: "/espacios", label: "Espacios", icon: "workspaces" },
-  { href: "/proyectos", label: "Proyectos", icon: "folder_open" },
-  { href: "/casos", label: "Casos", icon: "fact_check" },
-  { href: "/ejecuciones", label: "Ejecuciones", icon: "play_circle" },
-  { href: "/credenciales", label: "Credenciales", icon: "vpn_key" },
+const ALL_NAV_ITEMS: (SidebarNavItem & { roles: RolUsuario[] })[] = [
+  { href: "/espacios", label: "Espacios", icon: "workspaces", roles: ["superadmin", "admin"] },
+  { href: "/proyectos", label: "Proyectos", icon: "folder_open", roles: ["superadmin", "admin", "tester"] },
+  { href: "/casos", label: "Casos", icon: "fact_check", roles: ["superadmin", "admin", "tester"] },
+  { href: "/ejecuciones", label: "Ejecuciones", icon: "play_circle", roles: ["superadmin", "admin", "tester"] },
+  { href: "/credenciales", label: "Credenciales", icon: "vpn_key", roles: ["superadmin"] },
+  { href: "/usuarios", label: "Usuarios", icon: "group", roles: ["superadmin", "admin"] },
 ];
 
 export default async function DashboardLayout({
@@ -35,18 +36,19 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [usuario, espacios, espacio, proyectos] = await Promise.all([
-    prisma.usuario.findUnique({
-      where: { id: session.userId },
-    }),
-    listEspacios(),
-    espacioId ? getEspacioById(espacioId) : null,
-    listProyectosActivos(),
-  ]);
+  const usuario = await getUsuarioActual(session);
 
   if (!usuario) {
     redirect("/login");
   }
+
+  const [espacios, espacio, proyectos] = await Promise.all([
+    listEspacios(usuario),
+    espacioId ? getEspacioById(espacioId) : null,
+    listProyectosActivos(usuario),
+  ]);
+
+  const navItems: SidebarNavItem[] = ALL_NAV_ITEMS.filter((item) => item.roles.includes(usuario.rol));
 
   return (
     <ProjectProvider>
@@ -67,7 +69,7 @@ export default async function DashboardLayout({
             </p>
           </div>
           <nav className="flex flex-1 flex-col gap-1 px-3">
-            <SidebarNav items={NAV_ITEMS} />
+            <SidebarNav items={navItems} />
           </nav>
           <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3">
             <ProyectoSwitcher proyectos={proyectos} />

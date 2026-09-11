@@ -2,8 +2,8 @@
  * Server Action orquestadora para iniciar una sesión de grabación.
  *
  * Flujo (HU-G1):
- *   1. requireSuperadmin(session)
- *   2. Validar input
+ *   1. Validar input y requireProyectoAccess(session, proyectoId)
+ *   2. (fusionado con el paso 1)
  *   3. Verificar credencial pertenece al proyecto (solo si se envió una)
  *   4. Crear SesionGrabacion estado='iniciando'
  *   5. POST /internal/start al recorder-worker
@@ -13,7 +13,7 @@
  * Errores se mapean a {status, body} para que route handlers los traduzcan a HTTP.
  */
 import { prisma } from "@/lib/db";
-import { requireSuperadmin, type SessionData } from "@/lib/auth";
+import { requireProyectoAccess, type SessionData } from "@/lib/auth";
 import { decryptCredencial } from "@/lib/credenciales/crypto";
 import {
   callInternalStart,
@@ -71,11 +71,9 @@ export async function iniciarSesionGrabacion(
   input: NuevaGrabacionInput,
   session: SessionData,
 ): Promise<SesionGrabacionOut> {
-  // 1. Auth
-  await requireSuperadmin(session);
-
-  // 2. Validation
+  // 1. Auth: superadmin, admin del espacio, o tester con acceso al proyecto
   validate(input);
+  await requireProyectoAccess(session, input.proyectoId);
 
   // 3. La credencial es OPCIONAL: el grabador todavía no aplica el
   //    storageState al navegador, así que exigirla bloqueaba grabar en

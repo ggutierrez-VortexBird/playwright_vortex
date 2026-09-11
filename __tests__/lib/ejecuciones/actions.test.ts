@@ -19,7 +19,7 @@ import {
   YA_EXISTE_EJECUCION_EN_CURSO_ERROR,
   EJECUCION_YA_TERMINADA_ERROR,
 } from "@/lib/ejecuciones/errors";
-import { FORBIDDEN_ERROR, NOT_FOUND_ERROR, getSession, requireSuperadmin } from "@/lib/auth";
+import { FORBIDDEN_ERROR, NOT_FOUND_ERROR, getSession, requireProyectoAccess } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 jest.mock("@/lib/db", () => ({
@@ -39,7 +39,7 @@ jest.mock("@/lib/db", () => ({
 
 jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
-  requireSuperadmin: jest.fn(),
+  requireProyectoAccess: jest.fn(),
   FORBIDDEN_ERROR: new Error("FORBIDDEN"),
   NOT_FOUND_ERROR: new Error("NOT_FOUND"),
 }));
@@ -50,7 +50,7 @@ describe("dispararEjecucion — happy path (AC-1)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    (requireSuperadmin as jest.Mock).mockResolvedValue(undefined);
+    (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   });
 
   it("inserta Ejecucion con estado pendiente y retorna {id, estado}", async () => {
@@ -58,6 +58,7 @@ describe("dispararEjecucion — happy path (AC-1)", () => {
     // y la transacción ejecuta el create correctamente.
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({
       id: "caso-1",
+      proyectoId: "proyecto-1",
       script: 'test("pasa", async ({ page }) => {});',
       scriptFileName: "test.spec.ts",
     });
@@ -85,7 +86,7 @@ describe("dispararEjecucion — happy path (AC-1)", () => {
 
     // Assert
     expect(result).toEqual({ id: "ejec-1", estado: "pendiente" });
-    expect(requireSuperadmin).toHaveBeenCalledWith(mockSession);
+    expect(requireProyectoAccess).toHaveBeenCalledWith(mockSession, "proyecto-1");
     expect(prisma.casoPrueba.findUnique).toHaveBeenCalledWith({
       where: { id: "caso-1" },
     });
@@ -102,6 +103,7 @@ describe("dispararEjecucion — happy path (AC-1)", () => {
   it("ejecuta SELECT FOR UPDATE NOWAIT dentro de la transacción", async () => {
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({
       id: "caso-1",
+      proyectoId: "proyecto-1",
       script: "test('pasa', async ({ page }) => {});",
       scriptFileName: "test.spec.ts",
     });
@@ -132,13 +134,14 @@ describe("dispararEjecucion — AC-5 concurrencia", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    (requireSuperadmin as jest.Mock).mockResolvedValue(undefined);
+    (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   });
 
   it("rechaza segunda ejecución concurrente con YA_EXISTE_EJECUCION_EN_CURSO_ERROR (P2024)", async () => {
     // Arrange: caso existe, pero el FOR UPDATE NOWAIT retorna P2024 (lock_not_available)
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({
       id: "caso-1",
+      proyectoId: "proyecto-1",
       script: "test('pasa', async ({ page }) => {});",
       scriptFileName: "test.spec.ts",
     });
@@ -168,7 +171,7 @@ describe("dispararEjecucion — casos de error", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    (requireSuperadmin as jest.Mock).mockResolvedValue(undefined);
+    (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   });
 
   it("lanza NOT_FOUND_ERROR si el caso no existe", async () => {
@@ -179,14 +182,22 @@ describe("dispararEjecucion — casos de error", () => {
     );
     // No se llega a la transacción
     expect(prisma.$transaction).not.toHaveBeenCalled();
+    // El caso no existe, así que el guard de acceso ni se llama
+    expect(requireProyectoAccess).not.toHaveBeenCalled();
   });
 
-  it("lanza FORBIDDEN_ERROR si requireSuperadmin tira", async () => {
-    (requireSuperadmin as jest.Mock).mockRejectedValue(FORBIDDEN_ERROR);
+  it("lanza FORBIDDEN_ERROR si requireProyectoAccess tira", async () => {
+    // El caso sí existe — se necesita su proyectoId para resolver el guard —
+    // pero el usuario no tiene acceso a ese proyecto.
+    (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({
+      id: "caso-1",
+      proyectoId: "proyecto-1",
+    });
+    (requireProyectoAccess as jest.Mock).mockRejectedValue(FORBIDDEN_ERROR);
 
     await expect(dispararEjecucion("caso-1")).rejects.toBe(FORBIDDEN_ERROR);
-    // No se llegó a chequear el caso
-    expect(prisma.casoPrueba.findUnique).not.toHaveBeenCalled();
+    // No se llega a la transacción
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 
@@ -194,11 +205,15 @@ describe("detenerEjecucion — cancelación de ejecuciones activas", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    (requireSuperadmin as jest.Mock).mockResolvedValue(undefined);
+    (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   });
 
   it("cancela una ejecución 'pendiente' usando updateMany con filtro atómico", async () => {
-    // Arrange: updateMany afecta 1 fila (caso happy path)
+    // Arrange: primero se resuelve el proyecto dueño (para el guard de
+    // acceso), luego updateMany afecta 1 fila (caso happy path).
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue({
+      casoPrueba: { proyectoId: "proyecto-1" },
+    });
     (prisma.ejecucion.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
     // Act
@@ -206,6 +221,7 @@ describe("detenerEjecucion — cancelación de ejecuciones activas", () => {
 
     // Assert
     expect(result).toEqual({ id: "ejec-1", estado: "cancelado" });
+    expect(requireProyectoAccess).toHaveBeenCalledWith(mockSession, "proyecto-1");
     expect(prisma.ejecucion.updateMany).toHaveBeenCalledWith({
       where: {
         id: "ejec-1",
@@ -216,13 +232,17 @@ describe("detenerEjecucion — cancelación de ejecuciones activas", () => {
         finAt: expect.any(Date),
       }),
     });
-    // No se hace la verificación adicional (porque sí afectó 1 fila)
-    expect(prisma.ejecucion.findUnique).not.toHaveBeenCalled();
+    // findUnique se llamó una sola vez (resolver proyecto) — no hizo falta
+    // la verificación adicional de "ya terminal" porque sí afectó 1 fila.
+    expect(prisma.ejecucion.findUnique).toHaveBeenCalledTimes(1);
   });
 
   it("cancela una ejecución 'corriendo' usando el mismo filtro atómico", async () => {
     // Misma implementación que pendiente — el filtro `in: ['pendiente', 'corriendo']`
     // cubre ambos estados. updateMany afecta 1 fila.
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue({
+      casoPrueba: { proyectoId: "proyecto-1" },
+    });
     (prisma.ejecucion.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
     const result = await detenerEjecucion("ejec-corriendo");
@@ -240,34 +260,42 @@ describe("detenerEjecucion — cancelación de ejecuciones activas", () => {
   });
 
   it("lanza EJECUCION_YA_TERMINADA_ERROR si updateMany afecta 0 filas pero la ejecución existe", async () => {
-    // updateMany no afecta nada porque ya está terminal, pero la fila existe
+    // Primera llamada a findUnique: resolver proyecto para el guard.
+    // Segunda llamada: distinguir "no existe" vs "ya terminal" tras el
+    // updateMany en 0 filas.
+    (prisma.ejecucion.findUnique as jest.Mock)
+      .mockResolvedValueOnce({ casoPrueba: { proyectoId: "proyecto-1" } })
+      .mockResolvedValueOnce({ id: "ejec-1" });
     (prisma.ejecucion.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue({ id: "ejec-1" });
 
     await expect(detenerEjecucion("ejec-1")).rejects.toBe(
       EJECUCION_YA_TERMINADA_ERROR
     );
-    expect(prisma.ejecucion.findUnique).toHaveBeenCalledWith({
+    expect(prisma.ejecucion.findUnique).toHaveBeenNthCalledWith(2, {
       where: { id: "ejec-1" },
       select: { id: true },
     });
   });
 
   it("lanza NOT_FOUND_ERROR si la ejecución no existe", async () => {
-    (prisma.ejecucion.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+    // La primera (y única) resolución de proyecto ya no encuentra la fila —
+    // updateMany nunca llega a ejecutarse.
     (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(detenerEjecucion("ejec-inexistente")).rejects.toBe(
       NOT_FOUND_ERROR
     );
+    expect(prisma.ejecucion.updateMany).not.toHaveBeenCalled();
   });
 
-  it("lanza FORBIDDEN_ERROR si requireSuperadmin falla antes de tocar la BD", async () => {
-    (requireSuperadmin as jest.Mock).mockRejectedValue(FORBIDDEN_ERROR);
+  it("lanza FORBIDDEN_ERROR si requireProyectoAccess falla", async () => {
+    (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue({
+      casoPrueba: { proyectoId: "proyecto-1" },
+    });
+    (requireProyectoAccess as jest.Mock).mockRejectedValue(FORBIDDEN_ERROR);
 
     await expect(detenerEjecucion("ejec-1")).rejects.toBe(FORBIDDEN_ERROR);
-    // No se llegó a la BD
+    // No se llegó a mutar la BD
     expect(prisma.ejecucion.updateMany).not.toHaveBeenCalled();
-    expect(prisma.ejecucion.findUnique).not.toHaveBeenCalled();
   });
 });

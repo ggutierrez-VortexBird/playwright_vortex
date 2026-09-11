@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, getUsuarioActual, requireProyectoAccess, scopeProyectoWhere, FORBIDDEN_ERROR } from "@/lib/auth";
 import { NuevaGrabacionForm } from "@/components/grabador/nueva-grabacion-form";
 import type { CredencialListItem } from "@/lib/grabador/types";
 
@@ -16,12 +16,26 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
 
   const { proyectoId } = await searchParams;
 
+  if (proyectoId) {
+    try {
+      await requireProyectoAccess(session, proyectoId);
+    } catch (err) {
+      if (err === FORBIDDEN_ERROR) redirect("/casos");
+      throw err;
+    }
+  }
+
+  const usuario = await getUsuarioActual(session);
+
   // Si hay proyectoId en query, cargar ese proyecto + sus credenciales.
-  // Si no, mostrar el primer proyecto del usuario como default.
+  // Si no, mostrar el primer proyecto visible para el usuario como default.
   let resolvedProyectoId = proyectoId;
   if (!resolvedProyectoId) {
     const firstProyecto = await prisma.proyecto.findFirst({
-      where: { activo: true },
+      where: {
+        activo: true,
+        ...(usuario ? scopeProyectoWhere(usuario) : {}),
+      },
       orderBy: { createdAt: "asc" },
     });
     if (!firstProyecto) {

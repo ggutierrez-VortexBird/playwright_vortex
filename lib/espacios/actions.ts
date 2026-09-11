@@ -1,11 +1,19 @@
 import { prisma } from "@/lib/db";
-import { requireSuperadmin } from "@/lib/auth";
-import type { SessionData } from "@/lib/auth";
+import { requireSuperadmin, scopeEspacioWhere } from "@/lib/auth";
+import type { SessionData, UsuarioActual } from "@/lib/auth";
 import type { CreateEspacioInput, UpdateEspacioInput } from "@/types/espacio";
 
-export async function listEspacios() {
+/**
+ * Lista Espacios activos. Si se pasa `usuario`, se filtra por su alcance
+ * (superadmin: todos; admin: solo los que administra; tester: ninguno).
+ * Sin `usuario` devuelve todos (uso interno/legacy).
+ */
+export async function listEspacios(usuario?: UsuarioActual | null) {
   return prisma.espacio.findMany({
-    where: { activo: true },
+    where: {
+      activo: true,
+      ...(usuario ? scopeEspacioWhere(usuario) : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -88,4 +96,61 @@ export async function deleteEspacio(id: string, session: SessionData) {
   });
 
   return { success: true };
+}
+
+/**
+ * Asigna a un usuario (rol admin) como administrador de un Espacio.
+ * Requiere superadmin.
+ */
+export async function asignarAdminEspacio(espacioId: string, usuarioId: string, session: SessionData) {
+  await requireSuperadmin(session);
+
+  const espacio = await prisma.espacio.findUnique({ where: { id: espacioId } });
+  if (!espacio) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) {
+    throw { status: 404, body: { error: "not_found", message: "usuario no existe" } };
+  }
+  if (usuario.rol !== "admin") {
+    throw { status: 400, body: { error: "validation", message: "solo se pueden asignar usuarios con rol admin" } };
+  }
+
+  await prisma.usuarioEspacio.upsert({
+    where: { usuarioId_espacioId: { usuarioId, espacioId } },
+    create: { usuarioId, espacioId },
+    update: {},
+  });
+
+  return { success: true };
+}
+
+/**
+ * Quita a un usuario como administrador de un Espacio. Requiere superadmin.
+ */
+export async function quitarAdminEspacio(espacioId: string, usuarioId: string, session: SessionData) {
+  await requireSuperadmin(session);
+
+  await prisma.usuarioEspacio.deleteMany({
+    where: { usuarioId, espacioId },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Lista los admins asignados a un Espacio. Requiere superadmin.
+ */
+export async function listAdminsEspacio(espacioId: string, session: SessionData) {
+  await requireSuperadmin(session);
+
+  const membresias = await prisma.usuarioEspacio.findMany({
+    where: { espacioId },
+    include: { usuario: { select: { id: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return membresias.map((m) => ({ id: m.usuario.id, email: m.usuario.email, asignadoDesde: m.createdAt }));
 }

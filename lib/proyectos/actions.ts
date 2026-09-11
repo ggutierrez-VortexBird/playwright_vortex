@@ -1,18 +1,23 @@
 import { prisma } from "@/lib/db";
-import { requireSuperadmin } from "@/lib/auth";
+import { requireEspacioAdmin, scopeProyectoWhere } from "@/lib/auth";
 import type { CreateProyectoInput, UpdateProyectoInput, ProyectoWithMetrics, ProyectoWithEspacio } from "@/types/proyecto";
-import type { SessionData } from "@/lib/auth";
+import type { SessionData, UsuarioActual } from "@/lib/auth";
 
 /**
  * Create a new proyecto within an espacio.
- * Requires superadmin role.
+ * Requires superadmin, or admin del espacio destino.
  */
 export async function createProyecto(
   input: CreateProyectoInput,
   session: SessionData
 ) {
-  // Validate superadmin
-  await requireSuperadmin(session);
+  const { espacioId: espacioIdInput } = input;
+
+  if (!espacioIdInput || typeof espacioIdInput !== "string" || espacioIdInput.trim() === "") {
+    throw { status: 400, body: { error: "validation", message: "espacioId is required" } };
+  }
+
+  await requireEspacioAdmin(session, espacioIdInput.trim());
 
   const { nombre, ambiente, espacioId } = input;
 
@@ -57,21 +62,32 @@ export async function createProyecto(
 }
 
 /**
- * List all active proyectos for a given espacio.
+ * List all active proyectos for a given espacio. Si se pasa `usuario`, se
+ * filtra además por su alcance (relevante para tester: solo sus proyectos
+ * asignados dentro de ese espacio).
  */
-export async function listProyectosByEspacio(espacioId: string) {
+export async function listProyectosByEspacio(espacioId: string, usuario?: UsuarioActual | null) {
   return prisma.proyecto.findMany({
-    where: { espacioId, activo: true },
+    where: {
+      espacioId,
+      activo: true,
+      ...(usuario ? scopeProyectoWhere(usuario) : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
 }
 
 /**
- * List all active proyectos with their espacio included.
+ * List all active proyectos with their espacio included. Si se pasa
+ * `usuario`, se filtra por su alcance (superadmin: todos; admin: los de sus
+ * espacios; tester: solo los asignados).
  */
-export async function listProyectosActivos(): Promise<ProyectoWithEspacio[]> {
+export async function listProyectosActivos(usuario?: UsuarioActual | null): Promise<ProyectoWithEspacio[]> {
   return prisma.proyecto.findMany({
-    where: { activo: true },
+    where: {
+      activo: true,
+      ...(usuario ? scopeProyectoWhere(usuario) : {}),
+    },
     include: { espacio: true },
     orderBy: { createdAt: "desc" },
   });
@@ -189,9 +205,6 @@ export async function updateProyecto(
   input: UpdateProyectoInput,
   session: SessionData
 ) {
-  // Validate superadmin
-  await requireSuperadmin(session);
-
   // Check proyecto exists
   const existing = await prisma.proyecto.findUnique({
     where: { id },
@@ -200,6 +213,9 @@ export async function updateProyecto(
   if (!existing) {
     throw { status: 404, body: { error: "not_found" } };
   }
+
+  // Requires superadmin, o admin del espacio dueño del proyecto
+  await requireEspacioAdmin(session, existing.espacioId);
 
   const updateData: UpdateProyectoInput = {};
   if (input.nombre !== undefined) {
@@ -229,9 +245,6 @@ export async function updateProyecto(
  * Requires superadmin role.
  */
 export async function deleteProyecto(id: string, session: SessionData) {
-  // Validate superadmin
-  await requireSuperadmin(session);
-
   // Check proyecto exists
   const existing = await prisma.proyecto.findUnique({
     where: { id },
@@ -241,10 +254,82 @@ export async function deleteProyecto(id: string, session: SessionData) {
     throw { status: 404, body: { error: "not_found" } };
   }
 
+  // Requires superadmin, o admin del espacio dueño del proyecto
+  await requireEspacioAdmin(session, existing.espacioId);
+
   await prisma.proyecto.update({
     where: { id },
     data: { activo: false },
   });
 
   return { success: true };
+}
+
+/**
+ * Asigna un tester ya existente a un Proyecto. Requiere superadmin o admin
+ * del espacio dueño del proyecto. El usuario destino debe tener rol tester.
+ */
+export async function asignarTesterProyecto(proyectoId: string, usuarioId: string, session: SessionData) {
+  const proyecto = await prisma.proyecto.findUnique({ where: { id: proyectoId } });
+  if (!proyecto) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+
+  await requireEspacioAdmin(session, proyecto.espacioId);
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) {
+    throw { status: 404, body: { error: "not_found", message: "usuario no existe" } };
+  }
+  if (usuario.rol !== "tester") {
+    throw { status: 400, body: { error: "validation", message: "solo se pueden asignar usuarios con rol tester" } };
+  }
+
+  await prisma.usuarioProyecto.upsert({
+    where: { usuarioId_proyectoId: { usuarioId, proyectoId } },
+    create: { usuarioId, proyectoId },
+    update: {},
+  });
+
+  return { success: true };
+}
+
+/**
+ * Quita el acceso de un tester a un Proyecto. Requiere superadmin o admin
+ * del espacio dueño del proyecto.
+ */
+export async function quitarTesterProyecto(proyectoId: string, usuarioId: string, session: SessionData) {
+  const proyecto = await prisma.proyecto.findUnique({ where: { id: proyectoId } });
+  if (!proyecto) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+
+  await requireEspacioAdmin(session, proyecto.espacioId);
+
+  await prisma.usuarioProyecto.deleteMany({
+    where: { usuarioId, proyectoId },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Lista los testers con acceso a un Proyecto. Requiere superadmin o admin
+ * del espacio dueño del proyecto.
+ */
+export async function listTestersProyecto(proyectoId: string, session: SessionData) {
+  const proyecto = await prisma.proyecto.findUnique({ where: { id: proyectoId } });
+  if (!proyecto) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+
+  await requireEspacioAdmin(session, proyecto.espacioId);
+
+  const accesos = await prisma.usuarioProyecto.findMany({
+    where: { proyectoId },
+    include: { usuario: { select: { id: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return accesos.map((a) => ({ id: a.usuario.id, email: a.usuario.email, asignadoDesde: a.createdAt }));
 }

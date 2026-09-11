@@ -6,7 +6,7 @@ import {
   deleteProyecto,
   getMetrics,
 } from "@/lib/proyectos/actions";
-import { requireSuperadmin } from "@/lib/auth";
+import { requireSuperadmin, FORBIDDEN_ERROR } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import type { SessionData } from "@/lib/auth";
@@ -105,15 +105,12 @@ describe("createProyecto", () => {
     });
   });
 
-  it("should throw 403 when user is not superadmin", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+  it("should throw FORBIDDEN when user is a tester (cannot manage proyectos)", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
 
     await expect(
       createProyecto({ nombre: "Proyecto Test", ambiente: "QA", espacioId: "espacio-1" }, mockSession)
-    ).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    ).rejects.toBe(FORBIDDEN_ERROR);
   });
 
   it("should throw 404 when espacio does not exist", async () => {
@@ -271,15 +268,13 @@ describe("updateProyecto", () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
   });
 
-  it("should throw 403 when user is not superadmin", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+  it("should throw FORBIDDEN when user is a tester (cannot manage proyectos)", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({ id: "proyecto-1", espacioId: "espacio-1" });
 
     await expect(
       updateProyecto("proyecto-1", { nombre: "New Name" }, mockSession)
-    ).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    ).rejects.toBe(FORBIDDEN_ERROR);
   });
 
   it("should throw 404 when proyecto not found", async () => {
@@ -331,13 +326,11 @@ describe("deleteProyecto", () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
   });
 
-  it("should throw 403 when user is not superadmin", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+  it("should throw FORBIDDEN when user is a tester (cannot manage proyectos)", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({ id: "proyecto-1", espacioId: "espacio-1" });
 
-    await expect(deleteProyecto("proyecto-1", mockSession)).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    await expect(deleteProyecto("proyecto-1", mockSession)).rejects.toBe(FORBIDDEN_ERROR);
   });
 
   it("should throw 404 when proyecto not found", async () => {

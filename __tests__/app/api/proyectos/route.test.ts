@@ -1,10 +1,11 @@
 import { GET, POST } from "@/app/api/proyectos/route";
-import { createProyecto, listProyectosByEspacio } from "@/lib/proyectos/actions";
-import { getSession } from "@/lib/auth";
+import { createProyecto, listProyectosByEspacio, getMetrics } from "@/lib/proyectos/actions";
+import { getSession, getUsuarioActual } from "@/lib/auth";
 import type { SessionData } from "@/lib/auth";
 
 jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
+  getUsuarioActual: jest.fn(),
 }));
 
 jest.mock("@/lib/proyectos/actions", () => ({
@@ -110,6 +111,7 @@ describe("GET /api/proyectos/?espacioId=X", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
+    (getUsuarioActual as jest.Mock).mockResolvedValue({ id: "user-123", email: "admin@example.com", rol: "superadmin" });
   });
 
   it("should return 200 with array of proyectos with metrics", async () => {
@@ -130,6 +132,12 @@ describe("GET /api/proyectos/?espacioId=X", () => {
       },
     ];
     (listProyectosByEspacio as jest.Mock).mockResolvedValue(mockProyectos);
+    (getMetrics as jest.Mock).mockResolvedValue({
+      totalCasos: 5,
+      casosConformes: 3,
+      casosNoConformes: 1,
+      fechaUltimaEjecucion: "2026-08-01T00:00:00.000Z",
+    });
 
     const request = new Request("http://localhost/api/proyectos/?espacioId=espacio-1", {
       method: "GET",
@@ -153,7 +161,7 @@ describe("GET /api/proyectos/?espacioId=X", () => {
 
     await GET(request);
 
-    expect(listProyectosByEspacio).toHaveBeenCalledWith("espacio-1");
+    expect(listProyectosByEspacio).toHaveBeenCalledWith("espacio-1", { id: "user-123", email: "admin@example.com", rol: "superadmin" });
   });
 
   it("should return 400 when espacioId is missing", async () => {

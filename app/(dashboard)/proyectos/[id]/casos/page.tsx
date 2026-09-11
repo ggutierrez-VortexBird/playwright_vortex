@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { getSession, getUsuarioActual, requireProyectoAccess, FORBIDDEN_ERROR, NOT_FOUND_ERROR } from "@/lib/auth";
 import { getProyectoById } from "@/lib/proyectos/actions";
 import { listCasos } from "@/lib/casos/actions";
 import { CasosClient } from "@/app/(dashboard)/casos/casos-client";
@@ -37,19 +37,25 @@ function CasosSkeleton() {
 export default async function ProyectoCasosPage({ params }: PageProps) {
   const { id: proyectoId } = await params;
 
-  const [proyecto, session] = await Promise.all([
+  const session = await getSession();
+
+  try {
+    await requireProyectoAccess(session, proyectoId);
+  } catch (err) {
+    if (err === NOT_FOUND_ERROR) notFound();
+    if (err === FORBIDDEN_ERROR) redirect("/proyectos");
+    throw err;
+  }
+
+  const [proyecto, usuario] = await Promise.all([
     getProyectoById(proyectoId),
-    getSession(),
+    getUsuarioActual(session),
   ]);
 
-  const isSuperadmin = session?.userId
-    ? await prisma.usuario.findUnique({
-        where: { id: session.userId },
-        select: { rol: true },
-      })
-    : null;
-
-  const canEdit = isSuperadmin?.rol === "superadmin";
+  // El guard de arriba ya confirmó que el usuario tiene acceso a este
+  // proyecto (superadmin, admin del espacio o tester asignado) — cualquiera
+  // de los tres puede crear/editar casos y grabar.
+  const canEdit = Boolean(usuario);
 
   return (
     <div className="flex flex-col gap-6">

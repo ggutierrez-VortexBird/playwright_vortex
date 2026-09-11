@@ -1,6 +1,7 @@
 import { getEjecucionConPasos } from '@/lib/ejecuciones/queries'
 import { EjecucionDetalleClient } from '@/components/ejecuciones/ejecucion-detalle-client'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from '@/lib/auth'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -11,6 +12,14 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
   const ejecucion = await getEjecucionConPasos(id)
 
   if (!ejecucion) notFound()
+
+  const session = await getSession()
+  try {
+    await requireProyectoAccess(session, ejecucion.casoPrueba.proyecto.id)
+  } catch (err) {
+    if (err === FORBIDDEN_ERROR) redirect('/ejecuciones')
+    throw err
+  }
 
   return (
     <EjecucionDetalleClient

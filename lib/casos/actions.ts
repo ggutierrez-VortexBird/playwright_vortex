@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
-import { requireSuperadmin } from "@/lib/auth";
-import type { SessionData } from "@/lib/auth";
+import { requireProyectoAccess, scopeProyectoWhere } from "@/lib/auth";
+import type { SessionData, UsuarioActual } from "@/lib/auth";
 import type { CasoPruebaFormData, CasoPruebaListItem } from "@/types/caso";
 
 const ALLOWED_SCRIPT_EXTENSIONS = [".spec.ts", ".test.ts", ".spec.js", ".test.js"];
@@ -23,15 +23,20 @@ function validateScriptFileName(fileName: string | null | undefined): string | n
 
 /**
  * Create a new caso de prueba within a proyecto.
- * Requires superadmin role.
+ * Requiere superadmin, admin del espacio del proyecto, o tester con acceso
+ * al proyecto.
  */
 export async function createCaso(
   input: CasoPruebaFormData,
   session: SessionData
 ) {
-  await requireSuperadmin(session);
-
   const { codigo, nombre, script, scriptFileName, responsableId, proyectoId } = input;
+
+  if (!proyectoId || typeof proyectoId !== "string" || proyectoId.trim() === "") {
+    throw { status: 400, body: { error: "validation", message: "proyectoId is required" } };
+  }
+
+  await requireProyectoAccess(session, proyectoId.trim());
 
   // Validate required fields
   if (!codigo || typeof codigo !== "string" || codigo.trim() === "") {
@@ -48,10 +53,6 @@ export async function createCaso(
 
   if (!responsableId || typeof responsableId !== "string" || responsableId.trim() === "") {
     throw { status: 400, body: { error: "validation", message: "responsableId is required" } };
-  }
-
-  if (!proyectoId || typeof proyectoId !== "string" || proyectoId.trim() === "") {
-    throw { status: 400, body: { error: "validation", message: "proyectoId is required" } };
   }
 
   const validatedFileName = validateScriptFileName(scriptFileName);
@@ -90,13 +91,18 @@ export async function createCaso(
 }
 
 /**
- * List active casos de prueba, optionally filtered by proyectoId.
+ * List active casos de prueba, optionally filtered by proyectoId. Si se
+ * pasa `usuario`, se filtra además por su alcance (admin: casos de
+ * proyectos de sus espacios; tester: solo de sus proyectos asignados).
  * Computes estado from latest ejecucion.
  */
-export async function listCasos(proyectoId?: string): Promise<CasoPruebaListItem[]> {
+export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | null): Promise<CasoPruebaListItem[]> {
   const where: any = { activo: true };
   if (proyectoId) {
     where.proyectoId = proyectoId;
+  }
+  if (usuario) {
+    where.proyecto = scopeProyectoWhere(usuario);
   }
 
   const casos = await prisma.casoPrueba.findMany({
@@ -188,8 +194,6 @@ export async function updateCaso(
   input: Partial<CasoPruebaFormData>,
   session: SessionData
 ) {
-  await requireSuperadmin(session);
-
   const existing = await prisma.casoPrueba.findUnique({
     where: { id },
   });
@@ -197,6 +201,8 @@ export async function updateCaso(
   if (!existing) {
     throw { status: 404, body: { error: "not_found" } };
   }
+
+  await requireProyectoAccess(session, existing.proyectoId);
 
   const updateData: any = {};
 
@@ -254,8 +260,6 @@ export async function updateCaso(
  * Requires superadmin role.
  */
 export async function deleteCaso(id: string, session: SessionData) {
-  await requireSuperadmin(session);
-
   const existing = await prisma.casoPrueba.findUnique({
     where: { id },
   });
@@ -263,6 +267,8 @@ export async function deleteCaso(id: string, session: SessionData) {
   if (!existing) {
     throw { status: 404, body: { error: "not_found" } };
   }
+
+  await requireProyectoAccess(session, existing.proyectoId);
 
   await prisma.casoPrueba.update({
     where: { id },

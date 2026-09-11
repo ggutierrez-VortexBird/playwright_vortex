@@ -1,8 +1,11 @@
 import { listEjecucionesPorProyecto } from '@/lib/ejecuciones/queries'
 import { EjecucionStatus } from '@/components/ejecuciones/ejecucion-status'
+import { getSession, getUsuarioActual } from '@/lib/auth'
 
 export default async function EjecucionesPage() {
-  const porProyecto = await listEjecucionesPorProyecto()
+  const session = await getSession()
+  const usuario = await getUsuarioActual(session)
+  const porProyecto = await listEjecucionesPorProyecto(usuario)
   const totalEjecuciones = Object.values(porProyecto).reduce(
     (sum, list) => sum + list.length,
     0

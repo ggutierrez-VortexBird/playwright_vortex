@@ -1,6 +1,6 @@
 import { GET, POST } from "@/app/api/casos/route";
 import { listCasos, createCaso } from "@/lib/casos/actions";
-import { getSession } from "@/lib/auth";
+import { getSession, getUsuarioActual } from "@/lib/auth";
 import type { SessionData } from "@/lib/auth";
 
 jest.mock("next/server", () => ({
@@ -16,6 +16,7 @@ jest.mock("next/server", () => ({
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),
   getSession: jest.fn(),
+  getUsuarioActual: jest.fn(),
 }));
 
 jest.mock("@/lib/casos/actions", () => ({
@@ -191,6 +192,7 @@ describe("GET /api/casos", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
+    (getUsuarioActual as jest.Mock).mockResolvedValue({ id: "user-123", email: "admin@example.com", rol: "superadmin" });
   });
 
   it("should return 200 with all casos when no proyectoId", async () => {
@@ -222,7 +224,7 @@ describe("GET /api/casos", () => {
     expect(response.status).toBe(200);
     expect(data.casos).toHaveLength(1);
     expect(data.casos[0].codigo).toBe("CP-TEST-01");
-    expect(listCasos).toHaveBeenCalledWith(undefined);
+    expect(listCasos).toHaveBeenCalledWith(undefined, { id: "user-123", email: "admin@example.com", rol: "superadmin" });
   });
 
   it("should return 200 with filtered casos when proyectoId provided", async () => {
@@ -254,7 +256,7 @@ describe("GET /api/casos", () => {
     expect(response.status).toBe(200);
     expect(data.casos).toHaveLength(1);
     expect(data.casos[0].estado).toBe("paso");
-    expect(listCasos).toHaveBeenCalledWith("proyecto-1");
+    expect(listCasos).toHaveBeenCalledWith("proyecto-1", { id: "user-123", email: "admin@example.com", rol: "superadmin" });
   });
 
   it("should return 401 when not authenticated", async () => {

@@ -6,6 +6,7 @@ import type { Espacio } from "@/types/espacio";
 import { ProyectoCard } from "@/components/proyectos/proyecto-card";
 import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form";
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
+import { TestersDialog } from "@/components/proyectos/testers-dialog";
 
 interface ProyectosClientProps {
   espacios: Espacio[];
@@ -18,6 +19,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   const [editingProyecto, setEditingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
 
   const refreshProyectos = useCallback(async () => {
     const allProyectos: ProyectoWithMetrics[] = [];
@@ -89,6 +91,11 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   }
 
   const espacioMap = new Map(espacios.map((e) => [e.id, e]));
+  // Un tester puede tener proyectos asignados de espacios a los que no tiene
+  // acceso directo (no le corresponde ver Espacios) — por eso la agrupación
+  // se arma a partir de los proyectos visibles, no de la lista de espacios.
+  const espacioIdsConProyectos = Array.from(proyectosByEspacio.keys());
+  const espacioCount = espacios.length > 0 ? espacios.length : espacioIdsConProyectos.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,7 +103,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
       <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
         <h2 className="font-headline text-headline-lg text-m3-primary">Proyectos</h2>
         <span className="font-body text-body-sm text-m3-on-surface-variant">
-          {proyectos.length} proyectos · {espacios.length} espacios
+          {proyectos.length} proyectos · {espacioCount} espacios
         </span>
         <span className="ml-auto" />
         {canEdit && (
@@ -131,25 +138,27 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
       )}
 
       {/* Proyectos grouped by espacio */}
-      {espacios.length === 0 ? (
+      {proyectos.length === 0 ? (
         <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
-          <p className="text-m3-on-surface-variant">No hay espacios creados aún.</p>
+          <p className="text-m3-on-surface-variant">
+            {espacios.length === 0 ? "No hay espacios creados aún." : "No hay proyectos asignados a tu cuenta."}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-10">
-          {espacios.map((espacio) => {
-            const espacioProyectos = proyectosByEspacio.get(espacio.id) || [];
-            if (espacioProyectos.length === 0) {
-              return null;
-            }
+          {espacioIdsConProyectos.map((espacioId) => {
+            const espacioProyectos = proyectosByEspacio.get(espacioId) || [];
+            const espacio = espacioMap.get(espacioId);
+            const nombre = espacio?.nombre ?? "Proyecto asignado";
+            const color = espacio?.color ?? "#9CA3AF";
             return (
-              <div key={espacio.id} className="space-y-4">
+              <div key={espacioId} className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span
                     className="h-4 w-4 rounded"
-                    style={{ backgroundColor: espacio.color }}
+                    style={{ backgroundColor: color }}
                   />
-                  <h2 className="font-headline text-headline-md text-m3-primary">{espacio.nombre}</h2>
+                  <h2 className="font-headline text-headline-md text-m3-primary">{nombre}</h2>
                   <span className="font-body text-body-sm text-m3-on-surface-variant">
                     ({espacioProyectos.length} proyecto{espacioProyectos.length !== 1 ? "s" : ""})
                   </span>
@@ -159,11 +168,12 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
                     <ProyectoCard
                       key={proyecto.id}
                       proyecto={proyecto}
-                      espacioNombre={espacio.nombre}
-                      espacioColor={espacio.color}
+                      espacioNombre={nombre}
+                      espacioColor={color}
                       canEdit={canEdit}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      onManageTesters={setManageTestersFor}
                     />
                   ))}
                 </div>
@@ -171,6 +181,14 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
             );
           })}
         </div>
+      )}
+
+      {manageTestersFor && (
+        <TestersDialog
+          proyectoId={manageTestersFor.id}
+          proyectoNombre={manageTestersFor.nombre}
+          onClose={() => setManageTestersFor(null)}
+        />
       )}
     </div>
   );

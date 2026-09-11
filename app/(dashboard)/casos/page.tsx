@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, getUsuarioActual, scopeProyectoWhere } from "@/lib/auth";
 import { listCasos } from "@/lib/casos/actions";
 import { CasosClient } from "./casos-client";
 import { ScopeBar } from "@/components/ui/scope-bar";
@@ -12,24 +12,25 @@ interface ProyectoOption {
 }
 
 export default async function CasosPage() {
-  const [casos, session, proyectos] = await Promise.all([
-    listCasos(),
-    getSession(),
+  const session = await getSession();
+  const usuario = await getUsuarioActual(session);
+
+  const [casos, proyectos] = await Promise.all([
+    listCasos(undefined, usuario),
     prisma.proyecto.findMany({
-      where: { activo: true },
+      where: {
+        activo: true,
+        ...(usuario ? scopeProyectoWhere(usuario) : {}),
+      },
       include: { espacio: { select: { nombre: true } } },
       orderBy: { nombre: "asc" },
     }),
   ]);
 
-  const isSuperadmin = session?.userId
-    ? await prisma.usuario.findUnique({
-        where: { id: session.userId },
-        select: { rol: true },
-      })
-    : null;
-
-  const canEdit = isSuperadmin?.rol === "superadmin";
+  // Casos y Ejecuciones los puede crear/editar cualquier rol autenticado
+  // con acceso al proyecto puntual — el guard real vive en la acción
+  // (`requireProyectoAccess`), acá solo controla si se muestran los botones.
+  const canEdit = Boolean(usuario);
 
   const proyectosOptions: ProyectoOption[] = proyectos.map((p) => ({
     id: p.id,

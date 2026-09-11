@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ProyectoCard } from "@/components/proyectos/proyecto-card";
 import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form";
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
+import { TestersDialog } from "@/components/proyectos/testers-dialog";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
 interface ProyectoGridProps {
@@ -19,6 +20,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState<ProyectoWithMetrics | null>(null);
+  const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
 
   useEffect(() => {
     async function fetchProyectos() {
@@ -183,10 +185,19 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
               espacioColor={espacioColor}
               onEdit={canEdit ? handleEdit : undefined}
               onDelete={canEdit ? handleDelete : undefined}
+              onManageTesters={canEdit ? setManageTestersFor : undefined}
               canEdit={canEdit}
             />
           ))}
         </div>
+      )}
+
+      {manageTestersFor && (
+        <TestersDialog
+          proyectoId={manageTestersFor.id}
+          proyectoNombre={manageTestersFor.nombre}
+          onClose={() => setManageTestersFor(null)}
+        />
       )}
     </div>
   );
