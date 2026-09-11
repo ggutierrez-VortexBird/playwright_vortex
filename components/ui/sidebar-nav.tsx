@@ -22,9 +22,10 @@ interface SidebarNavProps {
  * - Detecta la sección activa leyendo el primer segmento del layout actual
  *   (vía `useSelectedLayoutSegments`), por lo que rutas anidadas como
  *   `/proyectos/[id]/casos` siguen marcando "Proyectos" como activa.
- * - Marca el item activo con `aria-current="true"` y el borde/fondo M3
- *   (`border-m3-secondary-container`, `bg-white/5`) que usa el mockup de
- *   referencia (fase2/mockups/nuevo-caso-script.html).
+ * - Marca el item activo con `aria-current="true"` y un tratamiento tipo
+ *   "pill" (fondo translúcido + texto blanco) inspirado en dashboards
+ *   SaaS de referencia, manteniendo el rail navy (`m3-primary-container`)
+ *   sin cambios.
  */
 export function SidebarNav({ items }: SidebarNavProps): ReactNode {
   const segments = useSelectedLayoutSegments();
@@ -43,8 +44,8 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
             aria-current={isActive ? "true" : undefined}
             className={
               isActive
-                ? "flex items-center gap-3 rounded-r px-3.5 py-2.5 font-body text-body-md font-semibold text-m3-on-primary border-l-4 border-m3-secondary-container bg-white/5 transition-colors"
-                : "flex items-center gap-3 rounded-r px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container/80 border-l-4 border-transparent transition-colors hover:bg-white/5 hover:text-m3-on-primary"
+                ? "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md font-semibold text-m3-on-primary bg-white/10 transition-colors"
+                : "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container/80 transition-colors hover:bg-white/5 hover:text-m3-on-primary"
             }
           >
             <span
