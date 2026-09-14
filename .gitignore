@@ -15,6 +15,7 @@ prisma/migrations/*/
 !prisma/migrations/20260907212500_pivot_pw_codegen_spec_text/
 !prisma/migrations/20260911190000_rbac_roles/
 !prisma/migrations/20260911214445_add_proyecto_color/
+!prisma/migrations/20260914163736_add_parent_case_and_storage_state/
 
 # Docker
 postgres-data/

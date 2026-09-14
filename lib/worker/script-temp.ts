@@ -21,7 +21,7 @@ export async function writeTempScript(script: string, fileName: string): Promise
   // HU-PARENT: al final de cada test persistimos el storageState para que
   // casos hijos puedan reutilizar la sesión (login) en ejecuciones futuras.
   const storageStateHook = `
-// --- injected by ACTA worker: persist storageState for child cases ---
+// --- injected by VorTest worker: persist storageState for child cases ---
 import { test as __vortexTest } from '@playwright/test'
 __vortexTest.afterEach(async ({ page }) => {
   if (process.env.PLAYWRIGHT_STORAGE_STATE_OUTPUT) {
