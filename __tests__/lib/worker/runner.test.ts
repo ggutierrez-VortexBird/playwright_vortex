@@ -120,18 +120,6 @@ describe("runPlaywrightTest — state mapping (AC-11)", () => {
     expect(env.VORTEST_OUTPUT_DIR).toContain("ejec-1");
   });
 
-  it("modo parent inyecta VORTEST_PARENT=1 y no consulta cancelación", async () => {
-    mockProcess({ exitCode: 0 });
-    (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({});
-
-    const { runPlaywrightTest } = await import("@/lib/worker/runner");
-    await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1", { mode: "parent" });
-
-    const spawnCall = (spawn as jest.Mock).mock.calls[0];
-    const env = spawnCall[2].env;
-    expect(env.VORTEST_PARENT).toBe("1");
-  });
-
   it("inserta paso con estado 'fallo' cuando el reporter emite estado 'fallo' con errorMsg", async () => {
     mockProcess({
       stdoutData:

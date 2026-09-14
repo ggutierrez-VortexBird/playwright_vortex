@@ -20,8 +20,78 @@ import {
   RecorderMaxSessionsError,
   RecorderUnavailableError,
 } from "./recorder-client";
-import { executeParentCaseForStorageState } from "@/lib/worker/execute-case";
 import type { NuevaGrabacionInput, SesionGrabacionOut } from "./types";
+
+// Cuánto esperamos (como máximo) a que el worker corra el caso padre antes
+// de darlo por fallido. El worker sondea la BD cada POLL_INTERVAL_MS
+// (scripts/worker.ts), así que este timeout debe cubrir esa latencia +
+// el tiempo real de un login automatizado.
+const PARENT_CASE_TIMEOUT_MS = 90_000;
+const PARENT_CASE_POLL_MS = 1_500;
+
+/**
+ * Ejecuta un caso padre (login) ANTES de iniciar la grabación, encolándolo
+ * como una Ejecucion normal para que lo corra scripts/worker.ts — el mismo
+ * proceso separado que ya corre las ejecuciones reales. Deliberadamente NO
+ * se importa nada de `lib/worker/**` acá: ese código hace `spawn` de
+ * Playwright y next/turbopack no puede empaquetarlo dentro del proceso web
+ * (rompía con "Module not found" al intentar resolver el path del CLI).
+ */
+async function runParentCaseAndGetStorageState(
+  parentCaseId: string,
+  proyectoId: string,
+): Promise<unknown> {
+  const parentCase = await prisma.casoPrueba.findUnique({
+    where: { id: parentCaseId },
+  });
+
+  if (!parentCase) {
+    throw { status: 400, body: { error: "validation", message: "Caso padre no encontrado" } };
+  }
+  if (parentCase.proyectoId !== proyectoId) {
+    throw { status: 400, body: { error: "validation", message: "El caso padre debe pertenecer al mismo proyecto" } };
+  }
+  if (!parentCase.activo) {
+    throw { status: 400, body: { error: "validation", message: "El caso padre está inactivo" } };
+  }
+
+  const parentEjecucion = await prisma.ejecucion.create({
+    data: { casoPruebaId: parentCaseId, estado: "pendiente" },
+  });
+
+  const deadline = Date.now() + PARENT_CASE_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, PARENT_CASE_POLL_MS));
+    const current = await prisma.ejecucion.findUnique({ where: { id: parentEjecucion.id } });
+    if (!current) break;
+    if (current.estado === "pendiente" || current.estado === "corriendo") continue;
+
+    if (current.estado !== "paso") {
+      throw {
+        status: 400,
+        body: {
+          error: "parent_failed",
+          message: `El caso padre falló (${current.estado}): ${current.errorMsg || "sin mensaje"}`,
+        },
+      };
+    }
+    if (!current.storageState) {
+      throw {
+        status: 400,
+        body: {
+          error: "parent_no_state",
+          message: "El caso padre no generó storageState. Asegurate de que el caso de login persista la sesión.",
+        },
+      };
+    }
+    return current.storageState;
+  }
+
+  throw {
+    status: 504,
+    body: { error: "parent_timeout", message: "El caso padre no terminó a tiempo" },
+  };
+}
 
 const VALID_AMBIENTES = ["QA", "Staging", "Prod"] as const;
 // HU-G34: tres navegadores soportados por Playwright. Chromium default;
@@ -114,7 +184,7 @@ export async function iniciarSesionGrabacion(
   // tiene prioridad sobre el de la credencial.
   if (input.parentCaseId) {
     try {
-      storageState = await executeParentCaseForStorageState(input.parentCaseId, input.proyectoId);
+      storageState = await runParentCaseAndGetStorageState(input.parentCaseId, input.proyectoId);
     } catch (err: any) {
       // Propagar el error con status/body si ya viene formateado
       if (err.status && err.body) {

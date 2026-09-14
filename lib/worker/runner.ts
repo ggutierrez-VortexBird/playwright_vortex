@@ -517,7 +517,6 @@ import { Prisma } from '@prisma/client'
 // ============================================================
 
 export interface RunPlaywrightOptions {
-  mode?: 'normal' | 'parent'
   isAborted?: () => Promise<boolean> | boolean
   inputStorageState?: unknown
 }
@@ -527,7 +526,7 @@ export async function runPlaywrightTest(
   ejecucionId: string,
   options: RunPlaywrightOptions = {}
 ): Promise<{ passed: boolean; durationMs: number; outputDir: string; outputStorageState?: unknown }> {
-  const { mode = 'normal', isAborted, inputStorageState } = options
+  const { isAborted, inputStorageState } = options
   const outputDir = path.resolve(process.cwd(), 'runtime', 'ejecuciones', 'output', ejecucionId)
   fs.mkdirSync(outputDir, { recursive: true })
 
@@ -566,9 +565,6 @@ export async function runPlaywrightTest(
     }
     if (inputStorageState !== undefined) {
       env.PLAYWRIGHT_STORAGE_STATE = storageStatePath
-    }
-    if (mode === 'parent') {
-      env.VORTEST_PARENT = '1'
     }
 
     const proc = spawn('node', [
@@ -706,15 +702,6 @@ export async function runPlaywrightTest(
 
       const outputStorageState = readStorageState(ejecucionId)
       cleanupStorageState(ejecucionId)
-
-      // Modo parent: los artefactos son temporales, limpiamos el output dir.
-      if (mode === 'parent') {
-        try {
-          fs.rmSync(outputDir, { recursive: true, force: true })
-        } catch {
-          // ignore
-        }
-      }
 
       if (code === 0) {
         resolve({ passed: true, durationMs, outputDir, outputStorageState })

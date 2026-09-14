@@ -1,8 +1,6 @@
 // Lógica compartida para ejecutar un caso de prueba con Playwright.
-// Usada por el worker de ejecuciones (scripts/worker.ts) y por el modo
-// grabador cuando necesita ejecutar un caso padre para obtener su
-// storageState antes de abrir el navegador.
-import { randomUUID } from 'node:crypto'
+// Usada por el worker de ejecuciones (scripts/worker.ts), incluyendo la
+// ejecución previa de un caso padre cuando el caso a correr declara uno.
 import { Prisma, type CasoPrueba, type Ejecucion } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import {
@@ -30,7 +28,6 @@ export interface RunCaseResult {
  * @param inputStorageState storageState opcional del caso padre
  */
 export interface RunCaseExecutionOptions {
-  mode?: 'normal' | 'parent'
   inputStorageState?: unknown
 }
 
@@ -39,7 +36,7 @@ export async function runCaseExecution(
   caso: CasoPrueba,
   options: RunCaseExecutionOptions = {}
 ): Promise<RunCaseResult> {
-  const { mode = 'normal', inputStorageState } = options
+  const { inputStorageState } = options
   // Validar script
   const validation = validateScript(caso.script, caso.scriptFileName ?? null)
   if (!validation.valid) {
@@ -57,31 +54,17 @@ export async function runCaseExecution(
 
   try {
     const runOptions: import('@/lib/worker/runner').RunPlaywrightOptions = {
-      mode,
       inputStorageState,
-    }
-
-    // Solo las ejecuciones normales consultan la BD para detectar cancelación.
-    if (mode === 'normal') {
-      runOptions.isAborted = async () => {
+      isAborted: async () => {
         const current = await prisma.ejecucion.findUnique({
           where: { id: ejecucionId },
           select: { estado: true },
         })
         return current?.estado === 'cancelado'
-      }
+      },
     }
 
     const result = await runPlaywrightTest(tmpPath, ejecucionId, runOptions)
-
-    // Modo parent: no hay pasos en BD ni artefactos que recolectar.
-    if (mode === 'parent') {
-      return {
-        finalEstado: result.passed ? 'paso' : 'fallo',
-        durationMs: result.durationMs,
-        outputStorageState: result.outputStorageState,
-      }
-    }
 
     // Determinar estado final basado en los pasos:
     // - Si hay algún paso con 'fallo' y sin selfHeal, el resultado es 'fallo'
@@ -151,73 +134,4 @@ export async function persistExecutionResult(
         : Prisma.DbNull,
     },
   })
-}
-
-/**
- * Ejecuta un caso padre y retorna su storageState fresco.
- * Usado por el modo grabador para iniciar el navegador ya autenticado.
- *
- * @returns storageState si el padre pasa; lanza error con {status, body} si falla.
- */
-export async function executeParentCaseForStorageState(
-  parentCaseId: string,
-  proyectoId: string
-): Promise<unknown> {
-  const parentCase = await prisma.casoPrueba.findUnique({
-    where: { id: parentCaseId },
-  })
-
-  if (!parentCase) {
-    throw { status: 400, body: { error: 'validation', message: 'Caso padre no encontrado' } }
-  }
-  if (parentCase.proyectoId !== proyectoId) {
-    throw { status: 400, body: { error: 'validation', message: 'El caso padre debe pertenecer al mismo proyecto' } }
-  }
-  if (parentCase.activo === false) {
-    throw { status: 400, body: { error: 'validation', message: 'El caso padre está inactivo' } }
-  }
-
-  console.log(`[execute-case] Ejecutando caso padre ${parentCaseId} en modo volátil para capturar storageState`)
-
-  try {
-    const parentEjecucionId = `parent-${randomUUID()}`
-    const result = await runCaseExecution(parentEjecucionId, parentCase, {
-      mode: 'parent',
-    })
-
-    if (result.finalEstado !== 'paso') {
-      throw {
-        status: 400,
-        body: {
-          error: 'parent_failed',
-          message: `El caso padre falló (${result.finalEstado}): ${result.errorMsg || 'sin mensaje'}`,
-        },
-      }
-    }
-
-    if (!result.outputStorageState) {
-      throw {
-        status: 400,
-        body: {
-          error: 'parent_no_state',
-          message: 'El caso padre no generó storageState. Asegurate de que el caso de login persista la sesión.',
-        },
-      }
-    }
-
-    console.log(`[execute-case] Caso padre ${parentCaseId} ejecutado correctamente. StorageState capturado.`)
-    return result.outputStorageState
-  } catch (err: unknown) {
-    // Si ya es nuestro error con status/body, dejarlo pasar
-    if (err && typeof err === 'object' && 'status' in err) {
-      throw err
-    }
-    throw {
-      status: 500,
-      body: {
-        error: 'parent_execution_error',
-        message: err instanceof Error ? err.message : 'Error ejecutando caso padre',
-      },
-    }
-  }
 }
