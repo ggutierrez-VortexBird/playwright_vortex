@@ -58,6 +58,7 @@ interface StartBody {
   userId: string;
   urlInicial: string;
   navegador?: string;
+  storageState?: unknown;
 }
 
 interface ApiContext {
@@ -128,6 +129,7 @@ async function handleStart(
       urlInicial: body.urlInicial,
       navegador,
       specDir: ctx.options.specDir,
+      storageState: body.storageState,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

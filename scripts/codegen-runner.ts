@@ -96,6 +96,7 @@ interface RunnerArgs {
   url: string;
   navegador: NavegadorId;
   outPath: string;
+  storageState?: string;
 }
 
 interface EnableRecorderParams {
@@ -134,6 +135,7 @@ export function parseArgs(argv: readonly string[]): RunnerArgs {
   const url = values.get("url") ?? "";
   const outPath = values.get("out") ?? "";
   const navegadorRaw = values.get("browser") ?? "chromium";
+  const storageState = values.get("storage-state");
 
   const faltantes = [
     !sessionId && "--session",
@@ -149,7 +151,7 @@ export function parseArgs(argv: readonly string[]): RunnerArgs {
     );
   }
 
-  return { sessionId, url, outPath, navegador: navegadorRaw };
+  return { sessionId, url, outPath, navegador: navegadorRaw, storageState };
 }
 
 function isNavegadorId(value: string): value is NavegadorId {
@@ -211,7 +213,10 @@ async function main(): Promise<void> {
 
   const engine = ENGINES[args.navegador];
   const launchOptions = { headless: false };
-  const contextOptions = { deviceScaleFactor: 1 };
+  const contextOptions: import("@playwright/test").BrowserContextOptions = {
+    deviceScaleFactor: 1,
+    ...(args.storageState ? { storageState: args.storageState } : {}),
+  };
 
   const browser: Browser = await engine.launch({
     ...launchOptions,
@@ -221,7 +226,12 @@ async function main(): Promise<void> {
     contextOptions,
   )) as ContextWithRecorder;
 
-  await enableRecorder(context, args.outPath, launchOptions, contextOptions);
+  await enableRecorder(
+    context,
+    args.outPath,
+    launchOptions as Record<string, unknown>,
+    contextOptions as Record<string, unknown>,
+  );
 
   let shuttingDown = false;
   const shutdown = async (reason: string, exitCode = 0): Promise<void> => {

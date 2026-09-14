@@ -120,7 +120,7 @@ describe("POST /api/casos", () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe("validation");
-    expect(data.message).toBe("El archivo debe ser .ts o .js");
+    expect(data.message).toBe("El archivo debe ser .spec.ts, .test.ts, .spec.js o .test.js");
   });
 
   it("should return 400 when createCaso throws validation error", async () => {

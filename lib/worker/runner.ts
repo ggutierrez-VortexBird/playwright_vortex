@@ -6,6 +6,7 @@ import * as fs from 'fs'
 import * as crypto from 'crypto'
 import { killProcessTree } from './kill-tree'
 import { capLogs, LogEntry } from './log-cap'
+import { writeStorageState, readStorageState, cleanupStorageState } from './storage-state'
 
 // ============================================================
 // Event types emitted by scripts/my-reporter.js
@@ -515,13 +516,30 @@ import { Prisma } from '@prisma/client'
 // Main runner
 // ============================================================
 
+export interface RunPlaywrightOptions {
+  mode?: 'normal' | 'parent'
+  isAborted?: () => Promise<boolean> | boolean
+  inputStorageState?: unknown
+}
+
 export async function runPlaywrightTest(
   scriptPath: string,
   ejecucionId: string,
-  isAborted?: () => Promise<boolean> | boolean
-): Promise<{ passed: boolean; durationMs: number; outputDir: string }> {
+  options: RunPlaywrightOptions = {}
+): Promise<{ passed: boolean; durationMs: number; outputDir: string; outputStorageState?: unknown }> {
+  const { mode = 'normal', isAborted, inputStorageState } = options
   const outputDir = path.resolve(process.cwd(), 'runtime', 'ejecuciones', 'output', ejecucionId)
   fs.mkdirSync(outputDir, { recursive: true })
+
+  // HU-PARENT: escribir el storageState del caso padre a disco para que
+  // playwright.config.ts lo cargue; después de la ejecución leeremos el
+  // storageState resultante (afterEach lo persiste).
+  const storageStatePath = path.resolve(process.cwd(), 'runtime', 'storage-state', `${ejecucionId}.json`)
+  if (inputStorageState !== undefined) {
+    writeStorageState(ejecucionId, inputStorageState)
+  } else {
+    cleanupStorageState(ejecucionId)
+  }
 
   return new Promise((resolve, reject) => {
     const startTime = Date.now()
@@ -539,6 +557,20 @@ export async function runPlaywrightTest(
       'cli.js'
     )
 
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      FORCE_COLOR: '0',
+      PLAYWRIGHT_VORTEX_RUNNER: '1',
+      PLAYWRIGHT_VORTEX_OUTPUT_DIR: outputDir,
+      PLAYWRIGHT_STORAGE_STATE_OUTPUT: storageStatePath,
+    }
+    if (inputStorageState !== undefined) {
+      env.PLAYWRIGHT_STORAGE_STATE = storageStatePath
+    }
+    if (mode === 'parent') {
+      env.PLAYWRIGHT_VORTEX_PARENT = '1'
+    }
+
     const proc = spawn('node', [
       cliPath,
       'test', scriptName,
@@ -547,7 +579,7 @@ export async function runPlaywrightTest(
     ], {
       cwd: path.resolve(process.cwd(), 'runtime', 'ejecuciones'),
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, FORCE_COLOR: '0', PLAYWRIGHT_VORTEX_RUNNER: '1', PLAYWRIGHT_VORTEX_OUTPUT_DIR: outputDir },
+      env,
     })
 
     let stdout = ''
@@ -672,10 +704,22 @@ export async function runPlaywrightTest(
         return
       }
 
+      const outputStorageState = readStorageState(ejecucionId)
+      cleanupStorageState(ejecucionId)
+
+      // Modo parent: los artefactos son temporales, limpiamos el output dir.
+      if (mode === 'parent') {
+        try {
+          fs.rmSync(outputDir, { recursive: true, force: true })
+        } catch {
+          // ignore
+        }
+      }
+
       if (code === 0) {
-        resolve({ passed: true, durationMs, outputDir })
+        resolve({ passed: true, durationMs, outputDir, outputStorageState })
       } else if (code === 1) {
-        resolve({ passed: false, durationMs, outputDir })
+        resolve({ passed: false, durationMs, outputDir, outputStorageState })
       } else {
         reject(new Error(`Playwright exited with code ${code}: ${stderr.slice(-200)}`))
       }

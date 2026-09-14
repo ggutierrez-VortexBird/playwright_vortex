@@ -20,6 +20,7 @@ import {
   RecorderMaxSessionsError,
   RecorderUnavailableError,
 } from "./recorder-client";
+import { executeParentCaseForStorageState } from "@/lib/worker/execute-case";
 import type { NuevaGrabacionInput, SesionGrabacionOut } from "./types";
 
 const VALID_AMBIENTES = ["QA", "Staging", "Prod"] as const;
@@ -77,10 +78,8 @@ export async function iniciarSesionGrabacion(
   // 2. Validation
   validate(input);
 
-  // 3. La credencial es OPCIONAL: el grabador todavía no aplica el
-  //    storageState al navegador, así que exigirla bloqueaba grabar en
-  //    proyectos sin credenciales cargadas sin dar nada a cambio. Si viene
-  //    una, se sigue validando que pertenezca al proyecto.
+  // 3. La credencial es OPCIONAL: si viene una, se valida que pertenezca al
+  //    proyecto. El storageState resultante se aplica al navegador del grabador.
   let credencial = null;
   if (input.credencialId) {
     credencial = await prisma.credencial.findFirst({
@@ -97,7 +96,7 @@ export async function iniciarSesionGrabacion(
     }
   }
 
-  // 4. Descifrar storageState (best-effort: si falla, asumimos vacío)
+  // 4. Descifrar storageState de credencial (best-effort)
   let storageState: unknown = null;
   if (credencial) {
     try {
@@ -112,6 +111,27 @@ export async function iniciarSesionGrabacion(
     }
   }
 
+  // 4b. HU-PARENT: si eligió un caso padre, lo ejecutamos ANTES de crear la
+  // sesión para arrancar el grabador ya autenticado. El storageState del padre
+  // tiene prioridad sobre el de la credencial.
+  if (input.parentCaseId) {
+    try {
+      storageState = await executeParentCaseForStorageState(input.parentCaseId, input.proyectoId);
+    } catch (err: any) {
+      // Propagar el error con status/body si ya viene formateado
+      if (err.status && err.body) {
+        throw err;
+      }
+      throw {
+        status: 500,
+        body: {
+          error: "parent_execution_error",
+          message: err instanceof Error ? err.message : "Error ejecutando caso padre",
+        },
+      };
+    }
+  }
+
   // 5. Crear SesionGrabacion
   const sesion = await prisma.sesionGrabacion.create({
     data: {
@@ -122,6 +142,7 @@ export async function iniciarSesionGrabacion(
       ambiente: input.ambiente,
       navegador: input.navegador,
       credencialId: input.credencialId || null,
+      parentCaseId: input.parentCaseId || null,
       estado: "iniciando",
     },
   });

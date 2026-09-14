@@ -28,6 +28,8 @@ const mockCasos: CasoPruebaListItem[] = [
     scriptFileName: "login.spec.ts",
     responsableId: "user-1",
     responsableEmail: "qa@test.com",
+    parentCaseId: null,
+    parentCaseCodigo: null,
     estado: "sin ejecuciones",
     activo: true,
     fechaUltimaEjecucion: null,

@@ -94,6 +94,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         usuarioId: true,
         nombre: true,
         proyectoId: true,
+        parentCaseId: true,
         estado: true,
         specCode: true,
         codegenFilePath: true,
@@ -154,6 +155,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           scriptFileName: deriveScriptFileName(nombreCaso),
           responsableId: sesion.usuarioId,
           origen: "grabador",
+          parentCaseId: sesion.parentCaseId,
         },
       });
       await tx.sesionGrabacion.update({

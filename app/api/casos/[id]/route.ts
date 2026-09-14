@@ -59,6 +59,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const proyectoId = formData.get("proyectoId");
     if (proyectoId !== null) updateData.proyectoId = proyectoId as string;
 
+    const parentCaseId = formData.get("parentCaseId");
+    if (parentCaseId !== null) updateData.parentCaseId = parentCaseId as string;
+
     if (scriptFile) {
       const fileName = scriptFile.name;
       const lowerName = fileName.toLowerCase();

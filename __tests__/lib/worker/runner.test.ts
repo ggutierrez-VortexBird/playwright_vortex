@@ -120,6 +120,18 @@ describe("runPlaywrightTest — state mapping (AC-11)", () => {
     expect(env.PLAYWRIGHT_VORTEX_OUTPUT_DIR).toContain("ejec-1");
   });
 
+  it("modo parent inyecta PLAYWRIGHT_VORTEX_PARENT=1 y no consulta cancelación", async () => {
+    mockProcess({ exitCode: 0 });
+    (prisma.pasoEjecucion.create as jest.Mock).mockResolvedValue({});
+
+    const { runPlaywrightTest } = await import("@/lib/worker/runner");
+    await runPlaywrightTest("/tmp/test.spec.ts", "ejec-1", { mode: "parent" });
+
+    const spawnCall = (spawn as jest.Mock).mock.calls[0];
+    const env = spawnCall[2].env;
+    expect(env.PLAYWRIGHT_VORTEX_PARENT).toBe("1");
+  });
+
   it("inserta paso con estado 'fallo' cuando el reporter emite estado 'fallo' con errorMsg", async () => {
     mockProcess({
       stdoutData:
@@ -379,11 +391,9 @@ describe("runPlaywrightTest — cancelación por isAborted (HU-3 Botón Detener)
     const { runPlaywrightTest, EjecucionCanceladaError } = await import(
       "@/lib/worker/runner"
     );
-    const promise = runPlaywrightTest(
-      "/tmp/test.spec.ts",
-      "ejec-1",
-      isAborted
-    );
+    const promise = runPlaywrightTest("/tmp/test.spec.ts", "ejec-1", {
+      isAborted,
+    });
 
     // Avanzar el timer del polling (default 1500ms) + margen
     await jest.advanceTimersByTimeAsync(2000);
@@ -412,11 +422,9 @@ describe("runPlaywrightTest — cancelación por isAborted (HU-3 Botón Detener)
 
     jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
     const { runPlaywrightTest } = await import("@/lib/worker/runner");
-    const promise = runPlaywrightTest(
-      "/tmp/test.spec.ts",
-      "ejec-1",
-      isAborted
-    );
+    const promise = runPlaywrightTest("/tmp/test.spec.ts", "ejec-1", {
+      isAborted,
+    });
 
     await jest.advanceTimersByTimeAsync(1500 * 3);
 

@@ -30,7 +30,7 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { dirname, join, isAbsolute, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
@@ -111,6 +111,8 @@ export interface SpawnCodegenOptions {
   navegador?: "chromium" | "firefox" | "webkit";
   /** Directorio donde se escribe el .spec.ts. Default OS tempdir. */
   specDir?: string;
+  /** StorageState de Playwright para iniciar el contexto autenticado. */
+  storageState?: unknown;
   /** Si el spec file NO existe, ¿lo creamos vacío antes? Útil cuando el
    *  QA cancela antes de cualquier interacción — el runner no habría
    *  escrito nada y nuestro watcher lo ignora. Default true. */
@@ -149,7 +151,26 @@ export function spawnCodegen(
     }
   }
 
+
   const navegador = options.navegador ?? "chromium";
+  let storageStatePath: string | undefined;
+
+  const cleanupStorageState = () => {
+    if (storageStatePath) {
+      try {
+        rmSync(storageStatePath, { force: true });
+      } catch {
+        // ignore
+      }
+      storageStatePath = undefined;
+    }
+  };
+
+  if (options.storageState) {
+    const tag = shortSessionTag(sessionId);
+    storageStatePath = join(dirname(specPath), `storage-${tag}-${randomBytes(4).toString("hex")}.json`);
+    writeFileSync(storageStatePath, JSON.stringify(options.storageState, null, 2), "utf8");
+  }
 
   const runnerArgs = [
     "--session",
@@ -160,6 +181,7 @@ export function spawnCodegen(
     navegador,
     "--out",
     specPath,
+    ...(storageStatePath ? ["--storage-state", storageStatePath] : []),
   ];
 
   // `node --import tsx <runner>` es la misma forma en que arrancan
@@ -274,15 +296,20 @@ export function spawnCodegen(
                   // ignore
                 }
               }
+              cleanupStorageState();
               finish();
             }, 1_000).unref?.();
             return;
           }
+          cleanupStorageState();
           finish();
         }, GRACEFUL_STOP_MS);
         forceTimer.unref?.();
 
-        proc.once("exit", finish);
+        proc.once("exit", () => {
+          cleanupStorageState();
+          finish();
+        });
       }),
     exitCode: () =>
       new Promise((resolvePromise) => {

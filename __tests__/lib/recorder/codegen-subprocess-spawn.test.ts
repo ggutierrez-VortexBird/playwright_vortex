@@ -14,7 +14,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -111,6 +111,18 @@ describe("recorder/codegen-subprocess.spawnCodegen (spawn mockeado)", () => {
     lanzar({ navegador: undefined });
     const [, args] = spawnMock.mock.calls[0] as [string, string[]];
     expect(args[args.indexOf("--browser") + 1]).toBe("chromium");
+  });
+
+  it("escribe storageState a disco y pasa --storage-state al runner", () => {
+    const storageState = { cookies: [{ name: "session", value: "x" }], origins: [] };
+    lanzar({ storageState });
+    const [, args] = spawnMock.mock.calls[0] as [string, string[]];
+
+    expect(args).toContain("--storage-state");
+    const pathArg = args[args.indexOf("--storage-state") + 1];
+    expect(pathArg).toBeTruthy();
+    expect(existsSync(pathArg!)).toBe(true);
+    expect(JSON.parse(readFileSync(pathArg!, "utf8"))).toEqual(storageState);
   });
 
   it("deja stdin abierto para poder pedir la parada ordenada", () => {

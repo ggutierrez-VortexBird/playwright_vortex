@@ -17,9 +17,12 @@ export interface NuevaGrabacionInput {
   nombre: string;
   urlInicial: string;
   ambiente: Ambiente;
-  /** Opcional: el grabador todavía no aplica el storageState al navegador,
-   *  así que el login se hace a mano dentro de la ventana grabada. */
+  /** Opcional: credencial con storageState para iniciar el navegador autenticado. */
   credencialId?: string | null;
+  /** Opcional: caso padre (ej. login) que se ejecuta ANTES de iniciar la
+   *  grabación para obtener un storageState fresco y arrancar el navegador
+   *  ya autenticado. */
+  parentCaseId?: string | null;
   navegador: Navegador;
 }
 

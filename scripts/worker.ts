@@ -1,14 +1,15 @@
 // Worker de larga duración — corre en node scripts/worker.ts
 import { db } from '../lib/db'
 import {
-  writeTempScript,
-  cleanupTempScript,
   cleanupStaleScripts,
 } from '../lib/worker/script-temp'
-import { validateScript } from '../lib/worker/validate-script'
-import { runPlaywrightTest, EjecucionCanceladaError } from '../lib/worker/runner'
-import { collectArtifacts } from '../lib/worker/artifacts'
+import {
+  runCaseExecution,
+  persistExecutionResult,
+  type RunCaseResult,
+} from '../lib/worker/execute-case'
 import { tryClaimPendingExecution } from '../lib/worker/claim'
+import type { CasoPrueba } from '@prisma/client'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -30,6 +31,7 @@ async function main() {
         // Leer caso
         const caso = await db.casoPrueba.findUnique({
           where: { id: job.casoPruebaId },
+          include: { parentCase: true },
         })
 
         if (!caso) {
@@ -44,108 +46,54 @@ async function main() {
           continue
         }
 
-        // Validar script
-        const validation = validateScript(caso.script, caso.scriptFileName ?? null)
-        if (!validation.valid) {
-          await db.ejecucion.update({
-            where: { id: job.id },
+        let parentStorageState: unknown | undefined
+
+        // HU-PARENT: si el caso tiene un padre, ejecutarlo primero para obtener
+        // credenciales frescas. Si el padre falla, el hijo no se ejecuta.
+        if (caso.parentCaseId && caso.parentCase) {
+          console.log(`[worker] Caso ${caso.id} tiene padre ${caso.parentCaseId}. Ejecutando padre primero.`)
+
+          const parentEjecucion = await db.ejecucion.create({
             data: {
-              estado: 'errorMotor',
-              errorMsg: validation.error ?? 'Script inválido',
-              finAt: new Date(),
+              casoPruebaId: caso.parentCaseId,
+              estado: 'corriendo',
+              inicioAt: new Date(),
             },
           })
-          continue
-        }
-
-        // Escribir a archivo temporal
-        const tmpPath = await writeTempScript(
-          caso.script,
-          caso.scriptFileName ?? 'test.spec.ts'
-        )
-
-        try {
-          // Ejecutar — pasamos `isAborted` para que el runner pueda
-          // detectar cancelación del usuario durante la corrida.
-          const result = await runPlaywrightTest(
-            tmpPath,
-            job.id,
-            async () => {
-              const current = await db.ejecucion.findUnique({
-                where: { id: job.id },
-                select: { estado: true },
-              })
-              return current?.estado === 'cancelado'
-            }
+          const parentFullResult: RunCaseResult = await runCaseExecution(
+            parentEjecucion.id,
+            caso.parentCase
           )
+          await persistExecutionResult(parentEjecucion.id, parentFullResult)
 
-          // Determinar estado final basado en los pasos:
-          // - Si hay algún paso con 'fallo' y sin selfHeal, el resultado es 'fallo'
-          // - De lo contrario, es 'paso' (incluye casos con pasos 'reparado')
-          const pasos = await db.pasoEjecucion.findMany({
-            where: { ejecucionId: job.id },
-          })
-
-          // HU-FIX: si no hay pasos, el test no ejecutó realmente (script vacío,
-          // error silencioso, o reporter no funcionó). No debe marcar como 'paso'.
-          if (pasos.length === 0) {
-            console.error(`[worker] Ejecución ${job.id} terminó sin pasos — posible script vacío o error silencioso`)
+          if (parentFullResult.finalEstado !== 'paso') {
+            const parentError = parentFullResult.errorMsg || `Estado final del padre: ${parentFullResult.finalEstado}`
+            console.error(`[worker] Padre ${caso.parentCaseId} falló. Abortando ejecución ${job.id}: ${parentError}`)
             await db.ejecucion.update({
               where: { id: job.id },
               data: {
                 estado: 'errorMotor',
-                errorMsg: 'La ejecución no generó pasos. Posibles causas: script vacío, error de sintaxis no reportado, o falla del reporter.',
+                errorMsg: `El caso padre falló antes de ejecutar este caso: ${parentError}`,
                 finAt: new Date(),
-                duracionMs: result.durationMs,
               },
             })
             continue
           }
 
-          const hasUnhealedFailure = pasos.some(
-            (p) => p.estado === 'fallo' && !p.selfHealed
-          )
-
-          // Recolectar artefactos (video/capturas) generados por Playwright
-          try {
-            await collectArtifacts(job.id, result.outputDir)
-          } catch (collectErr) {
-            console.error(`[worker] Error recolectando artefactos para ${job.id}:`, collectErr)
-          }
-
-          const finalEstado = hasUnhealedFailure ? 'fallo' : 'paso'
-
-          await db.ejecucion.update({
-            where: { id: job.id },
-            data: {
-              estado: finalEstado,
-              finAt: new Date(),
-              duracionMs: result.durationMs,
-            },
-          })
-        } catch (e: unknown) {
-          // Si fue cancelada por el usuario, el estado ya es 'cancelado' en BD
-          // (puesto por detenerEjecucion). Solo aseguramos finAt.
-          if (e instanceof EjecucionCanceladaError) {
-            await db.ejecucion.update({
-              where: { id: job.id },
-              data: { finAt: new Date() },
-            })
-            console.log(`[worker] Ejecución ${job.id} cancelada por el usuario`)
-            continue
-          }
-          const message = e instanceof Error ? e.message : String(e)
-          await db.ejecucion.update({
-            where: { id: job.id },
-            data: {
-              estado: 'errorMotor',
-              errorMsg: message,
-              finAt: new Date(),
-            },
-          })
-        } finally {
-          await cleanupTempScript(tmpPath)
+          parentStorageState = parentFullResult.outputStorageState
+          console.log(`[worker] Padre ${caso.parentCaseId} ejecutado correctamente. StorageState capturado: ${parentStorageState ? 'sí' : 'no'}`)
         }
+
+        // Ejecutar el caso hijo (o el caso normal si no tiene padre)
+        const childResult = await runCaseExecution(
+          job.id,
+          caso,
+          { inputStorageState: parentStorageState }
+        )
+
+        await persistExecutionResult(job.id, childResult)
+
+        console.log(`[worker] Ejecución ${job.id} finalizada: ${childResult.finalEstado}`)
       }
     } catch (err) {
       console.error('[worker] Error:', err)
