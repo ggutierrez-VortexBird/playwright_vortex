@@ -4,17 +4,27 @@ import { listProyectosActivos, getMetrics } from "@/lib/proyectos/actions";
 import { ProyectosClient } from "./proyectos-client";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
-export default async function ProyectosPage() {
+interface ProyectosPageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function ProyectosPage({ searchParams }: ProyectosPageProps) {
+  const { q } = await searchParams;
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
 
   // listProyectosActivos ya aplica el alcance correcto por rol: superadmin
   // ve todo, admin los de sus espacios, tester solo los suyos asignados
   // (esto es lo que le da visibilidad aunque no tenga acceso a Espacios).
-  const [espacios, proyectos] = await Promise.all([
+  const [espacios, proyectosSinFiltrar] = await Promise.all([
     listEspacios(usuario),
     listProyectosActivos(usuario),
   ]);
+
+  const query = q?.trim().toLowerCase();
+  const proyectos = query
+    ? proyectosSinFiltrar.filter((p) => p.nombre.toLowerCase().includes(query))
+    : proyectosSinFiltrar;
 
   const canEdit = usuario?.rol === "superadmin" || usuario?.rol === "admin";
 
@@ -26,6 +36,10 @@ export default async function ProyectosPage() {
         espacioId: proyecto.espacioId,
         nombre: proyecto.nombre,
         ambiente: proyecto.ambiente,
+        descripcion: proyecto.descripcion,
+        versionSistema: proyecto.versionSistema,
+        color: proyecto.color,
+        activo: proyecto.activo,
         createdAt: proyecto.createdAt,
         updatedAt: proyecto.updatedAt,
         totalCasos: metrics.totalCasos,

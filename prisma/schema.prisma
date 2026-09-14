@@ -109,6 +109,7 @@ model Proyecto {
   ambiente       String
   descripcion    String?
   versionSistema String?
+  color          String?
   activo         Boolean  @default(true)
   createdAt      DateTime @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @db.Timestamptz(6)

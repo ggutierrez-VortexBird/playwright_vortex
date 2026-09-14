@@ -35,6 +35,7 @@ export interface CasoPruebaListItem {
   responsableId: string;
   responsableEmail: string;
   estado: "sin ejecuciones" | "paso" | "fallo" | "reparado" | "errorMotor";
+  origen: "subirScript" | "grabador" | "mixto";
   activo: boolean;
   fechaUltimaEjecucion: string | null;
   pasosCount: number | null;

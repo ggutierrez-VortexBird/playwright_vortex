@@ -23,6 +23,7 @@ describe("CasoTable — fallback when estado is not in the pill map", () => {
       // Bypass the discriminated-union guard so we can simulate an
       // unexpected estado value coming through from the API/DB.
       estado: "pendiente" as CasoPruebaListItem["estado"],
+      origen: "subirScript",
       activo: true,
       createdAt: "2026-08-01T00:00:00Z",
       updatedAt: "2026-08-05T00:00:00Z",
@@ -46,6 +47,7 @@ describe("CasoTable — fallback when estado is not in the pill map", () => {
       responsableId: "user-y",
       responsableEmail: "y@y.z",
       estado: "corriendo" as CasoPruebaListItem["estado"],
+      origen: "subirScript",
       activo: true,
       createdAt: "2026-08-01T00:00:00Z",
       updatedAt: "2026-08-05T00:00:00Z",

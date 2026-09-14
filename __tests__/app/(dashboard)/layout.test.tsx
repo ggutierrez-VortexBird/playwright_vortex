@@ -28,6 +28,7 @@ jest.mock("next/navigation", () => ({
   }),
   useSelectedLayoutSegments: jest.fn(() => []),
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/",
 }));
 
 describe("DashboardLayout", () => {
@@ -68,7 +69,7 @@ describe("DashboardLayout", () => {
 
     fireEvent.click(screen.getByLabelText("Menú de usuario"));
     expect(screen.getByText("admin@admin.com")).toBeInTheDocument();
-    expect(screen.getByText("Superadmin")).toBeInTheDocument();
+    expect(screen.getAllByText("Superadmin").length).toBeGreaterThan(0);
     expect(screen.getByTestId("content")).toBeInTheDocument();
     // superadmin ve los 6 ítems, incluyendo Credenciales y Usuarios
     expect(screen.getByText("Credenciales")).toBeInTheDocument();

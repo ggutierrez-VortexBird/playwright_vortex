@@ -53,10 +53,7 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-4"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <label
           htmlFor="nombre"
@@ -71,7 +68,7 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
           onChange={(e) => setNombre(e.target.value)}
           required
           placeholder="Ej: Acme Corp"
-          className="rounded border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:ring-1 focus:ring-m3-secondary focus:border-m3-secondary transition-shadow"
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:ring-1 focus:ring-m3-secondary focus:border-m3-secondary transition-shadow"
         />
       </div>
 
@@ -83,11 +80,20 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div className="mt-1 flex justify-end gap-3">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
+          >
+            Cancelar
+          </button>
+        )}
         <button
           type="submit"
           disabled={isLoading}
-          className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 disabled:opacity-50"
+          className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isLoading
             ? isEditing
@@ -97,15 +103,6 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
             ? "Guardar cambios"
             : "Crear espacio"}
         </button>
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high"
-          >
-            Cancelar
-          </button>
-        )}
       </div>
     </form>
   );

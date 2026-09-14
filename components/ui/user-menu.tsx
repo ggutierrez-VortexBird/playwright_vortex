@@ -35,7 +35,7 @@ export function UserMenu({ email, rol }: UserMenuProps) {
         onClick={() => setOpen((v) => !v)}
         aria-label="Menú de usuario"
         aria-expanded={open}
-        className="flex h-9 w-9 items-center justify-center rounded-lg bg-m3-primary-container font-label text-label-sm font-bold text-m3-on-primary transition-opacity hover:opacity-90"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-m3-primary-container font-label text-label-sm font-bold text-m3-on-primary transition-opacity hover:opacity-90"
       >
         {initials}
       </button>

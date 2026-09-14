@@ -153,6 +153,7 @@ describe("createProyecto", () => {
         nombre: "Proyecto Alpha",
         ambiente: "QA",
         espacioId: "espacio-1",
+        color: null,
       },
     });
   });

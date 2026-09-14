@@ -7,6 +7,7 @@ import { ProyectoCard } from "@/components/proyectos/proyecto-card";
 import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form";
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
 import { TestersDialog } from "@/components/proyectos/testers-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ProyectosClientProps {
   espacios: Espacio[];
@@ -19,6 +20,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   const [editingProyecto, setEditingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingProyecto, setDeletingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
 
   const refreshProyectos = useCallback(async () => {
@@ -46,13 +48,15 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
     setShowForm(false);
   }
 
-  async function handleDelete(proyecto: ProyectoWithMetrics) {
-    if (!confirm(`¿Eliminar el proyecto "${proyecto.nombre}"?`)) {
-      return;
-    }
-    setDeletingId(proyecto.id);
+  function handleDelete(proyecto: ProyectoWithMetrics) {
+    setDeletingProyecto(proyecto);
+  }
+
+  async function confirmDelete() {
+    if (!deletingProyecto) return;
+    setDeletingId(deletingProyecto.id);
     try {
-      const res = await fetch(`/api/proyectos/${proyecto.id}`, {
+      const res = await fetch(`/api/proyectos/${deletingProyecto.id}`, {
         method: "DELETE",
       });
       if (res.ok || res.status === 204) {
@@ -64,6 +68,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
       alert("Error de conexión al eliminar");
     } finally {
       setDeletingId(null);
+      setDeletingProyecto(null);
     }
   }
 
@@ -99,22 +104,32 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Topbar — mockup style */}
-      <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
-        <h2 className="font-headline text-headline-lg text-m3-primary">Proyectos</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">
-          {proyectos.length} proyectos · {espacioCount} espacios
-        </span>
-        <span className="ml-auto" />
+      {/* Encabezado de página */}
+      <div className="flex flex-col gap-4 border-b border-m3-outline-variant pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h2 className="font-headline text-headline-lg text-m3-primary">Proyectos</h2>
+            <span className="rounded-full border border-m3-outline-variant bg-m3-surface-container px-3 py-0.5 font-body text-body-sm font-medium text-m3-on-surface-variant">
+              {proyectos.length} proyecto{proyectos.length !== 1 ? "s" : ""} · {espacioCount} espacio
+              {espacioCount !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
+            Supervisa y ejecuta las suites de automatización organizadas por espacios de trabajo
+          </p>
+        </div>
         {canEdit && (
           <button
             onClick={() => {
               setShowForm(true);
               setEditingProyecto(null);
             }}
-            className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-m3-primary px-4 py-2.5 font-label text-label-sm font-semibold text-m3-on-primary shadow-sm transition hover:opacity-90 active:scale-95"
           >
-            + Nuevo Proyecto
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Nuevo Proyecto
           </button>
         )}
       </div>
@@ -153,15 +168,17 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
             const color = espacio?.color ?? "#9CA3AF";
             return (
               <div key={espacioId} className="space-y-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <span
-                    className="h-4 w-4 rounded"
+                    className="h-3.5 w-3.5 shrink-0 rounded-md shadow-sm"
                     style={{ backgroundColor: color }}
                   />
-                  <h2 className="font-headline text-headline-md text-m3-primary">{nombre}</h2>
-                  <span className="font-body text-body-sm text-m3-on-surface-variant">
-                    ({espacioProyectos.length} proyecto{espacioProyectos.length !== 1 ? "s" : ""})
-                  </span>
+                  <h2 className="flex items-baseline gap-2 font-headline text-headline-md font-bold tracking-tight text-m3-on-surface">
+                    {nombre}
+                    <span className="font-body text-label-sm font-medium text-m3-on-surface-variant">
+                      ({espacioProyectos.length} proyecto{espacioProyectos.length !== 1 ? "s" : ""})
+                    </span>
+                  </h2>
                 </div>
                 <div className="proj-grid">
                   {espacioProyectos.map((proyecto) => (
@@ -190,6 +207,22 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
           onClose={() => setManageTestersFor(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deletingProyecto}
+        title="¿Eliminar este proyecto?"
+        description="Esta acción no se puede deshacer. Se eliminarán también sus casos de prueba, ejecuciones y actas asociadas."
+        itemLabel={
+          deletingProyecto
+            ? `${deletingProyecto.nombre} · ${espacioMap.get(deletingProyecto.espacioId)?.nombre ?? ""}`
+            : undefined
+        }
+        itemColor={deletingProyecto ? espacioMap.get(deletingProyecto.espacioId)?.color : undefined}
+        confirmLabel="Eliminar proyecto"
+        isLoading={!!deletingId}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingProyecto(null)}
+      />
     </div>
   );
 }

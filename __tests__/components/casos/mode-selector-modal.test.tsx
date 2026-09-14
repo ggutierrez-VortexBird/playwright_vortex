@@ -4,12 +4,14 @@
  * Cubre:
  *   - Renderiza título y 2 tarjetas (Grabar / Subir) cuando open=true.
  *   - No renderiza cuando open=false.
- *   - "Grabar Acción" navega a /casos/grabar/nueva (con proyectoId si está).
- *   - "Subir Script" dispara el evento global 'acta:open-create-caso-form'.
+ *   - Ninguna tarjeta aparece preseleccionada (sin estilos "activos" fijos).
+ *   - "Subir Script" embebe el CreateCasoForm en el mismo modal (sin cerrar ni navegar).
+ *   - "Grabar Acción" embebe el flujo de grabación en el mismo modal (sin navegar).
+ *   - El botón "Volver" del paso 2 regresa al paso 1 sin cerrar el modal.
  *   - Cancelar / Escape / click-outside cierra el modal.
  */
 
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { ModeSelectorModal } from "@/components/casos/mode-selector-modal";
 
 // Mock next/navigation router
@@ -22,6 +24,9 @@ jest.mock("next/navigation", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  global.fetch = jest.fn(() =>
+    Promise.resolve({ ok: true, json: () => Promise.resolve([]) }),
+  ) as jest.Mock;
 });
 
 describe("ModeSelectorModal (HU-G20)", () => {
@@ -39,60 +44,83 @@ describe("ModeSelectorModal (HU-G20)", () => {
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "¿Cómo quieres crear tu caso de prueba?",
+        name: "¿Cómo querés crear tu caso de prueba?",
       }),
     ).toBeInTheDocument();
 
     // Las 2 tarjetas
-    expect(screen.getByTestId("mode-selector-card-grabar")).toBeInTheDocument();
-    expect(screen.getByTestId("mode-selector-card-subir")).toBeInTheDocument();
-    expect(screen.getByText("Grabar Acción (No-Code)")).toBeInTheDocument();
+    const grabarCard = screen.getByTestId("mode-selector-card-grabar");
+    const subirCard = screen.getByTestId("mode-selector-card-subir");
+    expect(grabarCard).toBeInTheDocument();
+    expect(subirCard).toBeInTheDocument();
+    expect(screen.getByText("Grabar acción (No-Code)")).toBeInTheDocument();
     expect(screen.getByText("Subir Script Playwright")).toBeInTheDocument();
+
+    // Ninguna tarjeta debe verse "preseleccionada" (mismas clases base para ambas)
+    expect(grabarCard.className).toBe(subirCard.className);
 
     // Cancelar
     expect(screen.getByTestId("mode-selector-cancel")).toBeInTheDocument();
+
+    // No hay botón "Volver" en el paso 1
+    expect(screen.queryByTestId("mode-selector-back")).not.toBeInTheDocument();
   });
 
-  it("'Grabar Acción' navega a /casos/grabar/nueva y cierra el modal", () => {
+  it("'Subir Script' embebe el CreateCasoForm en el mismo modal, sin cerrar", async () => {
     const onClose = jest.fn();
-    render(<ModeSelectorModal open={true} onClose={onClose} />);
-
-    fireEvent.click(screen.getByTestId("mode-selector-card-grabar"));
-
-    expect(mockPush).toHaveBeenCalledWith("/casos/grabar/nueva");
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it("'Grabar Acción' propaga proyectoId en la URL", () => {
-    const onClose = jest.fn();
-    render(
-      <ModeSelectorModal
-        open={true}
-        onClose={onClose}
-        proyectoId="proy-99"
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId("mode-selector-card-grabar"));
-
-    expect(mockPush).toHaveBeenCalledWith(
-      "/casos/grabar/nueva?proyectoId=proy-99",
-    );
-  });
-
-  it("'Subir Script' cierra el modal y emite el evento global acta:open-create-caso-form", () => {
-    const onClose = jest.fn();
-    const listener = jest.fn();
-    window.addEventListener("acta:open-create-caso-form", listener);
-
     render(<ModeSelectorModal open={true} onClose={onClose} />);
 
     fireEvent.click(screen.getByTestId("mode-selector-card-subir"));
 
-    expect(onClose).toHaveBeenCalled();
-    expect(listener).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/código/i)).toBeInTheDocument();
+    });
 
-    window.removeEventListener("acta:open-create-caso-form", listener);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("mode-selector-modal")).toBeInTheDocument();
+    expect(screen.getByTestId("mode-selector-back")).toBeInTheDocument();
+  });
+
+  it("'Grabar Acción' embebe el flujo de grabación en el mismo modal, sin navegar", async () => {
+    const onClose = jest.fn();
+    render(
+      <ModeSelectorModal open={true} onClose={onClose} proyectoId="proy-99" />,
+    );
+
+    fireEvent.click(screen.getByTestId("mode-selector-card-grabar"));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/proyectos/proy-99/credenciales",
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/nombre del caso/i)).toBeInTheDocument();
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("'Volver' regresa del paso 2 al paso 1 sin cerrar el modal", async () => {
+    const onClose = jest.fn();
+    render(<ModeSelectorModal open={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getByTestId("mode-selector-card-subir"));
+    await waitFor(() => {
+      expect(screen.getByTestId("mode-selector-back")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("mode-selector-back"));
+
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: "¿Cómo querés crear tu caso de prueba?",
+      }),
+    ).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("botón Cancelar invoca onClose", () => {
@@ -126,8 +154,7 @@ describe("ModeSelectorModal (HU-G20)", () => {
     // Click en una tarjeta NO debe cerrar (porque no es el backdrop)
     onClose.mockClear();
     fireEvent.click(screen.getByTestId("mode-selector-card-grabar"));
-    // El handler de la tarjeta llama onClose() → 1 vez
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
 
     cleanup();
   });

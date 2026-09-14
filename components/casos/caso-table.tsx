@@ -23,11 +23,11 @@ function formatDate(dateString: string | null | undefined): string {
   });
 }
 
-function truncateFileName(name: string | null, maxLen = 36): string {
-  if (!name) return "—";
-  if (name.length <= maxLen) return name;
-  return "…" + name.slice(-(maxLen - 1));
-}
+const ORIGEN_LABEL: Record<CasoPruebaListItem["origen"], string> = {
+  subirScript: "subido",
+  grabador: "grabado",
+  mixto: "mixto",
+};
 
 function getEstadoBadge(
   estado: CasoPruebaListItem["estado"],
@@ -42,7 +42,7 @@ function getEstadoBadge(
       className: "bg-m3-surface-container-high text-m3-on-surface-variant",
     },
     paso: {
-      label: "Aprobado",
+      label: "Pasó",
       className: "bg-m3-success-container text-m3-success",
     },
     fallo: {
@@ -91,15 +91,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
         <table className="w-full text-left">
           <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
             <tr>
-              {[
-                "Código",
-                "Nombre",
-                "Responsable",
-                "Script",
-                "Estado",
-                "Última ejecución",
-                "Pasos",
-              ].map((h) => (
+              {["Código", "Caso", "Responsable", "Estado", "Última ejecución"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant"
@@ -107,14 +99,9 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                   {h}
                 </th>
               ))}
-              <th className="px-4 py-3 text-right font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
-                Ejecutar
+              <th className="px-4 py-3 text-left font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
+                Acciones
               </th>
-              {canEdit && (
-                <th className="px-4 py-3 text-right font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
-                  Acciones
-                </th>
-              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-m3-outline-variant">
@@ -220,19 +207,16 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
         <Link
           href={`/casos/${caso.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="font-body text-body-md text-m3-on-surface hover:text-m3-secondary hover:underline"
+          className="font-body text-body-md font-semibold text-m3-on-surface hover:text-m3-secondary hover:underline"
         >
           {caso.nombre}
         </Link>
+        <div className="font-body text-body-sm text-m3-on-surface-variant">
+          {ORIGEN_LABEL[caso.origen]}
+        </div>
       </td>
       <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {caso.responsableEmail}
-      </td>
-      <td
-        className="px-4 py-3 font-mono-code text-mono-code text-m3-on-surface-variant"
-        title={caso.scriptFileName || undefined}
-      >
-        {truncateFileName(caso.scriptFileName)}
       </td>
       <td className="px-4 py-3">
         <span
@@ -244,11 +228,8 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
       <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {formatDate(caso.fechaUltimaEjecucion)}
       </td>
-      <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
-        {caso.pasosCount ?? 0}
-      </td>
       <td className="px-4 py-3">
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-4">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -256,56 +237,49 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
             }}
             disabled={running}
             aria-label={`Ejecutar caso ${caso.codigo}`}
-            className="rounded border border-m3-secondary px-2.5 py-1 font-label text-label-sm font-medium text-m3-secondary transition-colors hover:bg-m3-secondary-fixed/20 disabled:opacity-50"
+            className="font-label text-label-md font-semibold text-m3-on-surface hover:underline disabled:opacity-50"
           >
             {running ? "Lanzando…" : "Ejecutar"}
           </button>
-          {error && (
-            <span className="font-label text-label-sm text-m3-error">{error}</span>
-          )}
-        </div>
-      </td>
-      {canEdit && (
-        <td className="px-4 py-3">
-          <div className="flex justify-end gap-2">
+          {canEdit && (
             <Link
               href={`/casos/${caso.id}?editarScript=1`}
               onClick={(e) => e.stopPropagation()}
               aria-label={`Editar script de ${caso.codigo}`}
               title="Editar script"
               data-testid="editar-script-row-action"
-              className="invisible group-hover:visible flex items-center gap-1 rounded border border-m3-outline-variant px-2 py-1 font-label text-label-sm text-m3-on-surface hover:bg-m3-surface-container-high media-hover:visible"
+              className="font-label text-label-md font-semibold text-m3-on-surface hover:underline"
             >
-              <span className="material-symbols-outlined text-[14px]">terminal</span>
               Script
             </Link>
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(caso);
-                }}
-                aria-label="Editar"
-                className="invisible group-hover:visible rounded border border-m3-outline-variant px-2 py-1 font-label text-label-sm text-m3-on-surface hover:bg-m3-surface-container-high media-hover:visible"
-              >
-                Editar
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(caso);
-                }}
-                aria-label="Eliminar"
-                className="invisible group-hover:visible rounded border border-m3-error px-2 py-1 font-label text-label-sm text-m3-error hover:bg-m3-error-container/20 media-hover:visible"
-              >
-                Eliminar
-              </button>
-            )}
-          </div>
-        </td>
-      )}
+          )}
+          {canEdit && onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(caso);
+              }}
+              aria-label="Editar"
+              className="font-label text-label-md font-semibold text-m3-on-surface hover:underline"
+            >
+              Editar
+            </button>
+          )}
+          {canEdit && onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(caso);
+              }}
+              aria-label="Eliminar"
+              className="font-label text-label-md font-semibold text-m3-error hover:underline"
+            >
+              Eliminar
+            </button>
+          )}
+          {error && <span className="font-label text-label-sm text-m3-error">{error}</span>}
+        </div>
+      </td>
     </tr>
   );
 }

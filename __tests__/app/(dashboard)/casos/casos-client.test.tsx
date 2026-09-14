@@ -4,10 +4,10 @@
  * Verifica que:
  *   - El botón único "Nuevo caso" reemplaza a los anteriores "Grabar caso" y "+ Nuevo Caso".
  *   - Click en "Nuevo caso" abre el ModeSelectorModal.
- *   - El evento 'acta:open-create-caso-form' abre el CreateCasoForm.
+ *   - Elegir "Subir Script" dentro del modal embebe el CreateCasoForm (sin salir del modal).
  */
 
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CasosClient } from "@/app/(dashboard)/casos/casos-client";
 import type { CasoPruebaListItem } from "@/types/caso";
 
@@ -29,6 +29,7 @@ const mockCasos: CasoPruebaListItem[] = [
     responsableId: "user-1",
     responsableEmail: "qa@test.com",
     estado: "sin ejecuciones",
+    origen: "subirScript",
     activo: true,
     fechaUltimaEjecucion: null,
     pasosCount: 3,
@@ -66,31 +67,21 @@ describe("CasosClient (HU-G20 mode selector)", () => {
     fireEvent.click(screen.getByTestId("nuevo-caso-button"));
 
     expect(screen.getByTestId("mode-selector-modal")).toBeInTheDocument();
-    expect(screen.getByText("Grabar Acción (No-Code)")).toBeInTheDocument();
+    expect(screen.getByText("Grabar acción (No-Code)")).toBeInTheDocument();
     expect(screen.getByText("Subir Script Playwright")).toBeInTheDocument();
   });
 
-  it("el evento 'acta:open-create-caso-form' abre el CreateCasoForm", async () => {
+  it("elegir 'Subir Script' en el modal embebe el CreateCasoForm sin salir del modal", async () => {
     render(<CasosClient casosIniciales={mockCasos} canEdit={true} />);
 
-    // El form no está visible inicialmente
-    expect(
-      screen.queryByRole("heading", { level: 2, name: /Nuevo Caso de Prueba/ }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("nuevo-caso-button"));
+    fireEvent.click(screen.getByTestId("mode-selector-card-subir"));
 
-    // Disparar el evento global (como hace el mode-selector al click en Subir)
-    act(() => {
-      window.dispatchEvent(new CustomEvent("acta:open-create-caso-form"));
-    });
-
-    // Ahora el CreateCasoForm debe estar montado
     await waitFor(() => {
-      expect(
-        screen.getByRole("heading", {
-          level: 2,
-          name: /Nuevo Caso de Prueba/,
-        }),
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/código/i)).toBeInTheDocument();
     });
+
+    // El modal sigue abierto (mismo diálogo, ahora con el form embebido)
+    expect(screen.getByTestId("mode-selector-modal")).toBeInTheDocument();
   });
 });

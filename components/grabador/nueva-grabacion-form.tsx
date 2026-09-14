@@ -7,6 +7,12 @@ import type { CredencialListItem } from "@/lib/grabador/types";
 interface NuevaGrabacionFormProps {
   proyectoId: string;
   credenciales: CredencialListItem[];
+  /** Cuando es true, omite el header/chrome propios (el contenedor padre ya los provee). */
+  embedded?: boolean;
+  /** Reemplaza el "Cancelar" -> router.back() por este handler (uso embebido en modal). */
+  onCancel?: () => void;
+  /** Cuando se provee, reemplaza el router.push post-creación (uso embebido en modal). */
+  onSuccess?: (sessionId: string) => void;
 }
 
 type NavegadorValue = "chromium" | "firefox" | "webkit";
@@ -19,7 +25,7 @@ type NavegadorValue = "chromium" | "firefox" | "webkit";
  * `/api/grabador/sesiones` (which in turn invokes the Server Action
  * `iniciarSesionGrabacion`). Only the JSX presentation changed.
  */
-export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionFormProps) {
+export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCancel, onSuccess }: NuevaGrabacionFormProps) {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
   // HU-G34: el usuario tipea la URL completa (con scheme). Antes se preponía
@@ -88,7 +94,11 @@ export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionF
 
         if (res.status === 201) {
           const data = await res.json();
-          router.push(`/casos/grabar/${data.sessionId}`);
+          if (onSuccess) {
+            onSuccess(data.sessionId);
+          } else {
+            router.push(`/casos/grabar/${data.sessionId}`);
+          }
         } else {
           const errBody = await res.json().catch(() => ({}));
           setError(errBody.message ?? errBody.error ?? "Error al iniciar");
@@ -104,30 +114,36 @@ export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionF
       id="nueva-grabacion"
       onSubmit={handleSubmit}
       noValidate
-      className="w-full max-w-2xl bg-m3-surface-container-lowest border border-m3-surface-variant rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] overflow-hidden"
+      className={
+        embedded
+          ? "w-full"
+          : "w-full max-w-2xl bg-m3-surface-container-lowest border border-m3-surface-variant rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] overflow-hidden"
+      }
     >
-      {/* Header */}
-      <header className="bg-m3-surface border-b border-m3-surface-variant px-6 py-4 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="font-headline text-headline-lg text-m3-primary leading-tight">
-            Configuración de Grabación
-          </h1>
-          <p className="font-body text-body-md text-m3-on-surface-variant mt-1">
-            Configure los parámetros iniciales antes de lanzar el navegador interactivo.
-          </p>
-        </div>
-        <div
-          aria-hidden="true"
-          className="w-10 h-10 rounded-full bg-m3-secondary-fixed flex items-center justify-center shrink-0"
-        >
-          <span
-            className="material-symbols-outlined text-m3-secondary text-[22px]"
-            style={{ fontVariationSettings: "'FILL' 1" }}
+      {/* Header (omitido en modo embebido: el contenedor padre ya muestra título/volver) */}
+      {!embedded && (
+        <header className="bg-m3-surface border-b border-m3-surface-variant px-6 py-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="font-headline text-headline-lg text-m3-primary leading-tight">
+              Configuración de Grabación
+            </h1>
+            <p className="font-body text-body-md text-m3-on-surface-variant mt-1">
+              Configure los parámetros iniciales antes de lanzar el navegador interactivo.
+            </p>
+          </div>
+          <div
+            aria-hidden="true"
+            className="w-10 h-10 rounded-full bg-m3-secondary-fixed flex items-center justify-center shrink-0"
           >
-            videocam
-          </span>
-        </div>
-      </header>
+            <span
+              className="material-symbols-outlined text-m3-secondary text-[22px]"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              videocam
+            </span>
+          </div>
+        </header>
+      )}
 
       {/* Body */}
       <div className="p-6 space-y-6">
@@ -318,7 +334,7 @@ export function NuevaGrabacionForm({ proyectoId, credenciales }: NuevaGrabacionF
       <footer className="bg-m3-surface-container-low px-6 py-4 flex justify-end gap-3 border-t border-m3-surface-variant">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => (onCancel ? onCancel() : router.back())}
           className="px-4 py-2 rounded text-m3-primary font-label text-label-sm font-semibold hover:bg-m3-surface-container-high transition-colors"
         >
           Cancelar

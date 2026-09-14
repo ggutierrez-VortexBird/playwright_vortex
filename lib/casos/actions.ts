@@ -136,6 +136,7 @@ export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | n
       responsableId: caso.responsableId,
       responsableEmail: caso.responsable.email,
       estado,
+      origen: caso.origen,
       activo: caso.activo,
       fechaUltimaEjecucion,
       pasosCount,

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { CasoTable } from "@/components/casos/caso-table";
-import { CreateCasoForm } from "@/components/casos/create-caso-form";
 import { EditCasoForm } from "@/components/casos/edit-caso-form";
 import { ModeSelectorModal } from "@/components/casos/mode-selector-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ProyectoOption {
   id: string;
@@ -23,21 +23,9 @@ interface CasosClientProps {
 export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: CasosClientProps) {
   const [casos, setCasos] = useState<CasoPruebaListItem[]>(casosIniciales);
   const [editingCaso, setEditingCaso] = useState<CasoPruebaListItem | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
-
-  // HU-G20: el botón "Subir Script" del mode-selector emite un evento
-  // global para abrir el CreateCasoForm existente (no duplicamos lógica).
-  useEffect(() => {
-    function onOpenCreate() {
-      setShowForm(true);
-      setEditingCaso(null);
-    }
-    window.addEventListener("acta:open-create-caso-form", onOpenCreate);
-    return () => {
-      window.removeEventListener("acta:open-create-caso-form", onOpenCreate);
-    };
-  }, []);
+  const [deletingCaso, setDeletingCaso] = useState<CasoPruebaListItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const refreshCasos = useCallback(async () => {
     try {
@@ -53,16 +41,17 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
 
   function handleEdit(caso: CasoPruebaListItem) {
     setEditingCaso(caso);
-    setShowForm(false);
   }
 
-  async function handleDelete(caso: CasoPruebaListItem) {
-    if (!confirm(`¿Eliminar el caso "${caso.nombre}"?`)) {
-      return;
-    }
+  function handleDelete(caso: CasoPruebaListItem) {
+    setDeletingCaso(caso);
+  }
 
+  async function confirmDelete() {
+    if (!deletingCaso) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/casos/${caso.id}`, {
+      const res = await fetch(`/api/casos/${deletingCaso.id}`, {
         method: "DELETE",
       });
 
@@ -73,12 +62,10 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
       }
     } catch {
       alert("Error de conexión al eliminar");
+    } finally {
+      setIsDeleting(false);
+      setDeletingCaso(null);
     }
-  }
-
-  function handleCreateSuccess() {
-    setShowForm(false);
-    refreshCasos();
   }
 
   function handleEditSuccess() {
@@ -87,19 +74,10 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
   }
 
   function handleCancel() {
-    setShowForm(false);
     setEditingCaso(null);
   }
 
-  // Group casos by proyecto
-  const casosByProyecto = new Map<string, CasoPruebaListItem[]>();
-  for (const caso of casos) {
-    const list = casosByProyecto.get(caso.proyectoNombre) || [];
-    list.push(caso);
-    casosByProyecto.set(caso.proyectoNombre, list);
-  }
-
-  const proyectoNames = Array.from(casosByProyecto.keys()).sort();
+  const proyectoNames = Array.from(new Set(casos.map((c) => c.proyectoNombre))).sort();
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,22 +103,14 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
         )}
       </div>
 
-      {/* Mode selector modal (HU-G20) */}
+      {/* Mode selector modal (HU-G20): elegir modo + formulario embebido */}
       <ModeSelectorModal
         open={showModeSelector}
         onClose={() => setShowModeSelector(false)}
+        proyectos={proyectos}
+        onCasoCreated={refreshCasos}
         {...(proyectoId ? { proyectoId } : {})}
       />
-
-      {/* Create form */}
-      {showForm && (
-        <CreateCasoForm
-          proyectoId={proyectoId}
-          proyectos={proyectos}
-          onSuccess={handleCreateSuccess}
-          onCancel={handleCancel}
-        />
-      )}
 
       {/* Edit form */}
       {editingCaso && (
@@ -159,43 +129,32 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
           </p>
           {canEdit && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => setShowModeSelector(true)}
               className="mt-2 font-label text-label-md text-m3-secondary hover:underline"
             >
               Crear el primer caso
             </button>
           )}
         </div>
-      ) : proyectoId ? (
+      ) : (
         <CasoTable
           casos={casos}
           canEdit={canEdit}
           onEdit={canEdit ? handleEdit : undefined}
           onDelete={canEdit ? handleDelete : undefined}
         />
-      ) : (
-        <div className="flex flex-col gap-10">
-          {proyectoNames.map((proyectoNombre) => {
-            const proyectoCasos = casosByProyecto.get(proyectoNombre) || [];
-            return (
-              <div key={proyectoNombre} className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="font-headline text-headline-md text-m3-primary">{proyectoNombre}</h2>
-                  <span className="font-body text-body-sm text-m3-on-surface-variant">
-                    ({proyectoCasos.length} caso{proyectoCasos.length !== 1 ? "s" : ""})
-                  </span>
-                </div>
-                <CasoTable
-                  casos={proyectoCasos}
-                  canEdit={canEdit}
-                  onEdit={canEdit ? handleEdit : undefined}
-                  onDelete={canEdit ? handleDelete : undefined}
-                />
-              </div>
-            );
-          })}
-        </div>
       )}
+
+      <ConfirmDialog
+        open={!!deletingCaso}
+        title="¿Eliminar este caso de prueba?"
+        description="Esta acción no se puede deshacer. Se eliminarán también sus ejecuciones y actas asociadas."
+        itemLabel={deletingCaso ? `${deletingCaso.codigo} · ${deletingCaso.nombre}` : undefined}
+        confirmLabel="Eliminar caso"
+        isLoading={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingCaso(null)}
+      />
     </div>
   );
 }

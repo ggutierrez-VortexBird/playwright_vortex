@@ -1,10 +1,16 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession, getUsuarioActual, scopeEspacioWhere } from "@/lib/auth";
+import { getEspaciosMetrics } from "@/lib/espacios/actions";
 import { EspaciosClient } from "./espacios-client";
-import type { Espacio } from "@/types/espacio";
+import type { EspacioConMetrics } from "@/types/espacio";
 
-export default async function EspaciosPage() {
+interface EspaciosPageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function EspaciosPage({ searchParams }: EspaciosPageProps) {
+  const { q } = await searchParams;
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
 
@@ -13,7 +19,7 @@ export default async function EspaciosPage() {
     redirect("/proyectos");
   }
 
-  const espacios = await prisma.espacio.findMany({
+  const todosLosEspacios = await prisma.espacio.findMany({
     where: {
       activo: true,
       ...(usuario ? scopeEspacioWhere(usuario) : {}),
@@ -21,15 +27,17 @@ export default async function EspaciosPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const conteos = await prisma.proyecto.groupBy({
-    by: ["espacioId"],
-    where: { activo: true, espacioId: { in: espacios.map((e) => e.id) } },
-    _count: { _all: true },
-  });
-  const proyectoCounts: Record<string, number> = {};
-  for (const c of conteos) {
-    proyectoCounts[c.espacioId] = c._count._all;
-  }
+  const query = q?.trim().toLowerCase();
+  const espacios = query
+    ? todosLosEspacios.filter((e) => e.nombre.toLowerCase().includes(query))
+    : todosLosEspacios;
+
+  const metricsPorEspacio = await getEspaciosMetrics(espacios.map((e) => e.id));
+
+  const espaciosConMetrics: EspacioConMetrics[] = espacios.map((e) => ({
+    ...e,
+    ...metricsPorEspacio[e.id],
+  }));
 
   const canEdit = usuario?.rol === "superadmin";
 
@@ -44,11 +52,7 @@ export default async function EspaciosPage() {
         </p>
       </div>
       <div className="mt-2">
-        <EspaciosClient
-          initialEspacios={espacios as Espacio[]}
-          proyectoCounts={proyectoCounts}
-          canEdit={canEdit}
-        />
+        <EspaciosClient initialEspacios={espaciosConMetrics} canEdit={canEdit} />
       </div>
     </div>
   );

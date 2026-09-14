@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import { getSession, getUsuarioActual } from "@/lib/auth";
+import { Logo } from "@/components/ui/logo";
 import { listEspacios, getEspacioById } from "@/lib/espacios/actions";
 import { listProyectosActivos } from "@/lib/proyectos/actions";
 import { ClientBand } from "@/components/ui/client-band";
@@ -14,13 +14,20 @@ import { ProjectProvider } from "@/components/project-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
 import type { RolUsuario } from "@/lib/auth";
 
+const ROL_LABEL: Record<string, string> = {
+  superadmin: "Superadmin",
+  admin: "Admin",
+  tester: "Tester",
+};
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
   params: Promise<{ id?: string }>;
 }
 
 const ALL_NAV_ITEMS: (SidebarNavItem & { roles: RolUsuario[] })[] = [
-  { href: "/espacios", label: "Espacios", icon: "workspaces", roles: ["superadmin", "admin"] },
+  { href: "/", label: "Inicio", icon: "home", roles: ["superadmin", "admin", "tester"] },
+  { href: "/espacios", label: "Espacios", icon: "share", roles: ["superadmin", "admin"] },
   { href: "/proyectos", label: "Proyectos", icon: "folder_open", roles: ["superadmin", "admin", "tester"] },
   { href: "/casos", label: "Casos", icon: "fact_check", roles: ["superadmin", "admin", "tester"] },
   { href: "/ejecuciones", label: "Ejecuciones", icon: "play_circle", roles: ["superadmin", "admin", "tester"] },
@@ -60,13 +67,7 @@ export default async function DashboardLayout({
         <aside className="sticky top-0 flex h-screen w-60 flex-none flex-col bg-m3-primary-container text-m3-on-primary">
           <ClientBand espacioColor={espacio?.color ?? null} />
           <div className="px-5 py-6">
-            <Image
-              src="/icons/logo.svg"
-              alt="QAtheApp"
-              width={200}
-              height={58}
-              priority
-            />
+            <Logo variant="dark" />
             <p className="mt-1 font-label text-label-sm text-m3-on-primary-container">
               Automatización de pruebas
             </p>
@@ -76,6 +77,19 @@ export default async function DashboardLayout({
           </nav>
           <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3">
             <ProyectoSwitcher proyectos={proyectos} />
+          </div>
+          <div className="flex items-center gap-2.5 border-t border-m3-on-primary-fixed-variant/30 px-4 py-3.5">
+            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white font-label text-label-sm font-bold text-m3-primary-container">
+              {usuario.email.slice(0, 2).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate font-body text-body-sm font-semibold text-white">
+                {usuario.email.split("@")[0]}
+              </div>
+              <div className="truncate font-label text-label-sm text-m3-on-primary-container">
+                {ROL_LABEL[usuario.rol] ?? usuario.rol}
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -90,13 +104,16 @@ export default async function DashboardLayout({
             <span className="ml-auto" />
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-m3-warn-container text-m3-secondary"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full bg-m3-secondary-container text-m3-secondary"
             >
-              <span className="material-symbols-outlined text-[18px]">notifications</span>
+              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                notifications
+              </span>
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-m3-error ring-2 ring-m3-secondary-container" />
             </span>
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-m3-surface-container text-m3-on-surface-variant"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-m3-surface-container text-m3-on-surface-variant"
             >
               <span className="material-symbols-outlined text-[18px]">settings</span>
             </span>

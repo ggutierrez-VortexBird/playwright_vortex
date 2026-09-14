@@ -7,6 +7,14 @@ export interface Espacio {
   updatedAt: Date | string;
 }
 
+export interface EspacioConMetrics extends Espacio {
+  proyectoCount: number;
+  totalCasos: number;
+  tasaExito: number | null;
+  ultimaActividad: string | null;
+  miembros: { id: string; email: string }[];
+}
+
 export interface CreateEspacioInput {
   nombre: string;
   color: string;

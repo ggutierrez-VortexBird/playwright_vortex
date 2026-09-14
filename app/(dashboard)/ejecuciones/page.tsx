@@ -2,10 +2,32 @@ import { listEjecucionesPorProyecto } from '@/lib/ejecuciones/queries'
 import { EjecucionStatus } from '@/components/ejecuciones/ejecucion-status'
 import { getSession, getUsuarioActual } from '@/lib/auth'
 
-export default async function EjecucionesPage() {
+interface EjecucionesPageProps {
+  searchParams: Promise<{ q?: string }>
+}
+
+export default async function EjecucionesPage({ searchParams }: EjecucionesPageProps) {
+  const { q } = await searchParams
   const session = await getSession()
   const usuario = await getUsuarioActual(session)
-  const porProyecto = await listEjecucionesPorProyecto(usuario)
+  const porProyectoSinFiltrar = await listEjecucionesPorProyecto(usuario)
+
+  const query = q?.trim().toLowerCase()
+  const porProyecto = { ...porProyectoSinFiltrar }
+  if (query) {
+    for (const [proyectoId, ejecuciones] of Object.entries(porProyecto)) {
+      const filtradas = ejecuciones.filter(
+        (e) =>
+          e.casoPrueba.nombre.toLowerCase().includes(query) ||
+          e.casoPrueba.codigo.toLowerCase().includes(query)
+      )
+      if (filtradas.length > 0) {
+        porProyecto[proyectoId] = filtradas
+      } else {
+        delete porProyecto[proyectoId]
+      }
+    }
+  }
   const totalEjecuciones = Object.values(porProyecto).reduce(
     (sum, list) => sum + list.length,
     0
@@ -14,12 +36,11 @@ export default async function EjecucionesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
+      <div>
         <h2 className="font-headline text-headline-lg text-m3-primary">Ejecuciones</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">
+        <p className="mt-1 font-body text-body-md text-m3-on-surface-variant">
           {totalEjecuciones} ejecuciones · {proyectos} proyectos
-        </span>
-        <span className="ml-auto" />
+        </p>
       </div>
 
       {proyectos === 0 ? (

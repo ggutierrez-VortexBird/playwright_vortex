@@ -18,6 +18,106 @@ export async function listEspacios(usuario?: UsuarioActual | null) {
   });
 }
 
+export interface EspacioMetrics {
+  proyectoCount: number;
+  totalCasos: number;
+  casosConformes: number;
+  casosNoConformes: number;
+  tasaExito: number | null;
+  ultimaActividad: string | null;
+  miembros: { id: string; email: string }[];
+}
+
+/**
+ * Rollup de métricas por espacio para las cards de /espacios: proyectos,
+ * casos, tasa de éxito agregada (basada en la última ejecución de cada
+ * caso, igual criterio que getMetrics de proyectos) y miembros (admins
+ * asignados vía UsuarioEspacio). Todo en un puñado de queries batched,
+ * sin N+1 por espacio.
+ */
+export async function getEspaciosMetrics(espacioIds: string[]): Promise<Record<string, EspacioMetrics>> {
+  const metrics: Record<string, EspacioMetrics> = {};
+  for (const id of espacioIds) {
+    metrics[id] = {
+      proyectoCount: 0,
+      totalCasos: 0,
+      casosConformes: 0,
+      casosNoConformes: 0,
+      tasaExito: null,
+      ultimaActividad: null,
+      miembros: [],
+    };
+  }
+  if (espacioIds.length === 0) return metrics;
+
+  const proyectos = await prisma.proyecto.findMany({
+    where: { activo: true, espacioId: { in: espacioIds } },
+    select: { id: true, espacioId: true },
+  });
+  const proyectoIdToEspacioId = new Map(proyectos.map((p) => [p.id, p.espacioId]));
+  for (const p of proyectos) {
+    metrics[p.espacioId].proyectoCount += 1;
+  }
+
+  const proyectoIds = proyectos.map((p) => p.id);
+  const casos = proyectoIds.length
+    ? await prisma.casoPrueba.findMany({
+        where: { activo: true, proyectoId: { in: proyectoIds } },
+        select: { id: true, proyectoId: true },
+      })
+    : [];
+  const casoIdToEspacioId = new Map<string, string>();
+  for (const c of casos) {
+    const espacioId = proyectoIdToEspacioId.get(c.proyectoId);
+    if (!espacioId) continue;
+    casoIdToEspacioId.set(c.id, espacioId);
+    metrics[espacioId].totalCasos += 1;
+  }
+
+  const casoIds = casos.map((c) => c.id);
+  const ejecuciones = casoIds.length
+    ? await prisma.ejecucion.findMany({
+        where: { casoPruebaId: { in: casoIds }, finAt: { not: null } },
+        orderBy: { finAt: "desc" },
+        select: { casoPruebaId: true, estado: true, finAt: true },
+      })
+    : [];
+
+  const latestByCaso = new Map<string, (typeof ejecuciones)[number]>();
+  for (const e of ejecuciones) {
+    if (!latestByCaso.has(e.casoPruebaId)) latestByCaso.set(e.casoPruebaId, e);
+  }
+
+  const ultimaActividad: Record<string, Date> = {};
+  for (const e of latestByCaso.values()) {
+    const espacioId = casoIdToEspacioId.get(e.casoPruebaId);
+    if (!espacioId) continue;
+    if (e.estado === "paso") metrics[espacioId].casosConformes += 1;
+    if (e.estado === "fallo") metrics[espacioId].casosNoConformes += 1;
+    if (e.finAt && (!ultimaActividad[espacioId] || e.finAt > ultimaActividad[espacioId])) {
+      ultimaActividad[espacioId] = e.finAt;
+    }
+  }
+  for (const [espacioId, fecha] of Object.entries(ultimaActividad)) {
+    metrics[espacioId].ultimaActividad = fecha.toISOString();
+  }
+  for (const m of Object.values(metrics)) {
+    const evaluados = m.casosConformes + m.casosNoConformes;
+    m.tasaExito = evaluados > 0 ? Math.round((m.casosConformes / evaluados) * 100) : null;
+  }
+
+  const membresias = await prisma.usuarioEspacio.findMany({
+    where: { espacioId: { in: espacioIds } },
+    include: { usuario: { select: { id: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  for (const m of membresias) {
+    metrics[m.espacioId].miembros.push(m.usuario);
+  }
+
+  return metrics;
+}
+
 export async function createEspacio(input: CreateEspacioInput, session: SessionData) {
   await requireSuperadmin(session);
 

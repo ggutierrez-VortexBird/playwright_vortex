@@ -5,6 +5,7 @@ import { ProyectoCard } from "@/components/proyectos/proyecto-card";
 import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form";
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
 import { TestersDialog } from "@/components/proyectos/testers-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
 interface ProyectoGridProps {
@@ -21,6 +22,8 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
   const [showForm, setShowForm] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
+  const [deletingProyecto, setDeletingProyecto] = useState<ProyectoWithMetrics | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchProyectos() {
@@ -39,23 +42,28 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
     fetchProyectos();
   }, [espacioId]);
 
-  async function handleDelete(proyecto: ProyectoWithMetrics) {
-    if (!confirm(`¿Estás seguro de eliminar "${proyecto.nombre}"?`)) {
-      return;
-    }
+  function handleDelete(proyecto: ProyectoWithMetrics) {
+    setDeletingProyecto(proyecto);
+  }
 
+  async function confirmDelete() {
+    if (!deletingProyecto) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/proyectos/${proyecto.id}`, {
+      const res = await fetch(`/api/proyectos/${deletingProyecto.id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
-        setProyectos((prev) => prev.filter((p) => p.id !== proyecto.id));
+        setProyectos((prev) => prev.filter((p) => p.id !== deletingProyecto.id));
       } else if (res.status === 409) {
         alert("No se puede eliminar: hay proyectos activos");
       }
     } catch (err) {
       console.error("Error deleting proyecto:", err);
+    } finally {
+      setIsDeleting(false);
+      setDeletingProyecto(null);
     }
   }
 
@@ -199,6 +207,18 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
           onClose={() => setManageTestersFor(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deletingProyecto}
+        title="¿Eliminar este proyecto?"
+        description="Esta acción no se puede deshacer. Se eliminarán también sus casos de prueba, ejecuciones y actas asociadas."
+        itemLabel={deletingProyecto ? `${deletingProyecto.nombre} · ${espacioNombre}` : undefined}
+        itemColor={espacioColor}
+        confirmLabel="Eliminar proyecto"
+        isLoading={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingProyecto(null)}
+      />
     </div>
   );
 }

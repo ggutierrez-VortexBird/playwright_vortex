@@ -106,23 +106,23 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
         if (e.target === dialogRef.current) handleClose();
       }}
       onClose={onClose}
-      className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50"
+      className="rounded-2xl border-none bg-m3-surface-container-lowest p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
     >
       <div className="w-96 max-w-full p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-headline text-headline-md text-m3-primary">Testers del proyecto</h3>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="font-headline text-headline-md text-m3-on-surface">Testers del proyecto</h3>
           <button
             onClick={handleClose}
             className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
             aria-label="Cerrar"
           >
-            ✕
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
-        <p className="mb-3 font-body text-body-sm text-m3-on-surface-variant">{proyectoNombre}</p>
+        <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">{proyectoNombre}</p>
 
         {error && (
-          <div className="mb-3 rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">
+          <div className="mb-3 rounded-lg bg-m3-danger-container px-3 py-2 font-body text-body-sm text-m3-error">
             {error}
           </div>
         )}
@@ -140,24 +140,34 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
               {asignados.map((a) => (
                 <li
                   key={a.id}
-                  className="flex items-center justify-between rounded border border-m3-outline-variant px-3 py-2"
+                  className="flex items-center gap-3 rounded-lg bg-m3-surface-container px-3 py-2.5"
                 >
-                  <span className="font-body text-body-sm text-m3-on-surface">{a.email}</span>
+                  <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-m3-primary-container font-label text-label-sm font-bold text-white">
+                    {a.email.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-body text-body-sm font-medium text-m3-on-surface">{a.email}</div>
+                    <div className="font-body text-body-sm text-m3-on-surface-variant">Tester</div>
+                  </div>
                   <button
                     onClick={() => handleQuitar(a.id)}
-                    className="font-label text-label-sm text-m3-error hover:underline"
+                    aria-label={`Quitar ${a.email}`}
+                    className="rounded p-1 text-m3-on-surface-variant hover:text-m3-error"
                   >
-                    Quitar
+                    <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>
                 </li>
               ))}
             </ul>
 
+            <label className="mb-1 block font-label text-label-sm font-semibold text-m3-on-surface">
+              Agregar tester existente
+            </label>
             <div className="flex gap-2">
               <select
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
-                className="flex-1 rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 text-sm text-m3-on-surface"
+                className="flex-1 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-sm text-m3-on-surface"
               >
                 <option value="">Selecciona un tester…</option>
                 {disponibles.map((c) => (
@@ -169,7 +179,7 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
               <button
                 onClick={handleAsignar}
                 disabled={!selected}
-                className="rounded bg-m3-primary px-3 py-2 font-label text-label-sm font-semibold text-m3-on-primary hover:opacity-90 disabled:opacity-40"
+                className="rounded-lg border border-m3-outline-variant px-4 py-2 font-label text-label-sm font-semibold text-m3-on-surface hover:bg-m3-surface-container-high disabled:opacity-40"
               >
                 Asignar
               </button>
@@ -179,6 +189,15 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
                 No hay testers disponibles para asignar. Creá uno en la sección Usuarios.
               </p>
             )}
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={handleClose}
+                className="font-label text-label-md text-m3-on-surface-variant hover:underline"
+              >
+                Cerrar
+              </button>
+            </div>
           </>
         )}
       </div>

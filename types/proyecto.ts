@@ -1,6 +1,5 @@
 /**
  * Types for Proyecto entities.
- * versionSistema is internal — NOT exposed in API.
  */
 
 export interface Proyecto {
@@ -9,6 +8,8 @@ export interface Proyecto {
   nombre: string;
   ambiente: string;
   descripcion: string | null;
+  versionSistema: string | null;
+  color: string | null;
   activo: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -18,22 +19,30 @@ export interface CreateProyectoInput {
   nombre: string;
   ambiente: string;
   espacioId: string;
+  color?: string | null;
 }
 
 export interface UpdateProyectoInput {
   nombre?: string;
   ambiente?: string;
+  versionSistema?: string | null;
+  descripcion?: string | null;
+  color?: string | null;
+  activo?: boolean;
 }
 
 /**
  * API response type for Proyecto with metrics.
- * Excludes internal fields: versionSistema, descripcion, activo.
  */
 export interface ProyectoWithMetrics {
   id: string;
   espacioId: string;
   nombre: string;
   ambiente: string;
+  descripcion: string | null;
+  versionSistema: string | null;
+  color: string | null;
+  activo: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
   totalCasos: number;

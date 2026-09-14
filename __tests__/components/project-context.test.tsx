@@ -21,6 +21,8 @@ const mockProject: ProyectoWithEspacio = {
   nombre: "Proyecto Test",
   ambiente: "test",
   descripcion: null,
+  versionSistema: null,
+  color: null,
   activo: true,
   createdAt: new Date(),
   updatedAt: new Date(),

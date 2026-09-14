@@ -106,7 +106,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose }: AdminsDialog
         if (e.target === dialogRef.current) handleClose();
       }}
       onClose={onClose}
-      className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50"
+      className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
     >
       <div className="w-96 max-w-full p-6">
         <div className="mb-4 flex items-center justify-between">

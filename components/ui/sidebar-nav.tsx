@@ -44,12 +44,12 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
             aria-current={isActive ? "true" : undefined}
             className={
               isActive
-                ? "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md font-semibold text-m3-on-primary bg-white/10 transition-colors"
+                ? "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md font-semibold text-white bg-white/10 transition-colors"
                 : "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container/80 transition-colors hover:bg-white/5 hover:text-m3-on-primary"
             }
           >
             <span
-              className="material-symbols-outlined shrink-0 text-[20px]"
+              className={`material-symbols-outlined shrink-0 text-[20px] ${isActive ? "text-m3-secondary-container" : ""}`}
               aria-hidden="true"
             >
               {item.icon}

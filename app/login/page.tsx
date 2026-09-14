@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { iniciarSesion } from "./actions";
 import { LoginForm } from "./login-form";
+import { Logo } from "@/components/ui/logo";
 
 interface LoginPageProps {
   searchParams: Promise<{ from?: string }>;
@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     >
       <div className="w-full max-w-sm rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-8 shadow-2xl">
         <div className="mb-6 flex flex-col items-center text-center">
-          <Image src="/icons/logo.svg" alt="QAtheApp" width={190} height={55} priority />
+          <Logo variant="light" />
           <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
             Automatización de pruebas y actas de evidencia
           </p>

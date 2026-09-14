@@ -187,8 +187,8 @@ describe("CreateCasoForm", () => {
     ];
     render(<CreateCasoForm proyectos={proyectos} onSuccess={jest.fn()} />);
     expect(screen.getByLabelText(/proyecto/i)).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Proyecto A (Espacio X)" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Proyecto B (Espacio Y)" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Proyecto A · Espacio X" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Proyecto B · Espacio Y" })).toBeInTheDocument();
   });
 
   it("hides proyecto selector when proyectoId is provided", () => {

@@ -13,6 +13,7 @@ const mockCasos: CasoPruebaListItem[] = [
     responsableId: "user-1",
     responsableEmail: "ana@test.com",
     estado: "paso",
+    origen: "subirScript",
     activo: true,
     createdAt: "2026-08-01T00:00:00Z",
     updatedAt: "2026-08-05T00:00:00Z",
@@ -31,6 +32,7 @@ const mockCasos: CasoPruebaListItem[] = [
     responsableId: "user-2",
     responsableEmail: "luis@test.com",
     estado: "fallo",
+    origen: "grabador",
     activo: true,
     createdAt: "2026-08-02T00:00:00Z",
     updatedAt: "2026-08-04T00:00:00Z",
@@ -49,6 +51,7 @@ const mockCasos: CasoPruebaListItem[] = [
     responsableId: "user-1",
     responsableEmail: "ana@test.com",
     estado: "sin ejecuciones",
+    origen: "mixto",
     activo: true,
     createdAt: "2026-08-03T00:00:00Z",
     updatedAt: "2026-08-03T00:00:00Z",
@@ -63,9 +66,8 @@ describe("CasoTable", () => {
   it("renders table headers", () => {
     render(<CasoTable casos={mockCasos} />);
     expect(screen.getByText("Código")).toBeInTheDocument();
-    expect(screen.getByText("Nombre")).toBeInTheDocument();
+    expect(screen.getByText("Caso")).toBeInTheDocument();
     expect(screen.getByText("Responsable")).toBeInTheDocument();
-    expect(screen.getByText("Script")).toBeInTheDocument();
     expect(screen.getByText("Estado")).toBeInTheDocument();
     expect(screen.getByText("Última ejecución")).toBeInTheDocument();
   });
@@ -79,30 +81,9 @@ describe("CasoTable", () => {
 
   it("renders estado pills with correct labels", () => {
     render(<CasoTable casos={mockCasos} />);
-    expect(screen.getByText("Aprobado")).toBeInTheDocument();
+    expect(screen.getByText("Pasó")).toBeInTheDocument();
     expect(screen.getByText("Falló en el paso 2")).toBeInTheDocument();
     expect(screen.getByText("Sin ejecutar")).toBeInTheDocument();
-  });
-
-  it("truncates long file names", () => {
-    render(<CasoTable casos={mockCasos} />);
-    const truncated = screen.getByText(/transferencia-muy-larga\.spec\.ts/);
-    expect(truncated).toBeInTheDocument();
-  });
-
-  it("links the row action 'Script' directly to the script editor", () => {
-    // Editar el script debe ser una acción de la fila, no algo escondido
-    // detrás de entrar al detalle y buscar el botón ahí.
-    render(<CasoTable casos={mockCasos} canEdit />);
-    const row = screen.getByText("CP-TEST-01").closest("tr");
-    if (!row) throw new Error("Row not found");
-    const link = row.querySelector('[data-testid="editar-script-row-action"]');
-    expect(link).toHaveAttribute("href", "/casos/caso-1?editarScript=1");
-  });
-
-  it("does not show the 'Script' row action when canEdit is false", () => {
-    render(<CasoTable casos={mockCasos} canEdit={false} />);
-    expect(screen.queryByTestId("editar-script-row-action")).not.toBeInTheDocument();
   });
 
   it("calls onEdit when edit button clicked", () => {

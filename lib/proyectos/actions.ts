@@ -19,7 +19,7 @@ export async function createProyecto(
 
   await requireEspacioAdmin(session, espacioIdInput.trim());
 
-  const { nombre, ambiente, espacioId } = input;
+  const { nombre, ambiente, espacioId, color } = input;
 
   // Validate required fields
   if (!nombre || typeof nombre !== "string" || nombre.trim() === "") {
@@ -48,6 +48,7 @@ export async function createProyecto(
       nombre: nombre.trim(),
       ambiente: ambiente.trim(),
       espacioId: espacioId.trim(),
+      color: color?.trim() || null,
     },
   });
 
@@ -55,6 +56,7 @@ export async function createProyecto(
     id: proyecto.id,
     nombre: proyecto.nombre,
     ambiente: proyecto.ambiente,
+    color: proyecto.color,
     espacioId: proyecto.espacioId,
     createdAt: proyecto.createdAt,
     updatedAt: proyecto.updatedAt,
@@ -112,6 +114,10 @@ export async function getProyectoById(id: string): Promise<ProyectoWithMetrics> 
     id: proyecto.id,
     nombre: proyecto.nombre,
     ambiente: proyecto.ambiente,
+    descripcion: proyecto.descripcion,
+    versionSistema: proyecto.versionSistema,
+    color: proyecto.color,
+    activo: proyecto.activo,
     espacioId: proyecto.espacioId,
     createdAt: proyecto.createdAt,
     updatedAt: proyecto.updatedAt,
@@ -224,6 +230,18 @@ export async function updateProyecto(
   if (input.ambiente !== undefined) {
     updateData.ambiente = input.ambiente.trim();
   }
+  if (input.versionSistema !== undefined) {
+    updateData.versionSistema = input.versionSistema?.trim() || null;
+  }
+  if (input.descripcion !== undefined) {
+    updateData.descripcion = input.descripcion?.trim() || null;
+  }
+  if (input.color !== undefined) {
+    updateData.color = input.color?.trim() || null;
+  }
+  if (input.activo !== undefined) {
+    updateData.activo = input.activo;
+  }
 
   const proyecto = await prisma.proyecto.update({
     where: { id },
@@ -234,6 +252,10 @@ export async function updateProyecto(
     id: proyecto.id,
     nombre: proyecto.nombre,
     ambiente: proyecto.ambiente,
+    descripcion: proyecto.descripcion,
+    versionSistema: proyecto.versionSistema,
+    color: proyecto.color,
+    activo: proyecto.activo,
     espacioId: proyecto.espacioId,
     createdAt: proyecto.createdAt,
     updatedAt: proyecto.updatedAt,

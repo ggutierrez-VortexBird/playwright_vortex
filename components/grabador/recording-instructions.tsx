@@ -52,9 +52,9 @@ export function RecordingInstructions({
       data-testid="recording-instructions"
       className="flex h-full flex-col items-center justify-center gap-6 bg-m3-surface-container-lowest p-8 text-center"
     >
-      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-m3-primary-container text-m3-on-primary-container">
-        <span className="material-symbols-outlined text-[56px]">
-          open_in_new
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-m3-primary-container text-white">
+        <span className="material-symbols-outlined text-[40px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+          videocam
         </span>
       </div>
       <div className="max-w-lg">

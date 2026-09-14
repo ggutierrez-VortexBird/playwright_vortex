@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Modal } from "@/components/ui/modal";
 
 interface UsuarioRow {
   id: string;
@@ -27,6 +28,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol }: UsuariosClie
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +48,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol }: UsuariosClie
       setEmail("");
       setPassword("");
       setRol("tester");
+      setShowCreateModal(false);
       setSuccessMessage(`"${data.usuario.email}" creado como ${ROL_LABEL[data.usuario.rol]}`);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
@@ -63,58 +66,94 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol }: UsuariosClie
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-4 rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm sm:flex-row sm:items-end sm:flex-wrap"
-      >
-        <div className="flex flex-1 min-w-[200px] flex-col gap-1">
-          <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-            placeholder="nombre@empresa.com"
-          />
-        </div>
-        <div className="flex flex-1 min-w-[200px] flex-col gap-1">
-          <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Contraseña</label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-            placeholder="Mínimo 8 caracteres"
-          />
-        </div>
-        {puedeElegirRol && (
-          <div className="flex flex-col gap-1">
-            <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Rol</label>
-            <select
-              value={rol}
-              onChange={(e) => setRol(e.target.value as "admin" | "tester")}
-              className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-            >
-              <option value="tester">Tester</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-        )}
+      <div className="flex justify-end">
         <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 disabled:opacity-40"
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-m3-primary px-4 py-2.5 font-label text-label-sm font-semibold text-m3-on-primary shadow-sm transition hover:opacity-90 active:scale-95"
         >
-          {submitting ? "Creando…" : "+ Crear usuario"}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Nuevo usuario
         </button>
-      </form>
+      </div>
 
-      {error && (
-        <div className="rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">{error}</div>
-      )}
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} labelledBy="create-usuario-title" className="max-w-md">
+        <div className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 id="create-usuario-title" className="font-headline text-headline-md text-m3-primary">
+              Nuevo usuario
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              aria-label="Cerrar"
+              className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
+                placeholder="nombre@empresa.com"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Contraseña</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+            {puedeElegirRol && (
+              <div className="flex flex-col gap-1">
+                <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Rol</label>
+                <select
+                  value={rol}
+                  onChange={(e) => setRol(e.target.value as "admin" | "tester")}
+                  className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
+                >
+                  <option value="tester">Tester</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">{error}</div>
+            )}
+
+            <div className="mt-1 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {submitting ? "Creando…" : "Crear usuario"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </Modal>
 
       <div className="overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
         <table className="w-full text-left text-sm">

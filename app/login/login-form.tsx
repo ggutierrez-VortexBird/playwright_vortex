@@ -31,7 +31,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
           type="email"
           required
           autoComplete="email"
-          className="rounded border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:ring-1 focus:ring-m3-secondary focus:border-m3-secondary transition-shadow"
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:ring-1 focus:ring-m3-secondary focus:border-m3-secondary transition-shadow"
         />
       </div>
       <div className="flex flex-col gap-1">
@@ -47,7 +47,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
           type="password"
           required
           autoComplete="current-password"
-          className="rounded border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:ring-1 focus:ring-m3-secondary focus:border-m3-secondary transition-shadow"
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:ring-1 focus:ring-m3-secondary focus:border-m3-secondary transition-shadow"
         />
       </div>
       {state?.error && (
@@ -58,7 +58,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="rounded bg-m3-primary px-4 py-2 font-label text-label-lg font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="rounded-lg bg-m3-primary px-4 py-2 font-label text-label-lg font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {isPending ? "Iniciando sesión..." : "Iniciar sesión"}
       </button>

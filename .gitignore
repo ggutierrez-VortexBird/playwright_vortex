@@ -14,6 +14,7 @@ prisma/migrations/*/
 !prisma/migrations/migration_lock.toml
 !prisma/migrations/20260907212500_pivot_pw_codegen_spec_text/
 !prisma/migrations/20260911190000_rbac_roles/
+!prisma/migrations/20260911214445_add_proyecto_color/
 
 # Docker
 postgres-data/

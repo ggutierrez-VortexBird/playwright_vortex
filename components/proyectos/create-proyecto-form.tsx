@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui/modal";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 interface EspacioOption {
   id: string;
@@ -20,6 +22,7 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
   const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [ambiente, setAmbiente] = useState("");
+  const [color, setColor] = useState("#C9822F");
   const [selectedEspacioId, setSelectedEspacioId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +45,14 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
       const res = await fetch("/api/proyectos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, ambiente, espacioId: effectiveEspacioId }),
+        body: JSON.stringify({ nombre, ambiente, espacioId: effectiveEspacioId, color }),
       });
 
       if (res.ok) {
         setNombre("");
         setAmbiente("");
         setSelectedEspacioId("");
+        setColor("#C9822F");
         if (onSuccess) {
           onSuccess();
         } else {
@@ -70,9 +74,24 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
   }
 
   return (
-    <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6">
-      <h2 className="mb-4 font-headline text-headline-md text-m3-primary">Nuevo Proyecto</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <Modal open onClose={() => onCancel?.()} labelledBy="create-proyecto-title" className="max-w-md">
+      <div className="p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 id="create-proyecto-title" className="font-headline text-headline-md text-m3-primary">
+            Nuevo Proyecto
+          </h2>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Cerrar"
+              className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          )}
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {needsEspacioSelect && (
           <div>
             <label htmlFor="espacio" className="block text-sm font-medium text-m3-on-surface">
@@ -142,31 +161,34 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
           />
         </div>
 
+        <ColorPicker name="color" value={color} onChange={setColor} />
+
         {error && (
           <div className="rounded-md bg-red-50 p-3 text-sm text-m3-error">
             {error}
           </div>
         )}
 
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Creando..." : "Crear Proyecto"}
-          </button>
+        <div className="mt-1 flex justify-end gap-3">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md border border-m3-outline-variant px-4 py-2 text-sm font-medium text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
+              className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
             >
               Cancelar
             </button>
           )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Creando..." : "Crear Proyecto"}
+          </button>
         </div>
       </form>
-    </div>
+      </div>
+    </Modal>
   );
 }

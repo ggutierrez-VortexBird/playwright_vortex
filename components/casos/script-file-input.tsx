@@ -43,49 +43,35 @@ export function ScriptFileInput({ fileName, onChange, disabled }: ScriptFileInpu
     onChange(file);
   }
 
-  function handleReset() {
-    setSelectedFile(null);
-    setValidationError(null);
-    onChange(null);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
-  }
-
   return (
     <div>
-      {currentName && (
-        <div className="mb-2 flex items-center gap-2 text-sm text-m3-on-surface-variant">
-          <span>
-            Archivo:{" "}
-            <code className="rounded bg-m3-surface-container-high px-1 py-0.5 text-m3-on-surface">{currentName}</code>
-          </span>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="text-m3-error hover:underline"
-            disabled={disabled}
-          >
-            Cambiar
-          </button>
-        </div>
-      )}
-
-      {!selectedFile && (
+      <div className="flex flex-wrap items-center gap-3">
+        <label
+          htmlFor="scriptFile-input"
+          className={`inline-flex cursor-pointer items-center rounded-lg bg-m3-secondary-container px-4 py-2 font-label text-label-md font-semibold text-m3-on-surface transition-opacity hover:opacity-90 ${
+            disabled ? "pointer-events-none opacity-50" : ""
+          }`}
+        >
+          Seleccionar archivo
+        </label>
         <input
+          id="scriptFile-input"
           ref={inputRef}
           type="file"
           onChange={handleFileChange}
           disabled={disabled}
-          className="mt-1 block w-full text-sm text-m3-on-surface file:mr-4 file:rounded-md file:border-0 file:bg-m3-secondary-container file:px-4 file:py-2 file:text-sm file:font-medium file:text-m3-on-secondary-container hover:file:bg-m3-secondary-fixed disabled:opacity-50"
+          className="sr-only"
         />
-      )}
+        {currentName && (
+          <span className="font-body text-body-sm text-m3-on-surface-variant">{currentName}</span>
+        )}
+      </div>
 
       {validationError && (
-        <p className="mt-1 text-xs text-m3-error">{validationError}</p>
+        <p className="mt-1 font-body text-body-sm text-m3-error">{validationError}</p>
       )}
 
-      <p className="mt-1 text-xs text-m3-on-surface-variant">
+      <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
         Archivos permitidos: {ALLOWED_EXTENSIONS.join(", ")}
       </p>
     </div>
