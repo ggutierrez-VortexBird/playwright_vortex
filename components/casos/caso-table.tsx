@@ -214,6 +214,11 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
         <div className="font-body text-body-sm text-m3-on-surface-variant">
           {ORIGEN_LABEL[caso.origen]}
         </div>
+        {caso.parentCaseCodigo && (
+          <div className="mt-1 font-label text-label-sm text-m3-secondary">
+            Requiere {caso.parentCaseCodigo}
+          </div>
+        )}
       </td>
       <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {caso.responsableEmail}

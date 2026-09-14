@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ParentCaseSelect } from "@/components/casos/parent-case-select";
 import type { CredencialListItem } from "@/lib/grabador/types";
 
 interface NuevaGrabacionFormProps {
@@ -45,6 +46,7 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
     credenciales.length > 0 ? credenciales[0]!.id : sentinelNone,
   );
   const [navegador, setNavegador] = useState<NavegadorValue>("chromium");
+  const [parentCaseId, setParentCaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -82,14 +84,15 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
         const res = await fetch("/api/grabador/sesiones", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            proyectoId,
-            nombre: nombre.trim(),
-            urlInicial: urlCompleta,
-            ambiente,
-            credencialId: credencialId === sentinelNone ? null : credencialId,
-            navegador,
-          }),
+            body: JSON.stringify({
+              proyectoId,
+              nombre: nombre.trim(),
+              urlInicial: urlCompleta,
+              ambiente,
+              credencialId: credencialId === sentinelNone ? null : credencialId,
+              parentCaseId,
+              navegador,
+            }),
         });
 
         if (res.status === 201) {
@@ -239,6 +242,25 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
               {tieneCredenciales
                 ? "La credencial queda registrada en la sesión. El login se hace dentro de la ventana del navegador que se abre."
                 : "No hay credenciales para este proyecto. Podés grabar igual: el login se hace dentro de la ventana del navegador que se abre."}
+            </p>
+          </div>
+
+          {/* Caso padre (login) */}
+          <div>
+            <label
+              htmlFor="parent-case"
+              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
+            >
+              Caso padre (Login)
+            </label>
+            <ParentCaseSelect
+              proyectoId={proyectoId}
+              value={parentCaseId}
+              onChange={setParentCaseId}
+            />
+            <p className="mt-1.5 text-xs text-m3-on-surface-variant">
+              Si seleccionás un caso de login, se ejecuta ANTES de abrir el grabador
+              y el navegador inicia ya autenticado.
             </p>
           </div>
         </div>

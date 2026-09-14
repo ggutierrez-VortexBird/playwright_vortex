@@ -147,12 +147,19 @@ model CasoPrueba {
   scriptFileName String?
   responsableId  String
   origen         CasoOrigen @default(subirScript)
+  /// Caso padre (opcional): si se define, se ejecuta ANTES de este caso
+  /// y su storageState se inyecta en el navegador. Útil para casos de login
+  /// que deben ejecutarse siempre antes de otros casos del mismo proyecto.
+  parentCaseId   String?
   activo         Boolean    @default(true)
   createdAt      DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime   @updatedAt @db.Timestamptz(6)
 
   proyecto      Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
   responsable   Usuario              @relation("CasoPruebaResponsable", fields: [responsableId], references: [id], onDelete: Restrict)
+  parentCase    CasoPrueba?          @relation("CasoPadreHijo", fields: [parentCaseId], references: [id], onDelete: SetNull)
+  childCases    CasoPrueba[]         @relation("CasoPadreHijo")
+  sesionesPadre SesionGrabacion[]    @relation("SesionPadre")
   ejecuciones   Ejecucion[]
   sesiones      SesionGrabacion[]
   pasosGrabados PasoGrabado[]
@@ -163,6 +170,7 @@ model CasoPrueba {
   @@index([responsableId])
   @@index([proyectoId])
   @@index([origen])
+  @@index([parentCaseId])
 }
 
 // ============================================================
@@ -182,6 +190,9 @@ model Ejecucion {
   sistemaOperativo String?
   nodoEjecucion    String?
   loteId           String?
+  /// storageState capturado después de una ejecución exitosa.
+  /// Usado por casos hijos que declaran este caso como parentCaseId.
+  storageState     Json?
   asercionesTotal  Int             @default(0)
   asercionesOk     Int             @default(0)
   asercionesFail   Int             @default(0)
@@ -319,6 +330,9 @@ model SesionGrabacion {
   proyectoId      String
   usuarioId       String
   casoPruebaId    String?
+  /// Caso padre (ej. login) que se ejecuta ANTES de iniciar la grabación
+  /// para obtener un storageState fresco y arrancar el navegador autenticado.
+  parentCaseId    String?
   nombre          String
   urlInicial      String
   ambiente        String
@@ -346,6 +360,7 @@ model SesionGrabacion {
   proyecto   Proyecto             @relation(fields: [proyectoId], references: [id], onDelete: Restrict)
   usuario    Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   casoPrueba CasoPrueba?          @relation(fields: [casoPruebaId], references: [id], onDelete: SetNull)
+  parentCase CasoPrueba?          @relation("SesionPadre", fields: [parentCaseId], references: [id], onDelete: SetNull)
   credencial Credencial?          @relation(fields: [credencialId], references: [id], onDelete: SetNull)
   pasos      PasoGrabado[]
   parametros ParametroGrabacion[]
@@ -354,6 +369,7 @@ model SesionGrabacion {
   @@index([usuarioId])
   @@index([estado])
   @@index([casoPruebaId])
+  @@index([parentCaseId])
 }
 
 // ============================================================

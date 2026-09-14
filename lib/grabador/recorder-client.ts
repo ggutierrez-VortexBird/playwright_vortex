@@ -36,8 +36,7 @@ export interface CallInternalStartOptions {
   userId: string;
   urlInicial: string;
   navegador?: string;
-  /** Optional storageState — V2 lo ignora (codegen no soporta state).
-   *  Mantenido en la firma por compatibilidad con tests viejos. */
+  /** Optional storageState — V2 ahora lo aplica al contexto del codegen. */
   storageState?: unknown;
 }
 
@@ -84,6 +83,7 @@ export async function callInternalStart(
           userId: options.userId,
           urlInicial: options.urlInicial,
           navegador: options.navegador ?? "chromium",
+          storageState: options.storageState ?? null,
         }),
         signal: ac.signal,
       });

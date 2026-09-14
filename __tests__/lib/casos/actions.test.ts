@@ -159,6 +159,7 @@ describe("createCaso", () => {
         scriptFileName: "example.spec.ts",
         responsableId: "user-456",
         proyectoId: "proyecto-1",
+        parentCaseId: null,
       },
     });
   });
@@ -198,6 +199,65 @@ describe("createCaso", () => {
     ).rejects.toEqual({
       status: 400,
       body: { error: "validation", message: "nombre is required" },
+    });
+  });
+
+  it("should create caso with a valid parentCaseId", async () => {
+    const mockCreated = {
+      id: "caso-2",
+      proyectoId: "proyecto-1",
+      codigo: "CP-TEST-02",
+      nombre: "Caso Hijo",
+      script: "import { test } from '@playwright/test'; ...",
+      scriptFileName: "hijo.spec.ts",
+      responsableId: "user-456",
+      parentCaseId: "caso-1",
+      activo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", proyectoId: "proyecto-1", parentCaseId: null });
+    (prisma.casoPrueba.create as jest.Mock).mockResolvedValue(mockCreated);
+
+    const result = await createCaso(
+      {
+        codigo: "CP-TEST-02",
+        nombre: "Caso Hijo",
+        script: "import { test } from '@playwright/test'; ...",
+        scriptFileName: "hijo.spec.ts",
+        responsableId: "user-456",
+        proyectoId: "proyecto-1",
+        parentCaseId: "caso-1",
+      },
+      mockSession
+    );
+
+    expect(result.parentCaseId).toBe("caso-1");
+    expect(prisma.casoPrueba.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ parentCaseId: "caso-1" }),
+    });
+  });
+
+  it("should throw 400 when parentCaseId belongs to a different proyecto", async () => {
+    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", proyectoId: "proyecto-2", parentCaseId: null });
+
+    await expect(
+      createCaso(
+        {
+          codigo: "CP-TEST-02",
+          nombre: "Caso Hijo",
+          script: "import { test } from '@playwright/test'; ...",
+          responsableId: "user-456",
+          proyectoId: "proyecto-1",
+          parentCaseId: "caso-1",
+        },
+        mockSession
+      )
+    ).rejects.toEqual({
+      status: 400,
+      body: { error: "validation", message: "El caso padre debe pertenecer al mismo proyecto" },
     });
   });
 });
@@ -254,7 +314,8 @@ describe("listCasos", () => {
       include: {
         proyecto: { select: { nombre: true } },
         responsable: { select: { email: true } },
-        ejecuciones: { include: { pasos: { select: { id: true } } }, orderBy: { finAt: "desc" }, take: 1 },
+        parentCase: { select: { codigo: true } },
+        ejecuciones: { include: { pasos: { select: { id: true, numero: true, estado: true } } }, orderBy: { finAt: "desc" }, take: 1 },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -288,7 +349,8 @@ describe("listCasos", () => {
       include: {
         proyecto: { select: { nombre: true } },
         responsable: { select: { email: true } },
-        ejecuciones: { include: { pasos: { select: { id: true } } }, orderBy: { finAt: "desc" }, take: 1 },
+        parentCase: { select: { codigo: true } },
+        ejecuciones: { include: { pasos: { select: { id: true, numero: true, estado: true } } }, orderBy: { finAt: "desc" }, take: 1 },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -399,7 +461,7 @@ describe("updateCaso", () => {
     expect(result.scriptFileName).toBe("new.spec.ts");
     expect(prisma.casoPrueba.update).toHaveBeenCalledWith({
       where: { id: "caso-1" },
-      data: { nombre: "New Name", script: "test('new', ...)", scriptFileName: "new.spec.ts" },
+      data: { nombre: "New Name", script: "test('new', ...)", scriptFileName: "new.spec.ts", parentCaseId: null },
     });
   });
 

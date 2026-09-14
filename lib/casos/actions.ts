@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireProyectoAccess, scopeProyectoWhere } from "@/lib/auth";
 import type { SessionData, UsuarioActual } from "@/lib/auth";
-import type { CasoPruebaFormData, CasoPruebaListItem } from "@/types/caso";
+import type { CasoPruebaFormData, CasoPruebaListItem, ParentCaseOption } from "@/types/caso";
 
 const ALLOWED_SCRIPT_EXTENSIONS = [".spec.ts", ".test.ts", ".spec.js", ".test.js"];
 
@@ -22,6 +22,39 @@ function validateScriptFileName(fileName: string | null | undefined): string | n
 }
 
 /**
+ * Valida que un caso padre sea válido y no genere ciclos.
+ */
+export async function validateParentCaseId(
+  parentCaseId: string | null | undefined,
+  proyectoId: string,
+  ownId?: string
+): Promise<string | null> {
+  if (!parentCaseId || parentCaseId.trim() === "") return null;
+
+  if (parentCaseId === ownId) {
+    throw { status: 400, body: { error: "validation", message: "Un caso no puede ser padre de sí mismo" } };
+  }
+
+  const parent = await prisma.casoPrueba.findUnique({
+    where: { id: parentCaseId },
+  });
+
+  if (!parent) {
+    throw { status: 400, body: { error: "validation", message: "Caso padre no encontrado" } };
+  }
+
+  if (parent.proyectoId !== proyectoId) {
+    throw { status: 400, body: { error: "validation", message: "El caso padre debe pertenecer al mismo proyecto" } };
+  }
+
+  if (parent.parentCaseId === ownId) {
+    throw { status: 400, body: { error: "validation", message: "No se permite un ciclo entre casos padre e hijo" } };
+  }
+
+  return parentCaseId.trim();
+}
+
+/**
  * Create a new caso de prueba within a proyecto.
  * Requiere superadmin, admin del espacio del proyecto, o tester con acceso
  * al proyecto.
@@ -30,7 +63,7 @@ export async function createCaso(
   input: CasoPruebaFormData,
   session: SessionData
 ) {
-  const { codigo, nombre, script, scriptFileName, responsableId, proyectoId } = input;
+  const { codigo, nombre, script, scriptFileName, responsableId, proyectoId, parentCaseId } = input;
 
   if (!proyectoId || typeof proyectoId !== "string" || proyectoId.trim() === "") {
     throw { status: 400, body: { error: "validation", message: "proyectoId is required" } };
@@ -56,6 +89,7 @@ export async function createCaso(
   }
 
   const validatedFileName = validateScriptFileName(scriptFileName);
+  const validatedParentCaseId = await validateParentCaseId(parentCaseId, proyectoId.trim());
 
   try {
     const caso = await prisma.casoPrueba.create({
@@ -66,6 +100,7 @@ export async function createCaso(
         scriptFileName: validatedFileName,
         responsableId: responsableId.trim(),
         proyectoId: proyectoId.trim(),
+        parentCaseId: validatedParentCaseId,
       },
     });
 
@@ -77,6 +112,8 @@ export async function createCaso(
       script: caso.script,
       scriptFileName: caso.scriptFileName,
       responsableId: caso.responsableId,
+      parentCaseId: caso.parentCaseId,
+      parentCaseCodigo: null,
       estado: "sin ejecuciones" as const,
       activo: caso.activo,
       createdAt: caso.createdAt,
@@ -110,6 +147,7 @@ export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | n
     include: {
       proyecto: { select: { nombre: true } },
       responsable: { select: { email: true } },
+      parentCase: { select: { codigo: true } },
       ejecuciones: {
         include: { pasos: { select: { id: true, numero: true, estado: true } } },
         orderBy: { finAt: "desc" },
@@ -135,6 +173,8 @@ export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | n
       scriptFileName: caso.scriptFileName,
       responsableId: caso.responsableId,
       responsableEmail: caso.responsable.email,
+      parentCaseId: caso.parentCaseId,
+      parentCaseCodigo: caso.parentCase?.codigo ?? null,
       estado,
       origen: caso.origen,
       activo: caso.activo,
@@ -149,6 +189,26 @@ export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | n
 }
 
 /**
+ * List cases eligible to be a parent for a given proyecto.
+ * Excludes a specific case when editing (to avoid self-reference).
+ */
+export async function listParentCaseOptions(
+  proyectoId: string,
+  excludeId?: string
+): Promise<ParentCaseOption[]> {
+  const casos = await prisma.casoPrueba.findMany({
+    where: {
+      proyectoId,
+      activo: true,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    select: { id: true, codigo: true, nombre: true },
+    orderBy: { codigo: "asc" },
+  });
+  return casos;
+}
+
+/**
  * Get a single caso by ID with proyecto and responsable names.
  */
 export async function getCasoById(id: string) {
@@ -157,6 +217,7 @@ export async function getCasoById(id: string) {
     include: {
       proyecto: { select: { nombre: true } },
       responsable: { select: { email: true } },
+      parentCase: { select: { codigo: true } },
       ejecuciones: { orderBy: { finAt: "desc" } },
     },
   });
@@ -178,6 +239,8 @@ export async function getCasoById(id: string) {
     scriptFileName: caso.scriptFileName,
     responsableId: caso.responsableId,
     responsableEmail: caso.responsable.email,
+    parentCaseId: caso.parentCaseId,
+    parentCaseCodigo: caso.parentCase?.codigo ?? null,
     estado,
     activo: caso.activo,
     fechaUltimaEjecucion,
@@ -229,6 +292,9 @@ export async function updateCaso(
     updateData.proyectoId = input.proyectoId.trim();
   }
 
+  const proyectoIdForValidation = input.proyectoId !== undefined ? input.proyectoId.trim() : existing.proyectoId;
+  updateData.parentCaseId = await validateParentCaseId(input.parentCaseId, proyectoIdForValidation, id);
+
   try {
     const caso = await prisma.casoPrueba.update({
       where: { id },
@@ -243,6 +309,8 @@ export async function updateCaso(
       script: caso.script,
       scriptFileName: caso.scriptFileName,
       responsableId: caso.responsableId,
+      parentCaseId: caso.parentCaseId,
+      parentCaseCodigo: null,
       estado: "sin ejecuciones" as const,
       activo: caso.activo,
       createdAt: caso.createdAt,

@@ -23,6 +23,7 @@ export interface CasoPruebaFormData {
   scriptFileName?: string | null;
   responsableId: string;
   proyectoId: string;
+  parentCaseId?: string | null;
 }
 
 export interface CasoPruebaListItem {
@@ -34,6 +35,8 @@ export interface CasoPruebaListItem {
   scriptFileName: string | null;
   responsableId: string;
   responsableEmail: string;
+  parentCaseId: string | null;
+  parentCaseCodigo: string | null;
   estado: "sin ejecuciones" | "paso" | "fallo" | "reparado" | "errorMotor";
   origen: "subirScript" | "grabador" | "mixto";
   activo: boolean;
@@ -43,6 +46,12 @@ export interface CasoPruebaListItem {
   primerPasoFallidoNumero: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface ParentCaseOption {
+  id: string;
+  codigo: string;
+  nombre: string;
 }
 
 export interface ApiError {

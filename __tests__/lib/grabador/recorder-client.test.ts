@@ -121,6 +121,37 @@ describe("recorder-client — mapeo de respuestas", () => {
     });
   });
 
+  test("incluye storageState en el body de /internal/start", async () => {
+    let capturedBody: unknown = null;
+    global.fetch = ((url: string | URL | Request, init?: RequestInit) => {
+      fetchCalled = true;
+      capturedUrl = typeof url === "string" ? url : url.toString();
+      capturedBody = init?.body ? JSON.parse(init.body as string) : null;
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ token: "t", wsUrl: "ws://x", specPath: "/tmp/x.spec.ts" }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+    }) as typeof fetch;
+
+    const storageState = { cookies: [{ name: "s", value: "v" }], origins: [] };
+    await callInternalStart({
+      sessionId: "s",
+      userId: "u",
+      urlInicial: "https://x",
+      storageState,
+    });
+
+    expect(capturedBody).toMatchObject({
+      sessionId: "s",
+      userId: "u",
+      urlInicial: "https://x",
+      navegador: "chromium",
+      storageState,
+    });
+  });
+
   test("500 con body JSON → RecorderUnavailableError 'returned 500'", async () => {
     stubFetchWith(
       () =>

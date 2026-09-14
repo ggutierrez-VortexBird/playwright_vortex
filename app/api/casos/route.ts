@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession, getUsuarioActual } from "@/lib/auth";
-import { listCasos, createCaso } from "@/lib/casos/actions";
+import { listCasos, createCaso, listParentCaseOptions } from "@/lib/casos/actions";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -14,6 +14,19 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const proyectoId = url.searchParams.get("proyectoId") || undefined;
+  const parentOptions = url.searchParams.get("parentOptions") === "true";
+  const excludeId = url.searchParams.get("excludeId") || undefined;
+
+  if (parentOptions) {
+    if (!proyectoId) {
+      return NextResponse.json(
+        { error: "validation", message: "proyectoId requerido" },
+        { status: 400 }
+      );
+    }
+    const options = await listParentCaseOptions(proyectoId, excludeId);
+    return NextResponse.json({ options });
+  }
 
   const usuario = await getUsuarioActual(session);
   const casos = await listCasos(proyectoId, usuario);
@@ -38,6 +51,7 @@ export async function POST(request: Request) {
     const nombre = formData.get("nombre") as string;
     const responsableId = formData.get("responsableId") as string;
     const proyectoId = formData.get("proyectoId") as string;
+    const parentCaseId = formData.get("parentCaseId") as string | null;
 
     if (!scriptFile) {
       return NextResponse.json(
@@ -61,7 +75,7 @@ export async function POST(request: Request) {
     const script = await scriptFile.text();
 
     const caso = await createCaso(
-      { codigo, nombre, script, scriptFileName: fileName, responsableId, proyectoId },
+      { codigo, nombre, script, scriptFileName: fileName, responsableId, proyectoId, parentCaseId },
       session
     );
     return NextResponse.json(caso, { status: 201 });

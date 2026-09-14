@@ -18,7 +18,20 @@ export async function writeTempScript(script: string, fileName: string): Promise
   const unique = `${crypto.randomUUID().slice(0, 8)}-${sanitized}`
   const filePath = path.join(RUNTIME_DIR, unique)
 
-  await fs.writeFile(filePath, script, 'utf-8')
+  // HU-PARENT: al final de cada test persistimos el storageState para que
+  // casos hijos puedan reutilizar la sesión (login) en ejecuciones futuras.
+  const storageStateHook = `
+// --- injected by ACTA worker: persist storageState for child cases ---
+import { test as __vortexTest } from '@playwright/test'
+__vortexTest.afterEach(async ({ page }) => {
+  if (process.env.PLAYWRIGHT_STORAGE_STATE_OUTPUT) {
+    await page.context().storageState({ path: process.env.PLAYWRIGHT_STORAGE_STATE_OUTPUT }).catch(() => {})
+  }
+})
+// --- end injection ---
+`
+
+  await fs.writeFile(filePath, script + storageStateHook, 'utf-8')
   return filePath
 }
 
