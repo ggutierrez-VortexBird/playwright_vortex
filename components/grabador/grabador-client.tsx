@@ -7,7 +7,7 @@
  * vigila el .spec.ts. Cada cambio broadcastea `spec_updated` por WS con
  * `{content, bytes, changedAt}`.
  *
- * UI (V1 ACTA-style): layout de tres filas + dos columnas
+ * UI (V1 VorTest-style): layout de tres filas + dos columnas
  *   - Topbar: estado + título + Detener / Descartar
  *   - BrowserChrome editable (URL)
  *   - Slot izquierdo: RecordingInstructions (Material 3, "ventana separada")

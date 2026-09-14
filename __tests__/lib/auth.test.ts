@@ -40,8 +40,8 @@ describe("auth", () => {
   });
 
   describe("sessionOptions", () => {
-    it("should have cookieName acta_session", () => {
-      expect(sessionOptions.cookieName).toBe("acta_session");
+    it("should have cookieName vortest_session", () => {
+      expect(sessionOptions.cookieName).toBe("vortest_session");
     });
 
     it("should have maxAge of 24 hours", () => {

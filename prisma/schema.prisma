@@ -1,4 +1,4 @@
-// ACTA — Prisma schema
+// VorTest — Prisma schema
 // HU-0.1: 11 tablas + 3 enums. Naming camelCase en DB. UUID v4. Postgres 16+.
 // HU-G21: +4 modelos (SesionGrabacion, PasoGrabado, ParametroGrabacion, JuegoDeDatos)
 //         +1 enum (CasoOrigen). Extensiones no-breaking a CasoPrueba, Ejecucion, PasoEjecucion.

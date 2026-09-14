@@ -8,7 +8,7 @@ export interface SessionData {
 }
 
 export const sessionOptions = {
-  cookieName: "acta_session",
+  cookieName: "vortest_session",
   password: process.env.SESSION_SECRET!,
   cookieOptions: {
     httpOnly: true,

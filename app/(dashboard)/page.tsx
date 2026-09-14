@@ -53,7 +53,8 @@ export default async function DashboardHomePage() {
   const totalEjecuciones = ejecuciones.length;
   const exitosas = ejecuciones.filter((e) => e.estado === "paso").length;
   const fallidas = ejecuciones.filter((e) => e.estado === "fallo").length;
-  const tasaExito = totalEjecuciones > 0 ? Math.round((exitosas / totalEjecuciones) * 100) : null;
+  const resueltas = exitosas + fallidas;
+  const tasaExito = resueltas > 0 ? Math.round((exitosas / resueltas) * 100) : null;
   const recientes = ejecuciones.slice(0, 6);
 
   const porEspacio = new Map<string, { nombre: string; color: string; total: number }>();

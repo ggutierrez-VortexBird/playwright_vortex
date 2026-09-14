@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mb-6 flex flex-col items-center text-center">
           <Logo variant="light" />
           <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
-            Automatización de pruebas y actas de evidencia
+            Automatización de pruebas
           </p>
         </div>
         <LoginForm action={iniciarSesion} callbackUrl={from} />

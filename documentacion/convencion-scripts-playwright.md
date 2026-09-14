@@ -9,7 +9,7 @@
 
 ## 1. Propósito
 
-Esta convención define el formato, la estructura de directorios y las reglas de validación para la ruta de un script de Playwright registrado en ACTA. Garantiza que:
+Esta convención define el formato, la estructura de directorios y las reglas de validación para la ruta de un script de Playwright registrado en VORTEST. Garantiza que:
 
 - El worker pueda localizar y ejecutar el script **sin configuración adicional por caso**.
 - Las rutas almacenadas en la base de datos sean **portables** entre entornos (dev, staging, prod).
@@ -62,7 +62,7 @@ PLAYWRIGHT_SCRIPTS_ROOT/
     └── <nombre-libre>.spec.ts
 ```
 
-- `proyecto-slug`: identificador único del proyecto en ACTA, en `kebab-case`, inmutable.
+- `proyecto-slug`: identificador único del proyecto en VorTest, en `kebab-case`, inmutable.
 - `nombre-libre`: nombre descriptivo del caso de prueba, sugerido en `kebab-case`. El sistema **NO impone** el nombre ni verifica que coincida con `casoPrueba.codigo`.
 
 ### 3.2 Ejemplo completo

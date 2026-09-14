@@ -323,11 +323,11 @@ export function renderActaHTML(input: ActaTemplateInput): string {
 
   <div class="firma">
     <div class="box">Ejecutado por<br /><strong>${escapeHtml(ejecucion.nodoEjecucion ?? "sistema")}</strong></div>
-    <div class="box">Validado por<br /><strong>ACTA · ${escapeHtml(actaConsecutivo)}</strong></div>
+    <div class="box">Validado por<br /><strong>VorTest · ${escapeHtml(actaConsecutivo)}</strong></div>
   </div>
 
   <div class="footer">
-    Acta generada automáticamente por ACTA · ${escapeHtml(formatTimestamp(generadoEn))} ·
+    Acta generada automáticamente por VorTest · ${escapeHtml(formatTimestamp(generadoEn))} ·
     Esta acta certifica la ejecución automatizada del caso ${escapeHtml(caso.codigo)}.
   </div>
 </body>

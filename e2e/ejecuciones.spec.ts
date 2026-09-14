@@ -9,7 +9,7 @@ const VALID_TEST_SCRIPT = `
 import { test, expect } from "@playwright/test";
 test("pasa", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/Acta/);
+  await expect(page).toHaveTitle(/VorTest/);
 });
 `.trim();
 

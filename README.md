@@ -1,6 +1,6 @@
-﻿# playwright_vortex
+﻿# VorTest
 
-Plataforma de automatización de pruebas con Playwright (vorTest).
+Plataforma de automatización de pruebas con Playwright.
 
 ---
 
@@ -18,7 +18,7 @@ Plataforma de automatización de pruebas con Playwright (vorTest).
 docker compose -f docker-compose.dev.yml up postgres -d
 ```
 
-Eso crea y arranca el contenedor `acta-postgres` en el puerto `5432`.
+Eso crea y arranca el contenedor `vortest-postgres` en el puerto `5432`.
 
 ### 2. Instalar dependencias
 
@@ -115,7 +115,7 @@ playwright_vortex/
 
 El repositorio incluye `docker-compose.dev.yml` que levanta:
 
-- **PostgreSQL 16** (`acta-postgres`) con healthcheck
+- **PostgreSQL 16** (`vortest-postgres`) con healthcheck
 - **`app`** — Next.js (migra, siembra y arranca `next dev`)
 - **`worker`** — motor de ejecución (`scripts/worker.ts`), antes ausente del compose: sin este servicio ningún "Ejecutar" corría dentro de Docker aunque `app` y `postgres` estuvieran sanos
 - **`recorder`** — recorder-worker del modo grabador
@@ -135,8 +135,8 @@ docker compose -f docker-compose.dev.yml up
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `DATABASE_URL` | Conexión a PostgreSQL | `postgresql://acta:acta@localhost:5432/acta?schema=public` |
-| `SESSION_SECRET` | Secreto para sesiones (mínimo 32 chars) | `acta-super-secret-key-2026-vortexbird-sas-32chars` |
+| `DATABASE_URL` | Conexión a PostgreSQL | `postgresql://vortest:vortest@localhost:5432/vortest?schema=public` |
+| `SESSION_SECRET` | Secreto para sesiones (mínimo 32 chars) | `vortest-super-secret-key-2026-vortexbird-sas-32chars` |
 | `SEED_ADMIN_PASSWORD` | Contraseña del usuario seed | `admin123` |
 | `NODE_ENV` | Entorno de ejecución | `development` |
 

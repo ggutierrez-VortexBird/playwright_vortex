@@ -33,8 +33,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Acta", template: "%s | Acta" },
-  description: "Automatización de pruebas y actas de evidencia",
+  title: { default: "VorTest", template: "%s | VorTest" },
+  description: "Automatización de pruebas",
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({

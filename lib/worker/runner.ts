@@ -547,7 +547,7 @@ export async function runPlaywrightTest(
     ], {
       cwd: path.resolve(process.cwd(), 'runtime', 'ejecuciones'),
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, FORCE_COLOR: '0', PLAYWRIGHT_VORTEX_RUNNER: '1', PLAYWRIGHT_VORTEX_OUTPUT_DIR: outputDir },
+      env: { ...process.env, FORCE_COLOR: '0', VORTEST_RUNNER: '1', VORTEST_OUTPUT_DIR: outputDir },
     })
 
     let stdout = ''
