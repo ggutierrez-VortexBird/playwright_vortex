@@ -204,9 +204,9 @@ export function GrabadorClient({
   return (
     <section data-testid="grabador-shell" className="flex flex-col gap-6">
       {/* Topbar + barra de URL van a borde a borde contra el `main` del
-          dashboard (mismo patrón -mx-6 -mt-6 que usan otras pantallas),
-          en vez de quedar encerradas en una caja con borde propio. */}
-      <div className="-mx-6 -mt-6">
+          dashboard (mismo patrón de sangría responsive que usan otras
+          pantallas), en vez de quedar encerradas en una caja con borde propio. */}
+      <div className="-mx-4 -mt-4 lg:-mx-6 lg:-mt-6">
         <GrabadorTopbar
           titulo={titulo}
           connState={connState}

@@ -12,13 +12,10 @@ import { UserMenu } from "@/components/ui/user-menu";
 import { GlobalSearch } from "@/components/ui/global-search";
 import { ProjectProvider } from "@/components/project-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
-import type { RolUsuario } from "@/lib/auth";
-
-const ROL_LABEL: Record<string, string> = {
-  superadmin: "Superadmin",
-  admin: "Admin",
-  tester: "Tester",
-};
+import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
+import { MobileNavProvider } from "@/components/mobile-nav-context";
+import { MobileMenuButton } from "@/components/ui/mobile-menu-button";
+import { ResponsiveSidebarShell } from "@/components/ui/responsive-sidebar-shell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -62,66 +59,79 @@ export default async function DashboardLayout({
 
   return (
     <ProjectProvider>
-      <div className="flex min-h-screen bg-m3-background">
-        {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html) */}
-        <aside className="sticky top-0 flex h-screen w-60 flex-none flex-col bg-m3-primary-container text-m3-on-primary">
-          <ClientBand espacioColor={espacio?.color ?? null} />
-          <div className="px-5 py-6">
-            <Logo variant="dark" />
-            <p className="mt-1 font-label text-label-sm text-m3-on-primary-container">
-              Automatización de pruebas
-            </p>
-          </div>
-          <nav className="flex flex-1 flex-col gap-1 px-3">
-            <SidebarNav items={navItems} />
-          </nav>
-          <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3">
-            <ProyectoSwitcher proyectos={proyectos} />
-          </div>
-          <div className="flex items-center gap-2.5 border-t border-m3-on-primary-fixed-variant/30 px-4 py-3.5">
-            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white font-label text-label-sm font-bold text-m3-primary-container">
-              {usuario.email.slice(0, 2).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <div className="truncate font-body text-body-sm font-semibold text-white">
-                {usuario.email.split("@")[0]}
+      <MobileNavProvider>
+        <div className="flex min-h-screen bg-m3-background">
+          {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html).
+              lg: completo (sin cambios) · md: riel de solo iconos · <md: cajón. */}
+          <ResponsiveSidebarShell>
+            <ClientBand espacioColor={espacio?.color ?? null} />
+            <div className="flex items-center justify-center px-5 py-6 md:px-2 lg:justify-start lg:px-5">
+              <div className="md:hidden lg:block">
+                <Logo variant="dark" />
+                <p className="mt-1 font-label text-label-sm text-m3-on-primary-container">
+                  Automatización de pruebas
+                </p>
               </div>
-              <div className="truncate font-label text-label-sm text-m3-on-primary-container">
-                {ROL_LABEL[usuario.rol] ?? usuario.rol}
+              <span
+                aria-hidden="true"
+                className="hidden h-10 w-10 items-center justify-center rounded-2xl bg-white/10 font-headline text-headline-md font-bold text-white md:flex lg:hidden"
+              >
+                V
+              </span>
+            </div>
+            <nav className="flex flex-1 flex-col gap-1 px-3">
+              <SidebarNav items={navItems} />
+            </nav>
+            <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3 md:hidden lg:block">
+              <ProyectoSwitcher proyectos={proyectos} />
+            </div>
+            <div className="flex items-center gap-2.5 border-t border-m3-on-primary-fixed-variant/30 px-4 py-3.5 md:justify-center lg:justify-start">
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white font-label text-label-sm font-bold text-m3-primary-container">
+                {usuario.email.slice(0, 2).toUpperCase()}
+              </span>
+              <div className="min-w-0 md:hidden lg:block">
+                <div className="truncate font-body text-body-sm font-semibold text-white">
+                  {usuario.email.split("@")[0]}
+                </div>
+                <div className="truncate font-label text-label-sm text-m3-on-primary-container">
+                  {ROL_LABEL[usuario.rol] ?? usuario.rol}
+                </div>
               </div>
             </div>
-          </div>
-        </aside>
+          </ResponsiveSidebarShell>
 
-        {/* Main — TopAppBar + body */}
-        <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex h-16 flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6">
-            <ScopeBarWithContext />
-            <EspacioSwitcher espacios={espacios} />
-            <Suspense fallback={null}>
-              <GlobalSearch />
-            </Suspense>
-            <span className="ml-auto" />
-            <span
-              aria-hidden="true"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full bg-m3-secondary-container text-m3-secondary"
-            >
-              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                notifications
-              </span>
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-m3-error ring-2 ring-m3-secondary-container" />
-            </span>
-            <span
-              aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-m3-surface-container text-m3-on-surface-variant"
-            >
-              <span className="material-symbols-outlined text-[18px]">settings</span>
-            </span>
-            <UserMenu email={usuario.email} rol={usuario.rol} />
-          </header>
-          <main className="flex-1 p-6">{children}</main>
+          {/* Main — TopAppBar + body */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="sticky top-0 z-10 flex min-h-16 flex-wrap items-center gap-3 border-b border-m3-outline-variant bg-m3-surface px-4 py-2 sm:gap-4 lg:px-6">
+              <MobileMenuButton />
+              <ScopeBarWithContext />
+              <EspacioSwitcher espacios={espacios} />
+              <Suspense fallback={null}>
+                <GlobalSearch />
+              </Suspense>
+              <div className="ml-auto flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="relative hidden h-9 w-9 items-center justify-center rounded-full bg-m3-secondary-container text-m3-secondary sm:flex"
+                >
+                  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    notifications
+                  </span>
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-m3-error ring-2 ring-m3-secondary-container" />
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="hidden h-9 w-9 items-center justify-center rounded-full bg-m3-surface-container text-m3-on-surface-variant sm:flex"
+                >
+                  <span className="material-symbols-outlined text-[18px]">settings</span>
+                </span>
+                <UserMenu email={usuario.email} rol={usuario.rol} />
+              </div>
+            </header>
+            <main className="flex-1 p-4 lg:p-6">{children}</main>
+          </div>
         </div>
-      </div>
+      </MobileNavProvider>
     </ProjectProvider>
   );
 }

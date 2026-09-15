@@ -1,6 +1,7 @@
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
+import type { RolUsuario } from "@/lib/roles";
 
 export interface SessionData {
   userId?: string;
@@ -39,16 +40,20 @@ export async function destroySession() {
 export const FORBIDDEN_ERROR = new Error("FORBIDDEN");
 export const NOT_FOUND_ERROR = new Error("NOT_FOUND");
 
-export type RolUsuario = "superadmin" | "admin" | "tester";
+// Re-exportados desde lib/roles.ts (sin deps de servidor) para no romper a
+// quienes ya importan RolUsuario/ROL_LABEL desde acá.
+export type { RolUsuario } from "@/lib/roles";
+export { ROL_LABEL } from "@/lib/roles";
 
 export interface UsuarioActual {
   id: string;
   email: string;
   rol: RolUsuario;
+  nombre: string | null;
 }
 
 /**
- * Única consulta {id, email, rol} del usuario de la sesión actual.
+ * Única consulta {id, email, rol, nombre} del usuario de la sesión actual.
  * Punto central de lectura de rol — evita repetir esta query en cada page.
  */
 export async function getUsuarioActual(session: SessionData): Promise<UsuarioActual | null> {
@@ -58,7 +63,7 @@ export async function getUsuarioActual(session: SessionData): Promise<UsuarioAct
 
   const usuario = await prisma.usuario.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, rol: true },
+    select: { id: true, email: true, rol: true, nombre: true },
   });
 
   return usuario;

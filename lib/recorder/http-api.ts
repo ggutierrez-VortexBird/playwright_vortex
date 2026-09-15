@@ -183,7 +183,7 @@ async function handleStart(
       error: "runner_exited",
       message:
         "El proceso de grabación terminó antes de abrir el navegador. " +
-        "Revisá el log del recorder-worker.",
+        "Revisa el log del recorder-worker.",
     });
     return;
   }

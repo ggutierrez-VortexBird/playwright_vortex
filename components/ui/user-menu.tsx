@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
 
 interface UserMenuProps {
   email: string;
-  rol: string;
+  rol: RolUsuario;
 }
-
-const ROL_LABEL: Record<string, string> = {
-  superadmin: "Superadmin",
-  admin: "Admin",
-  tester: "Tester",
-};
 
 export function UserMenu({ email, rol }: UserMenuProps) {
   const [open, setOpen] = useState(false);
@@ -49,6 +45,15 @@ export function UserMenu({ email, rol }: UserMenuProps) {
               {ROL_LABEL[rol] ?? rol}
             </span>
           </div>
+          <div className="my-1 border-t border-m3-outline-variant" />
+          <Link
+            href="/perfil"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-label text-label-md text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-[18px]">person</span>
+            Mi perfil
+          </Link>
           <div className="my-1 border-t border-m3-outline-variant" />
           <form action="/api/logout" method="post">
             <button

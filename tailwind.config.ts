@@ -119,9 +119,20 @@ const config: Config = {
         display: ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }],
         "headline-lg": ["20px", { lineHeight: "28px", fontWeight: "600" }],
         "headline-md": ["18px", { lineHeight: "24px", fontWeight: "600" }],
+        // Faltaba en el config pero se usa en ~6 sitios (grabador-topbar,
+        // recording-guide/instructions, revisar-cliente, home) — caían al
+        // 14px/1.45 por defecto del body en vez de este tamaño.
+        "headline-sm": ["16px", { lineHeight: "22px", fontWeight: "600" }],
         "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
         "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+        // Faltaba en el config pero es el token más usado (~60 sitios:
+        // caso-table, forms, confirm-dialog, revisar-cliente, etc.).
+        "body-sm": ["13px", { lineHeight: "18px", fontWeight: "400" }],
         "label-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "500" }],
+        // Faltaban en el config pero se usan en ~30 sitios (botones,
+        // user-menu, credenciales, login-form, revisar-cliente).
+        "label-md": ["13px", { lineHeight: "18px", letterSpacing: "0.01em", fontWeight: "500" }],
+        "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600" }],
         "mono-code": ["13px", { lineHeight: "18px", fontWeight: "400" }],
       },
       spacing: {

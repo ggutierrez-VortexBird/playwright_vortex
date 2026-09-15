@@ -1,5 +1,5 @@
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { hashPassword } from "@/lib/password";
 import { requireSuperadmin, getUsuarioActual } from "@/lib/auth";
 import type { SessionData, RolUsuario } from "@/lib/auth";
 
@@ -10,6 +10,41 @@ export interface CreateUsuarioInput {
 }
 
 const ROLES_CREABLES: RolUsuario[] = ["admin", "tester"];
+
+const USUARIO_LIST_SELECT = {
+  id: true,
+  email: true,
+  nombre: true,
+  rol: true,
+  activo: true,
+  ultimoAccesoAt: true,
+  createdAt: true,
+  espacios: {
+    select: { espacio: { select: { id: true, nombre: true } } },
+  },
+} as const;
+
+function serializeUsuario(u: {
+  id: string;
+  email: string;
+  nombre: string | null;
+  rol: RolUsuario;
+  activo: boolean;
+  ultimoAccesoAt: Date | null;
+  createdAt: Date;
+  espacios?: { espacio: { id: string; nombre: string } }[];
+}) {
+  return {
+    id: u.id,
+    email: u.email,
+    nombre: u.nombre,
+    rol: u.rol,
+    activo: u.activo,
+    ultimoAccesoAt: u.ultimoAccesoAt ? u.ultimoAccesoAt.toISOString() : null,
+    createdAt: u.createdAt.toISOString(),
+    espacios: (u.espacios ?? []).map((e) => e.espacio),
+  };
+}
 
 /**
  * Crea un usuario nuevo.
@@ -47,7 +82,7 @@ export async function createUsuario(input: CreateUsuarioInput, session: SessionD
     throw { status: 409, body: { error: "conflict", message: "ya existe un usuario con ese email" } };
   }
 
-  const passwordHash = await bcrypt.hash(input.password, 10);
+  const passwordHash = await hashPassword(input.password);
 
   const usuario = await prisma.usuario.create({
     data: { email, passwordHash, rol },
@@ -73,20 +108,145 @@ export async function listUsuarios(session: SessionData) {
   }
 
   if (actor.rol === "superadmin") {
-    return prisma.usuario.findMany({
-      select: { id: true, email: true, rol: true },
+    const usuarios = await prisma.usuario.findMany({
+      select: USUARIO_LIST_SELECT,
       orderBy: { email: "asc" },
     });
+    return usuarios.map(serializeUsuario);
   }
 
   if (actor.rol === "admin") {
-    return prisma.usuario.findMany({
+    const usuarios = await prisma.usuario.findMany({
       where: { OR: [{ rol: "tester" }, { id: actor.id }] },
-      select: { id: true, email: true, rol: true },
+      select: USUARIO_LIST_SELECT,
       orderBy: { email: "asc" },
     });
+    return usuarios.map(serializeUsuario);
   }
 
   // tester
-  return [{ id: actor.id, email: actor.email, rol: actor.rol }];
+  const propio = await prisma.usuario.findUnique({
+    where: { id: actor.id },
+    select: USUARIO_LIST_SELECT,
+  });
+  return propio ? [serializeUsuario(propio)] : [];
+}
+
+export interface UpdateUsuarioRolEstadoInput {
+  rol?: RolUsuario;
+  activo?: boolean;
+}
+
+/**
+ * Edita el rol y/o el estado (activo/suspendido) de OTRO usuario.
+ * - superadmin: puede tocar admin/tester (nunca a otro superadmin ni
+ *   ponerle rol superadmin a nadie — eso solo lo hace el seed).
+ * - admin: solo puede tocar usuarios con rol tester, y solo el campo
+ *   `activo` (no puede cambiarles el rol).
+ * - Nadie puede editarse a sí mismo desde acá — es autogestión (/perfil).
+ */
+export async function updateUsuarioRolEstado(
+  usuarioId: string,
+  input: UpdateUsuarioRolEstadoInput,
+  session: SessionData,
+) {
+  const actor = await getUsuarioActual(session);
+  if (!actor || actor.rol === "tester") {
+    throw { status: 403, body: { error: "forbidden" } };
+  }
+  if (usuarioId === actor.id) {
+    throw { status: 400, body: { error: "validation", message: "no puedes editar tu propia cuenta aquí — usa tu perfil" } };
+  }
+
+  const target = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!target) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+
+  if (actor.rol === "admin") {
+    if (target.rol !== "tester") {
+      throw { status: 403, body: { error: "forbidden" } };
+    }
+    if (input.rol && input.rol !== "tester") {
+      throw { status: 403, body: { error: "forbidden", message: "un admin no puede cambiar roles" } };
+    }
+    const usuario = await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { activo: input.activo },
+      select: USUARIO_LIST_SELECT,
+    });
+    return serializeUsuario(usuario);
+  }
+
+  // superadmin
+  if (target.rol === "superadmin") {
+    throw { status: 403, body: { error: "forbidden", message: "no se puede editar a otro superadmin" } };
+  }
+  if (input.rol && !ROLES_CREABLES.includes(input.rol)) {
+    throw { status: 400, body: { error: "validation", message: "rol debe ser admin o tester" } };
+  }
+
+  const usuario = await prisma.usuario.update({
+    where: { id: usuarioId },
+    data: {
+      ...(input.rol ? { rol: input.rol } : {}),
+      ...(input.activo !== undefined ? { activo: input.activo } : {}),
+    },
+    select: USUARIO_LIST_SELECT,
+  });
+  return serializeUsuario(usuario);
+}
+
+/**
+ * Espacios que administra un usuario (usuario-céntrico — la contraparte de
+ * `listAdminsEspacio`, que es espacio-céntrico). Solo tiene sentido para
+ * usuarios con rol admin. Requiere superadmin.
+ */
+export async function listEspaciosDeUsuario(usuarioId: string, session: SessionData) {
+  await requireSuperadmin(session);
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+
+  const filas = await prisma.usuarioEspacio.findMany({
+    where: { usuarioId },
+    include: { espacio: { select: { id: true, nombre: true, color: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return filas.map((f) => f.espacio);
+}
+
+/**
+ * Reemplaza el conjunto completo de espacios que administra un usuario.
+ * Solo aplica a usuarios con rol admin (misma regla que
+ * `asignarAdminEspacio`: "solo se pueden asignar usuarios con rol admin").
+ * Requiere superadmin.
+ */
+export async function setEspaciosDeUsuario(usuarioId: string, espacioIds: string[], session: SessionData) {
+  await requireSuperadmin(session);
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) {
+    throw { status: 404, body: { error: "not_found" } };
+  }
+  if (usuario.rol !== "admin") {
+    throw { status: 400, body: { error: "validation", message: "solo se pueden asignar espacios a usuarios con rol admin" } };
+  }
+
+  await prisma.$transaction([
+    prisma.usuarioEspacio.deleteMany({ where: { usuarioId } }),
+    ...(espacioIds.length > 0
+      ? [
+          prisma.usuarioEspacio.createMany({
+            data: espacioIds.map((espacioId) => ({ usuarioId, espacioId })),
+            skipDuplicates: true,
+          }),
+        ]
+      : []),
+  ]);
+
+  return listEspaciosDeUsuario(usuarioId, session);
 }

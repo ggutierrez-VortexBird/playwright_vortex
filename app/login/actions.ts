@@ -26,8 +26,16 @@ export async function iniciarSesion(
     return { error: "Credenciales inválidas" };
   }
 
+  if (!usuario.activo) {
+    return { error: "Esta cuenta está suspendida. Contacta a un administrador." };
+  }
+
   const from = (formData.get("from") as string) || "/";
 
+  await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { ultimoAccesoAt: new Date() },
+  });
   await saveSession(usuario.id, usuario.email);
   redirect(from);
 }

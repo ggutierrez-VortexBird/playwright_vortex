@@ -109,7 +109,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
             <div className="h-8 w-32 animate-pulse rounded bg-m3-surface-container-high" />
           </div>
         )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
@@ -184,7 +184,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {proyectos.map((proyecto) => (
             <ProyectoCard
               key={proyecto.id}

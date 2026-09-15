@@ -311,10 +311,10 @@ export function CasoDetalleCliente({
           {editingScript ? (
             <div
               data-testid="script-editor-container"
-              className="border border-m3-outline-variant rounded overflow-hidden h-[440px]"
+              className="h-[320px] overflow-hidden rounded border border-m3-outline-variant lg:h-[440px]"
             >
               <Editor
-                height="440px"
+                height="100%"
                 defaultLanguage="typescript"
                 theme="vs"
                 value={scriptDraft}
@@ -360,7 +360,7 @@ export function CasoDetalleCliente({
             JUEGO DE DATOS (CSV)
           </h3>
           <p className="font-body text-body-sm text-m3-on-surface-variant mb-3">
-            Subí un CSV con una fila por escenario. Las columnas deben
+            Sube un CSV con una fila por escenario. Las columnas deben
             coincidir con los nombres de los parámetros (header obligatorio).
             Al ejecutar, el caso corre 1 vez por fila.
           </p>

@@ -41,11 +41,12 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
           <a
             key={item.href}
             href={item.href}
+            title={item.label}
             aria-current={isActive ? "true" : undefined}
             className={
               isActive
-                ? "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md font-semibold text-white bg-white/10 transition-colors"
-                : "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container/80 transition-colors hover:bg-white/5 hover:text-m3-on-primary"
+                ? "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md font-semibold text-white bg-white/10 transition-colors md:justify-center lg:justify-start"
+                : "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container/80 transition-colors hover:bg-white/5 hover:text-m3-on-primary md:justify-center lg:justify-start"
             }
           >
             <span
@@ -54,7 +55,7 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
             >
               {item.icon}
             </span>
-            <span>{item.label}</span>
+            <span className="md:hidden lg:inline">{item.label}</span>
           </a>
         );
       })}

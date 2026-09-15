@@ -59,12 +59,18 @@ enum Rol {
 // ============================================================
 
 model Usuario {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  rol          Rol      @default(tester)
-  createdAt    DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String
+  rol            Rol       @default(tester)
+  /// Nombre para mostrar, editable por el propio usuario desde /perfil.
+  /// Opcional: los usuarios existentes no tienen uno hasta que lo cargan.
+  nombre         String?
+  /// Suspender = false. Un usuario suspendido no puede iniciar sesión.
+  activo         Boolean   @default(true)
+  ultimoAccesoAt DateTime? @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
 
   espacios       UsuarioEspacio[]
   proyectos      UsuarioProyecto[]

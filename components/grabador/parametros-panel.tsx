@@ -64,7 +64,7 @@ export function ParametrosPanel({ parametros, emptyMessage }: ParametrosPanelPro
   }
 
   return (
-    <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm overflow-hidden">
+    <div className="overflow-x-auto rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
       <table className="w-full font-body text-body-sm">
         <thead className="bg-m3-surface-container text-m3-on-surface-variant">
           <tr>

@@ -18,9 +18,12 @@ interface AdminsDialogProps {
   espacioId: string;
   espacioNombre: string;
   onClose: () => void;
+  /** Se dispara con la lista final de admins cada vez que cambia (asignar/quitar),
+   *  para que el padre pueda reflejarlo en la card sin esperar a un recargar. */
+  onChanged?: (admins: AdminAsignado[]) => void;
 }
 
-export function AdminsDialog({ espacioId, espacioNombre, onClose }: AdminsDialogProps) {
+export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: AdminsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [asignados, setAsignados] = useState<AdminAsignado[]>([]);
   const [candidatos, setCandidatos] = useState<UsuarioOption[]>([]);
@@ -38,7 +41,9 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose }: AdminsDialog
       ]);
       if (!resAdmins.ok) throw new Error("No se pudo cargar los admins asignados");
       const dataAdmins = await resAdmins.json();
-      setAsignados(dataAdmins.admins ?? []);
+      const admins: AdminAsignado[] = dataAdmins.admins ?? [];
+      setAsignados(admins);
+      onChanged?.(admins);
 
       if (resUsuarios.ok) {
         const dataUsuarios = await resUsuarios.json();
@@ -108,7 +113,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose }: AdminsDialog
       onClose={onClose}
       className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
     >
-      <div className="w-96 max-w-full p-6">
+      <div className="max-h-[85vh] w-96 max-w-full overflow-y-auto p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-headline text-headline-md text-m3-primary">Administradores del espacio</h3>
           <button
@@ -176,7 +181,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose }: AdminsDialog
             </div>
             {disponibles.length === 0 && (
               <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
-                No hay usuarios con rol admin disponibles. Creá uno en la sección Usuarios.
+                No hay usuarios con rol admin disponibles. Crea uno en la sección Usuarios.
               </p>
             )}
           </>

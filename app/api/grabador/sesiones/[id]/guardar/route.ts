@@ -127,7 +127,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         {
           error: "no_spec_code",
           message:
-            "La sesión no tiene un .spec.ts. Volvé a grabar con `npx playwright codegen` para que Playwright emita el script.",
+            "La sesión no tiene un .spec.ts. Vuelve a grabar con `npx playwright codegen` para que Playwright emita el script.",
         },
         { status: 400 },
       );

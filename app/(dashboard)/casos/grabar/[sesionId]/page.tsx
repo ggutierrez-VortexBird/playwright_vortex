@@ -54,7 +54,7 @@ export default async function SesionGrabacionPage({
   if (!finalToken) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="-mx-6 -mt-6 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
+        <div className="-mx-4 -mt-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
           <h2 className="font-headline text-headline-lg text-m3-primary">Grabación</h2>
         </div>
         <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">

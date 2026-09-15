@@ -281,10 +281,11 @@ interface EspaciosListProps {
   espacios: EspacioConMetrics[];
   onEdit: (espacio: EspacioConMetrics) => void;
   onDelete: (espacio: EspacioConMetrics) => void;
+  onAdminsChanged: (espacioId: string, miembros: { id: string; email: string }[]) => void;
   canEdit: boolean;
 }
 
-function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps) {
+function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: EspaciosListProps) {
   const router = useRouter();
   const [manageAdminsFor, setManageAdminsFor] = useState<EspacioConMetrics | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -347,7 +348,7 @@ function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps
       </div>
 
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {espaciosPagina.map((espacio) => (
             <EspacioCard
               key={espacio.id}
@@ -407,6 +408,12 @@ function EspaciosList({ espacios, onEdit, onDelete, canEdit }: EspaciosListProps
           espacioId={manageAdminsFor.id}
           espacioNombre={manageAdminsFor.nombre}
           onClose={() => setManageAdminsFor(null)}
+          onChanged={(admins) =>
+            onAdminsChanged(
+              manageAdminsFor.id,
+              admins.map((a) => ({ id: a.id, email: a.email }))
+            )
+          }
         />
       )}
     </div>
@@ -446,6 +453,12 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
 
   function handleDelete(espacio: EspacioConMetrics) {
     setDeletingEspacio(espacio);
+  }
+
+  function handleAdminsChanged(espacioId: string, miembros: { id: string; email: string }[]) {
+    setEspacios((prev) =>
+      prev.map((e) => (e.id === espacioId ? { ...e, miembros } : e))
+    );
   }
 
   async function confirmDelete() {
@@ -539,7 +552,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
           onClick={handleDialogClick}
           className="rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
         >
-          <div className="max-w-md p-6">
+          <div className="max-h-[85vh] w-[min(90vw,28rem)] overflow-y-auto p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-headline text-headline-md text-m3-primary">
                 {editingEspacio ? "Editar espacio" : "Nuevo espacio"}
@@ -564,7 +577,13 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         </dialog>
       )}
 
-      <EspaciosList espacios={espacios} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} />
+      <EspaciosList
+        espacios={espacios}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onAdminsChanged={handleAdminsChanged}
+        canEdit={canEdit}
+      />
 
       <ConfirmDialog
         open={!!deletingEspacio}

@@ -90,6 +90,14 @@
   gap: 16px;
 }
 
+/* Por debajo del ancho de una sola card + el padding del layout, el
+   auto-fill de arriba desborda — forzamos una sola columna. */
+@media (max-width: 639px) {
+  .proj-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
  * Video de ejecución — chrome oscuro del reproductor. Se mantiene
  * oscuro a propósito independientemente del tema de la pantalla:

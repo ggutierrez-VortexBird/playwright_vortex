@@ -108,7 +108,7 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
       onClose={onClose}
       className="rounded-2xl border-none bg-m3-surface-container-lowest p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
     >
-      <div className="w-96 max-w-full p-6">
+      <div className="max-h-[85vh] w-96 max-w-full overflow-y-auto p-6">
         <div className="mb-1 flex items-center justify-between">
           <h3 className="font-headline text-headline-md text-m3-on-surface">Testers del proyecto</h3>
           <button
@@ -186,7 +186,7 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
             </div>
             {disponibles.length === 0 && (
               <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
-                No hay testers disponibles para asignar. Creá uno en la sección Usuarios.
+                No hay testers disponibles para asignar. Crea uno en la sección Usuarios.
               </p>
             )}
 

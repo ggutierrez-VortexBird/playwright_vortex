@@ -114,86 +114,141 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
-      <table className="w-full font-body text-body-sm" data-testid="sesiones-recuperables-table">
-        <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
-          <tr className="text-left font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
-            <th className="px-4 py-3">Sesión</th>
-            <th className="px-4 py-3">Proyecto</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3">Pasos</th>
-            <th className="px-4 py-3">Actualizada</th>
-            <th className="px-4 py-3 text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-m3-outline-variant">
-          {sesiones.map((s) => (
-            <tr
-              key={s.id}
-              data-testid="sesion-row"
-              data-sesion-estado={s.estado}
-            >
-              <td className="px-4 py-3">
-                <div className="font-medium text-m3-on-surface">{s.nombre}</div>
-                <div className="max-w-xs truncate text-m3-on-surface-variant">
-                  {s.urlInicial}
-                </div>
-                <div className="text-m3-on-surface-variant/70">
-                  {s.ambiente} · {s.navegador}
-                  {s.credencial ? ` · ${s.credencial.nombre}` : ""}
-                </div>
-                {s.mensajeError && (
-                  <div
-                    className="mt-1 text-m3-error"
-                    data-testid="sesion-mensaje-error"
-                  >
-                    {s.mensajeError}
-                  </div>
-                )}
-              </td>
-              <td className="px-4 py-3 text-m3-on-surface-variant">{s.proyecto.nombre}</td>
-              <td className="px-4 py-3">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${statusBadgeClass(s.estado)}`}
-                  data-testid="sesion-estado-badge"
-                >
-                  {statusLabel(s.estado)}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-m3-on-surface-variant">{s.pasosCount}</td>
-              <td
-                className="px-4 py-3 text-m3-on-surface-variant"
-                title={new Date(s.updatedAt).toLocaleString("es-ES")}
-              >
-                {formatRelative(s.updatedAt)}
-              </td>
-              <td className="px-4 py-3 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  {s.estado !== "descartada" && (
-                    <button
-                      type="button"
-                      onClick={() => handleDescartar(s)}
-                      disabled={busyId === s.id}
-                      data-testid="sesion-descartar-button"
-                      className="rounded p-1.5 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
-                      title="Descartar sesión"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
-                    </button>
-                  )}
-                  <Link
-                    href={`/casos/grabar/${s.id}/revisar`}
-                    className="rounded p-1.5 text-m3-on-surface-variant transition-colors hover:bg-m3-surface-container-high hover:text-m3-primary"
-                    data-testid="sesion-revisar-link"
-                    title="Revisar pasos capturados"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">visibility</span>
-                  </Link>
-                </div>
-              </td>
+      {/* Tabla — md y superior */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full font-body text-body-sm" data-testid="sesiones-recuperables-table">
+          <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
+            <tr className="text-left font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
+              <th className="px-4 py-3">Sesión</th>
+              <th className="px-4 py-3">Proyecto</th>
+              <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3">Pasos</th>
+              <th className="px-4 py-3">Actualizada</th>
+              <th className="px-4 py-3 text-right">Acciones</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-m3-outline-variant">
+            {sesiones.map((s) => (
+              <tr
+                key={s.id}
+                data-testid="sesion-row"
+                data-sesion-estado={s.estado}
+              >
+                <td className="px-4 py-3">
+                  <div className="font-medium text-m3-on-surface">{s.nombre}</div>
+                  <div className="max-w-xs truncate text-m3-on-surface-variant">
+                    {s.urlInicial}
+                  </div>
+                  <div className="text-m3-on-surface-variant/70">
+                    {s.ambiente} · {s.navegador}
+                    {s.credencial ? ` · ${s.credencial.nombre}` : ""}
+                  </div>
+                  {s.mensajeError && (
+                    <div
+                      className="mt-1 text-m3-error"
+                      data-testid="sesion-mensaje-error"
+                    >
+                      {s.mensajeError}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-m3-on-surface-variant">{s.proyecto.nombre}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${statusBadgeClass(s.estado)}`}
+                    data-testid="sesion-estado-badge"
+                  >
+                    {statusLabel(s.estado)}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-m3-on-surface-variant">{s.pasosCount}</td>
+                <td
+                  className="px-4 py-3 text-m3-on-surface-variant"
+                  title={new Date(s.updatedAt).toLocaleString("es-ES")}
+                >
+                  {formatRelative(s.updatedAt)}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    {s.estado !== "descartada" && (
+                      <button
+                        type="button"
+                        onClick={() => handleDescartar(s)}
+                        disabled={busyId === s.id}
+                        data-testid="sesion-descartar-button"
+                        className="rounded p-1.5 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
+                        title="Descartar sesión"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    )}
+                    <Link
+                      href={`/casos/grabar/${s.id}/revisar`}
+                      className="rounded p-1.5 text-m3-on-surface-variant transition-colors hover:bg-m3-surface-container-high hover:text-m3-primary"
+                      data-testid="sesion-revisar-link"
+                      title="Revisar pasos capturados"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Tarjetas — móvil */}
+      <div className="flex flex-col divide-y divide-m3-outline-variant md:hidden">
+        {sesiones.map((s) => (
+          <div key={s.id} data-testid="sesion-card" data-sesion-estado={s.estado} className="flex flex-col gap-2 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium text-m3-on-surface">{s.nombre}</p>
+                <p className="truncate text-m3-on-surface-variant">{s.urlInicial}</p>
+              </div>
+              <span
+                className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${statusBadgeClass(s.estado)}`}
+              >
+                {statusLabel(s.estado)}
+              </span>
+            </div>
+            <div className="text-m3-on-surface-variant/70">
+              {s.ambiente} · {s.navegador}
+              {s.credencial ? ` · ${s.credencial.nombre}` : ""}
+            </div>
+            {s.mensajeError && <div className="text-m3-error">{s.mensajeError}</div>}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-m3-on-surface-variant">
+              <span>{s.pasosCount} paso{s.pasosCount === 1 ? "" : "s"}</span>
+              <span title={new Date(s.updatedAt).toLocaleString("es-ES")}>
+                Actualizada {formatRelative(s.updatedAt)}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-end gap-1 border-t border-m3-outline-variant pt-2">
+              {s.estado !== "descartada" && (
+                <button
+                  type="button"
+                  onClick={() => handleDescartar(s)}
+                  disabled={busyId === s.id}
+                  data-testid="sesion-descartar-button-mobile"
+                  className="rounded p-2 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
+                  title="Descartar sesión"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              )}
+              <Link
+                href={`/casos/grabar/${s.id}/revisar`}
+                className="rounded p-2 text-m3-on-surface-variant transition-colors hover:bg-m3-surface-container-high hover:text-m3-primary"
+                data-testid="sesion-revisar-link-mobile"
+                title="Revisar pasos capturados"
+              >
+                <span className="material-symbols-outlined text-[18px]">visibility</span>
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {error && (
         <div

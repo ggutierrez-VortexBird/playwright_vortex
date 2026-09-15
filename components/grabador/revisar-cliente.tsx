@@ -410,7 +410,7 @@ export function RevisarCliente({
 
       {/* Editor (8 cols) + inspector (4 cols) */}
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
-        <div className="flex h-[560px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0f172a] shadow-xl lg:col-span-8">
+        <div className="flex h-[420px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0f172a] shadow-xl lg:col-span-8 lg:h-[560px]">
           {/* Titlebar + tab del archivo */}
           <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
             <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">

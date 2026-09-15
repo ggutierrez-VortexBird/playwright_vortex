@@ -37,7 +37,7 @@ export default async function CredencialesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="-mx-6 -mt-6 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-6 py-4">
+      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
         <h2 className="font-headline text-headline-lg text-m3-primary">Credenciales compartidas</h2>
         <span className="font-body text-body-sm text-m3-on-surface-variant">Ambiente QA · 3 credenciales</span>
         <span className="ml-auto" />

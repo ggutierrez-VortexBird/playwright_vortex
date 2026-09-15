@@ -37,7 +37,7 @@ export function Modal({ open, onClose, children, className, labelledBy }: ModalP
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className={`w-full rounded-2xl bg-m3-surface-container-lowest shadow-2xl ${className ?? "max-w-md"}`}>
+      <div className={`w-full max-h-[85vh] overflow-y-auto rounded-2xl bg-m3-surface-container-lowest shadow-2xl ${className ?? "max-w-md"}`}>
         {children}
       </div>
     </div>

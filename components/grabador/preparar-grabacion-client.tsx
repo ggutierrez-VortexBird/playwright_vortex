@@ -86,7 +86,7 @@ export function PrepararGrabacionClient({ draft }: PrepararGrabacionClientProps)
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="-mx-6 -mt-6">
+      <div className="-mx-4 -mt-4 lg:-mx-6 lg:-mt-6">
         <GrabadorTopbar
           variant="idle"
           titulo={draft.nombre}
