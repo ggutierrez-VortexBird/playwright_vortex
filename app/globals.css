@@ -209,6 +209,17 @@
   border-radius: 10px;
 }
 
+/* Scroll funcional pero sin barra visible — para listas largas (pasos
+   grabados, dropdowns, formularios embebidos) donde el límite de altura
+   ya comunica "hay más contenido" sin necesidad de mostrar el scrollbar. */
+.scroll-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Edge/IE legacy */
+}
+.scroll-hidden::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge Chromium */
+}
+
 /* ---------- a11y / reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,

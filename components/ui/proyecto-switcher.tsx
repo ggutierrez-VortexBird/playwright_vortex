@@ -33,13 +33,16 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
     }
   }, [activeProyectoIdFromUrl, proyectos, activeProject, setActiveProject]);
 
+  // Sync context with single project on mount
+  useEffect(() => {
+    if (proyectos.length === 1 && !activeProject) {
+      setActiveProject(proyectos[0]);
+    }
+  }, [proyectos, activeProject, setActiveProject]);
+
   // Single project: static header
   if (proyectos.length === 1) {
     const proyecto = proyectos[0];
-    // Sync context with single project on mount
-    if (!activeProject) {
-      setActiveProject(proyecto);
-    }
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-white">
         <span
@@ -90,7 +93,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-64 rounded border border-white/20 bg-m3-primary-container py-1 shadow-lg"
+          className="scroll-hidden absolute left-0 top-full z-50 mt-1 max-h-72 min-w-64 overflow-y-auto rounded border border-white/20 bg-m3-primary-container py-1 shadow-lg"
           role="listbox"
         >
           {proyectos.length === 0 ? (

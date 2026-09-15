@@ -1,5 +1,5 @@
 import { listEjecucionesPorProyecto } from '@/lib/ejecuciones/queries'
-import { EjecucionStatus } from '@/components/ejecuciones/ejecucion-status'
+import { EjecucionesList } from '@/components/ejecuciones/ejecuciones-list'
 import { getSession, getUsuarioActual } from '@/lib/auth'
 
 interface EjecucionesPageProps {
@@ -65,34 +65,7 @@ export default async function EjecucionesPage({ searchParams }: EjecucionesPageP
                     {proyecto.espacio.nombre}
                   </span>
                 </div>
-                <div className="overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
-                  {ejecuciones.map((ejec) => (
-                    <a
-                      key={ejec.id}
-                      href={`/ejecuciones/${ejec.id}`}
-                      className="flex items-center gap-3.5 border-b border-m3-outline-variant px-5 py-4 text-inherit no-underline last:border-b-0 hover:bg-m3-surface-container-high"
-                    >
-                      <EjecucionStatus estado={ejec.estado} />
-                      <div className="flex-1">
-                        <div className="font-body text-body-md font-medium text-m3-on-surface">
-                          {ejec.casoPrueba.nombre}
-                        </div>
-                        <div className="mt-0.5 font-mono-code text-mono-code text-m3-on-surface-variant">
-                          {ejec.casoPrueba.codigo} ·{' '}
-                          {ejec.createdAt.toLocaleString('es-ES', {
-                            day: '2-digit',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
-                      </div>
-                      <span className="font-body text-body-sm text-m3-on-surface-variant">
-                        ver →
-                      </span>
-                    </a>
-                  ))}
-                </div>
+                <EjecucionesList ejecuciones={ejecuciones} />
               </section>
             )
           })}

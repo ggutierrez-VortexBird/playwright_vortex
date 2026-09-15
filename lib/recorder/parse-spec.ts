@@ -112,16 +112,21 @@ function parseLine(number: number, trimmed: string, raw: string): SpecLine {
 
   // await expect(page.getByRole(...)).toBeVisible();
   // await expect(page.getByText('...')).toHaveText('...');
-  m = trimmed.match(/^await\s+expect\((.+)\)\.(\w+)\((.*?)\)\s*;?$/);
+  // await expect(locator).not.toBeVisible(); — negación soportada.
+  // await expect.soft(locator).toBeVisible(); — expect.soft soportado.
+  // El matcher se captura genérico (\w+), no de una lista cerrada, así que
+  // cubre las ~30 aserciones que trae Playwright (locator/page/response).
+  m = trimmed.match(/^await\s+expect(\.soft)?\((.+)\)\.(not\.)?(\w+)\((.*?)\)\s*;?$/);
   if (m) {
-    const selector = humanizePlaywrightArg(m[1] ?? "");
-    const matcher = m[2] ?? "";
-    const args = m[3] ?? "";
+    const selector = humanizePlaywrightArg(m[2] ?? "");
+    const negated = !!m[3];
+    const matcher = m[4] ?? "";
+    const args = m[5] ?? "";
     return {
       ...fallback,
       kind: "assertion",
       selectorText: selector,
-      description: `Verificar ${humanizeMatcher(matcher)} de ${selector}${args ? ` (${args})` : ""}`,
+      description: `Verificar ${negated ? "que NO " : ""}${humanizeMatcher(matcher)} de ${selector}${args ? ` (${args})` : ""}`,
     };
   }
 
@@ -289,26 +294,109 @@ function maskSecretValue(value: string, selectorText: string): string {
   return value;
 }
 
+// Traducciones para TODOS los matchers de `expect(locator/page/response)` que
+// trae Playwright (@playwright/test), no solo los más comunes. Un matcher
+// que no esté acá (por ej. uno custom vía expect.extend) cae al `default`
+// y se muestra tal cual — nunca se pierde la clasificación "assertion".
 function humanizeMatcher(matcher: string): string {
   switch (matcher) {
+    // Locator: visibilidad / estado
     case "toBeVisible":
       return "visibilidad";
     case "toBeHidden":
       return "ocultamiento";
-    case "toHaveText":
-      return "texto";
-    case "toHaveValue":
-      return "valor";
-    case "toContainText":
-      return "contenga";
+    case "toBeAttached":
+      return "que esté en el DOM";
     case "toBeChecked":
       return "que esté marcado";
     case "toBeDisabled":
       return "que esté deshabilitado";
-    case "toBeEnabled":
-      return "que esté habilitado";
+    case "toBeEditable":
+      return "que sea editable";
     case "toBeEmpty":
       return "que esté vacío";
+    case "toBeEnabled":
+      return "que esté habilitado";
+    case "toBeFocused":
+      return "que tenga foco";
+    case "toBeInViewport":
+      return "que esté en el viewport";
+    // Locator: contenido / atributos
+    case "toContainText":
+      return "que contenga texto";
+    case "toContainClass":
+      return "clase CSS";
+    case "toHaveAccessibleDescription":
+      return "descripción accesible";
+    case "toHaveAccessibleErrorMessage":
+      return "mensaje de error accesible";
+    case "toHaveAccessibleName":
+      return "nombre accesible";
+    case "toHaveAttribute":
+      return "atributo";
+    case "toHaveClass":
+      return "clase CSS";
+    case "toHaveCount":
+      return "cantidad de elementos";
+    case "toHaveCSS":
+      return "estilo CSS";
+    case "toHaveId":
+      return "id";
+    case "toHaveJSProperty":
+      return "propiedad JS";
+    case "toHaveRole":
+      return "rol ARIA";
+    case "toHaveScreenshot":
+      return "captura visual";
+    case "toHaveText":
+      return "texto";
+    case "toHaveValue":
+      return "valor";
+    case "toHaveValues":
+      return "valores";
+    case "toMatchAriaSnapshot":
+      return "snapshot de accesibilidad";
+    // Page
+    case "toHaveTitle":
+      return "título de la página";
+    case "toHaveURL":
+      return "URL";
+    // API response
+    case "toBeOK":
+      return "que la respuesta sea OK";
+    // Genéricos (expect(valor).toX(...) sobre datos, no locators)
+    case "toBe":
+      return "igualdad estricta";
+    case "toEqual":
+      return "igualdad";
+    case "toBeTruthy":
+      return "que sea verdadero";
+    case "toBeFalsy":
+      return "que sea falso";
+    case "toBeNull":
+      return "que sea null";
+    case "toBeDefined":
+      return "que esté definido";
+    case "toBeUndefined":
+      return "que sea undefined";
+    case "toBeGreaterThan":
+      return "que sea mayor a";
+    case "toBeGreaterThanOrEqual":
+      return "que sea mayor o igual a";
+    case "toBeLessThan":
+      return "que sea menor a";
+    case "toBeLessThanOrEqual":
+      return "que sea menor o igual a";
+    case "toBeCloseTo":
+      return "que sea aproximadamente";
+    case "toContain":
+      return "que contenga";
+    case "toMatch":
+      return "que coincida con";
+    case "toMatchObject":
+      return "que coincida con el objeto";
+    case "toPass":
+      return "que pase (retry)";
     default:
       return matcher;
   }

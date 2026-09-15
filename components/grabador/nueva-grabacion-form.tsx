@@ -1,19 +1,35 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ParentCaseSelect } from "@/components/casos/parent-case-select";
+import { encodeDraftQuery, type GrabacionDraft } from "@/lib/grabador/draft";
 import type { CredencialListItem } from "@/lib/grabador/types";
 
+interface ProyectoOption {
+  id: string;
+  nombre: string;
+  espacioNombre: string;
+}
+
 interface NuevaGrabacionFormProps {
-  proyectoId: string;
-  credenciales: CredencialListItem[];
+  /** Proyecto fijo (viene ya elegido, p.ej. desde /proyectos/[id]/casos). */
+  proyectoId?: string;
+  /** Lista de proyectos para elegir dentro del mismo formulario cuando no hay uno fijo. */
+  proyectos?: ProyectoOption[];
+  /** Credenciales del proyecto fijo. Cuando se provee `proyectos`, se ignoran y se cargan dinámicamente al elegir proyecto. */
+  credenciales?: CredencialListItem[];
   /** Cuando es true, omite el header/chrome propios (el contenedor padre ya los provee). */
   embedded?: boolean;
   /** Reemplaza el "Cancelar" -> router.back() por este handler (uso embebido en modal). */
   onCancel?: () => void;
-  /** Cuando se provee, reemplaza el router.push post-creación (uso embebido en modal). */
-  onSuccess?: (sessionId: string) => void;
+  /**
+   * Cuando se provee, reemplaza la navegación por defecto a
+   * `/casos/grabar/preparar` (uso embebido en modal, que además necesita
+   * cerrarse). El formulario NO arranca la grabación: solo junta los datos.
+   * El arranque real ocurre en la pantalla `/casos/grabar/preparar`.
+   */
+  onContinue?: (draft: GrabacionDraft) => void;
 }
 
 type NavegadorValue = "chromium" | "firefox" | "webkit";
@@ -21,13 +37,18 @@ type NavegadorValue = "chromium" | "firefox" | "webkit";
 /**
  * Form "Nueva Grabación" del HU-G1.
  *
- * Visual fidelity: `fase2/mockups/nuevo-caso-video.html` lines 156-279.
- * Submission: identical to the previous implementation — POST to
- * `/api/grabador/sesiones` (which in turn invokes the Server Action
- * `iniciarSesionGrabacion`). Only the JSX presentation changed.
+ * Este formulario solo junta los parámetros de la grabación. Al enviar,
+ * NO llama a la API ni abre el navegador real — arma un `GrabacionDraft`
+ * y navega a `/casos/grabar/preparar`, donde el usuario decide cuándo
+ * arrancar (ver ADR: "iniciar grabación vive en su propia pantalla").
  */
-export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCancel, onSuccess }: NuevaGrabacionFormProps) {
+export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedded, onCancel, onContinue }: NuevaGrabacionFormProps) {
   const router = useRouter();
+  // Cuando viene `proyectos`, el proyecto se elige dentro del mismo formulario;
+  // cuando no, `proyectoId` llega fijo desde el contenedor (p.ej. página de un proyecto).
+  const [selectedProyectoId, setSelectedProyectoId] = useState(proyectoId ?? "");
+  const [credencialesState, setCredencialesState] = useState<CredencialListItem[]>(credenciales ?? []);
+  const [loadingCred, setLoadingCred] = useState(false);
   const [nombre, setNombre] = useState("");
   // HU-G34: el usuario tipea la URL completa (con scheme). Antes se preponía
   // `https://` visualmente y solo dejaba editar el host. Con browser headed
@@ -40,17 +61,54 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
   // El centinela "__none__" es "Login manual". Se ofrece SIEMPRE: el
   // grabador todavía no aplica el storageState de la credencial al
   // navegador, así que exigirla solo bloqueaba grabar en proyectos sin
-  // credenciales cargadas. Al enviar, el centinela viaja como null.
+  // credenciales cargadas. Al enviar, el centinela viaja como "".
   const sentinelNone = "__none__";
   const [credencialId, setCredencialId] = useState<string>(
-    credenciales.length > 0 ? credenciales[0]!.id : sentinelNone,
+    credencialesState.length > 0 ? credencialesState[0]!.id : sentinelNone,
   );
   const [navegador, setNavegador] = useState<NavegadorValue>("chromium");
   const [parentCaseId, setParentCaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
 
-  const tieneCredenciales = credenciales.length > 0;
+  // Cuando el contenedor padre no pre-cargó las credenciales (modal, con o sin
+  // selección de proyecto embebida), las cargamos dinámicamente al elegir/tener
+  // proyecto, y reseteamos las selecciones que dependían del proyecto anterior
+  // (credencial y caso padre). Si `credenciales` viene fijo (página standalone
+  // con proyecto fijo), no se vuelve a pedir.
+  useEffect(() => {
+    if (credenciales !== undefined) return;
+    if (!selectedProyectoId) {
+      setCredencialesState([]);
+      setCredencialId(sentinelNone);
+      setParentCaseId(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingCred(true);
+    fetch(`/api/proyectos/${selectedProyectoId}/credenciales`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: CredencialListItem[]) => {
+        if (cancelled) return;
+        setCredencialesState(data);
+        setCredencialId(data.length > 0 ? data[0]!.id : sentinelNone);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCredencialesState([]);
+          setCredencialId(sentinelNone);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCred(false);
+      });
+    setParentCaseId(null);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProyectoId]);
+
+  const tieneCredenciales = credencialesState.length > 0;
   // HU-G34: los tres navegadores son seleccionables ahora. El worker
   // dispatcha según el valor (chromium/firefox/webkit) en launchSession.
   // const puedeSeleccionarNavegador ya no necesita narrowing — todos son válidos.
@@ -67,10 +125,14 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
+    if (proyectos && !selectedProyectoId) {
+      setError("Selecciona un proyecto");
+      return;
+    }
     if (!nombre.trim()) {
       setError("El nombre del caso es requerido");
       return;
@@ -79,37 +141,22 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
       setError("La URL inicial debe ser válida (incluir http:// o https://)");
       return;
     }
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/grabador/sesiones", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              proyectoId,
-              nombre: nombre.trim(),
-              urlInicial: urlCompleta,
-              ambiente,
-              credencialId: credencialId === sentinelNone ? null : credencialId,
-              parentCaseId,
-              navegador,
-            }),
-        });
 
-        if (res.status === 201) {
-          const data = await res.json();
-          if (onSuccess) {
-            onSuccess(data.sessionId);
-          } else {
-            router.push(`/casos/grabar/${data.sessionId}`);
-          }
-        } else {
-          const errBody = await res.json().catch(() => ({}));
-          setError(errBody.message ?? errBody.error ?? "Error al iniciar");
-        }
-      } catch {
-        setError("Error de conexión");
-      }
-    });
+    const draft: GrabacionDraft = {
+      proyectoId: selectedProyectoId,
+      nombre: nombre.trim(),
+      urlInicial: urlCompleta,
+      ambiente,
+      credencialId: credencialId === sentinelNone ? "" : credencialId,
+      parentCaseId: parentCaseId ?? "",
+      navegador,
+    };
+
+    if (onContinue) {
+      onContinue(draft);
+    } else {
+      router.push(`/casos/grabar/preparar?${encodeDraftQuery(draft)}`);
+    }
   }
 
   return (
@@ -131,7 +178,7 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
               Configuración de Grabación
             </h1>
             <p className="font-body text-body-md text-m3-on-surface-variant mt-1">
-              Configure los parámetros iniciales antes de lanzar el navegador interactivo.
+              Configure los parámetros iniciales. El navegador de grabación se abre recién en el paso siguiente.
             </p>
           </div>
           <div
@@ -150,6 +197,32 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
 
       {/* Body */}
       <div className="p-6 space-y-6">
+        {/* Proyecto — solo cuando no viene fijo desde el contenedor padre */}
+        {proyectos && (
+          <div>
+            <label
+              htmlFor="grabar-proyecto"
+              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
+            >
+              Proyecto
+            </label>
+            <select
+              id="grabar-proyecto"
+              value={selectedProyectoId}
+              onChange={(e) => setSelectedProyectoId(e.target.value)}
+              required
+              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer"
+            >
+              <option value="">Selecciona un proyecto</option>
+              {proyectos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre} · {p.espacioNombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Nombre del Caso */}
         <div>
           <label
@@ -225,13 +298,14 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
               id="credencial"
               value={credencialId}
               onChange={(e) => setCredencialId(e.target.value)}
-              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer"
+              disabled={loadingCred || (!!proyectos && !selectedProyectoId)}
+              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer disabled:opacity-50"
             >
               {/* "Login manual" siempre disponible: la credencial es
                  opcional porque el grabador todavía no aplica su
                  storageState al navegador. */}
               <option value={sentinelNone}>Ninguna (Login manual)</option>
-              {credenciales.map((c) => (
+              {credencialesState.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}
                   {c.vence ? ` (vence ${new Date(c.vence).toLocaleDateString()})` : ""}
@@ -239,9 +313,13 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
               ))}
             </select>
             <p className="mt-1.5 text-xs text-m3-on-surface-variant">
-              {tieneCredenciales
-                ? "La credencial queda registrada en la sesión. El login se hace dentro de la ventana del navegador que se abre."
-                : "No hay credenciales para este proyecto. Podés grabar igual: el login se hace dentro de la ventana del navegador que se abre."}
+              {proyectos && !selectedProyectoId
+                ? "Elige un proyecto para ver sus credenciales."
+                : loadingCred
+                  ? "Cargando credenciales…"
+                  : tieneCredenciales
+                    ? "La credencial queda registrada en la sesión. El login se hace dentro de la ventana del navegador que se abre."
+                    : "No hay credenciales para este proyecto. Puedes grabar igual: el login se hace dentro de la ventana del navegador que se abre."}
             </p>
           </div>
 
@@ -254,12 +332,12 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
               Caso padre (Login)
             </label>
             <ParentCaseSelect
-              proyectoId={proyectoId}
+              proyectoId={selectedProyectoId}
               value={parentCaseId}
               onChange={setParentCaseId}
             />
             <p className="mt-1.5 text-xs text-m3-on-surface-variant">
-              Si seleccionás un caso de login, se ejecuta ANTES de abrir el grabador
+              Si seleccionas un caso de login, se ejecuta ANTES de abrir el grabador
               y el navegador inicia ya autenticado.
             </p>
           </div>
@@ -363,17 +441,11 @@ export function NuevaGrabacionForm({ proyectoId, credenciales, embedded, onCance
         </button>
         <button
           type="submit"
-          disabled={pending}
-          data-testid="start-recording"
-          className="px-6 py-2 rounded bg-m3-secondary-container text-m3-on-secondary-container font-label text-label-sm font-bold flex items-center gap-2 hover:bg-m3-secondary hover:text-m3-on-secondary transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          data-testid="continuar-grabacion"
+          className="px-6 py-2 rounded bg-m3-secondary-container text-m3-on-secondary-container font-label text-label-sm font-bold flex items-center gap-2 hover:bg-m3-secondary hover:text-m3-on-secondary transition-all shadow-sm"
         >
-          <span
-            className="material-symbols-outlined text-[18px]"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            play_arrow
-          </span>
-          {pending ? "Iniciando…" : "Iniciar Grabador"}
+          Continuar
+          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </button>
       </footer>
     </form>

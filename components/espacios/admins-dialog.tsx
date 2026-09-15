@@ -131,7 +131,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose }: AdminsDialog
           <p className="font-body text-body-sm text-m3-on-surface-variant">Cargando…</p>
         ) : (
           <>
-            <ul className="mb-4 flex flex-col gap-2">
+            <ul className="scroll-hidden mb-4 flex max-h-56 flex-col gap-2 overflow-y-auto">
               {asignados.length === 0 && (
                 <li className="font-body text-body-sm text-m3-on-surface-variant">
                   Ningún admin asignado todavía.

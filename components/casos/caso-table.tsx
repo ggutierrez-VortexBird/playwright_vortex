@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { CasoPruebaListItem } from "@/types/caso";
+
+const PAGE_SIZE = 10;
 
 interface CasoTableProps {
   casos: CasoPruebaListItem[];
@@ -75,6 +77,15 @@ function getEstadoBadge(
 }
 
 export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTableProps) {
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(casos.length / PAGE_SIZE));
+  const paginaActual = Math.min(page, totalPages);
+  const casosPagina = useMemo(
+    () => casos.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE),
+    [casos, paginaActual]
+  );
+
   if (casos.length === 0) {
     return (
       <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
@@ -105,7 +116,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
             </tr>
           </thead>
           <tbody className="divide-y divide-m3-outline-variant">
-            {casos.map((caso) => {
+            {casosPagina.map((caso) => {
               const badge = getEstadoBadge(caso.estado, caso.primerPasoFallidoNumero);
               return (
                 <CasoRow
@@ -121,6 +132,32 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
             })}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-col items-center justify-between gap-4 border-t border-m3-outline-variant px-4 py-3 text-xs text-m3-on-surface-variant sm:flex-row">
+        <p>
+          Mostrando <span className="font-semibold text-m3-on-surface">{casosPagina.length}</span> de{" "}
+          <span className="font-semibold text-m3-on-surface">{casos.length}</span> casos registrados
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={paginaActual <= 1}
+            className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span className="rounded-lg border border-m3-info bg-m3-info-container px-3 py-1.5 font-bold text-m3-info">
+            {paginaActual}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={paginaActual >= totalPages}
+            className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
       <style jsx>{`
         @media (hover: none) {
@@ -234,7 +271,7 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
         {formatDate(caso.fechaUltimaEjecucion)}
       </td>
       <td className="px-4 py-3">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -242,9 +279,19 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
             }}
             disabled={running}
             aria-label={`Ejecutar caso ${caso.codigo}`}
-            className="font-label text-label-md font-semibold text-m3-on-surface hover:underline disabled:opacity-50"
+            title={running ? "Lanzando…" : "Ejecutar"}
+            className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-success disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {running ? "Lanzando…" : "Ejecutar"}
+            {running ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.5 3.5A1 1 0 003 4.4v11.2a1 1 0 001.5.87l10-5.6a1 1 0 000-1.74l-10-5.6a1 1 0 00-1-.06z" clipRule="evenodd" />
+              </svg>
+            )}
           </button>
           {canEdit && (
             <Link
@@ -253,9 +300,12 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
               aria-label={`Editar script de ${caso.codigo}`}
               title="Editar script"
               data-testid="editar-script-row-action"
-              className="font-label text-label-md font-semibold text-m3-on-surface hover:underline"
+              className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-primary"
             >
-              Script
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="16" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="m7 9 3 3-3 3M13 15h4" />
+              </svg>
             </Link>
           )}
           {canEdit && onEdit && (
@@ -265,9 +315,12 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
                 onEdit(caso);
               }}
               aria-label="Editar"
-              className="font-label text-label-md font-semibold text-m3-on-surface hover:underline"
+              title="Editar"
+              className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-primary"
             >
-              Editar
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
             </button>
           )}
           {canEdit && onDelete && (
@@ -277,9 +330,12 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
                 onDelete(caso);
               }}
               aria-label="Eliminar"
-              className="font-label text-label-md font-semibold text-m3-error hover:underline"
+              title="Eliminar"
+              className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-danger-container hover:text-m3-error"
             >
-              Eliminar
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
             </button>
           )}
           {error && <span className="font-label text-label-sm text-m3-error">{error}</span>}

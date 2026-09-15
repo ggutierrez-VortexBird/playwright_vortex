@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ParametrosPanel, type ParametroPanelItem } from "@/components/grabador/parametros-panel";
+import { ignorePlaywrightModuleDiagnostics } from "@/lib/recorder/monaco-setup";
 
 // Monaco toca `window`/`navigator` al cargar — se difiere al cliente para
 // no romper el render del servidor de esta pantalla.
@@ -318,6 +319,7 @@ export function CasoDetalleCliente({
                 theme="vs"
                 value={scriptDraft}
                 onChange={(value) => setScriptDraft(value ?? "")}
+                beforeMount={ignorePlaywrightModuleDiagnostics}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 13,

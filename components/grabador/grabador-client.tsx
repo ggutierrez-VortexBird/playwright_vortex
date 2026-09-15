@@ -7,12 +7,8 @@
  * vigila el .spec.ts. Cada cambio broadcastea `spec_updated` por WS con
  * `{content, bytes, changedAt}`.
  *
- * UI (V1 VorTest-style): layout de tres filas + dos columnas
- *   - Topbar: estado + título + Detener / Descartar
- *   - BrowserChrome editable (URL)
- *   - Slot izquierdo: RecordingInstructions (Material 3, "ventana separada")
- *   - Slot derecho: PasoPanel (parsea spec en vivo)
- *   - RecToolbar inferior: URL actual + Copiar + Detener
+ * UI: Topbar (estado + título + Detener/Descartar) + BrowserChrome (URL) +
+ * grilla de contenido (RecordingInstructions + RecordingGuide).
  *
  * Mensajes WS (V2, 3 variantes): spec_updated / sesion_detenida / error.
  * Bot `pause`/`resume` ya no se usa — codegen maneja el pause desde
@@ -26,8 +22,7 @@ import type { WsServerMessage, WsClientMessage } from "@/lib/recorder/types";
 import { GrabadorTopbar } from "@/components/grabador/grabador-topbar";
 import { BrowserChrome } from "@/components/grabador/browser-chrome";
 import { RecordingInstructions } from "@/components/grabador/recording-instructions";
-import { PasoPanel } from "@/components/grabador/paso-panel";
-import { RecToolbar } from "@/components/grabador/rec-toolbar";
+import { RecordingGuide } from "@/components/grabador/recording-guide";
 import { parseSpecToSteps, type SpecLineKind } from "@/lib/recorder/parse-spec";
 
 export interface GrabadorClientProps {
@@ -207,26 +202,29 @@ export function GrabadorClient({
   );
 
   return (
-    <section
-      data-testid="grabador-shell"
-      className="flex h-[calc(100vh-160px)] min-h-[600px] flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface"
-    >
-      <GrabadorTopbar
-        titulo={titulo}
-        connState={connState}
-        stopping={stopping}
-        onDetener={handleDetener}
-        onDescartar={handleDescartar}
-      />
+    <section data-testid="grabador-shell" className="flex flex-col gap-6">
+      {/* Topbar + barra de URL van a borde a borde contra el `main` del
+          dashboard (mismo patrón -mx-6 -mt-6 que usan otras pantallas),
+          en vez de quedar encerradas en una caja con borde propio. */}
+      <div className="-mx-6 -mt-6">
+        <GrabadorTopbar
+          titulo={titulo}
+          connState={connState}
+          stopping={stopping}
+          onDetener={handleDetener}
+          onDescartar={handleDescartar}
+          startedAt={startedAt}
+        />
 
-      <BrowserChrome
-        pageUrl={currentUrl}
-        onNavigate={handleNavigateFromChrome}
-        disabled={!isLive}
-      />
+        <BrowserChrome
+          pageUrl={currentUrl}
+          onNavigate={handleNavigateFromChrome}
+          disabled={!isLive}
+        />
+      </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
           <RecordingInstructions
             urlInicial={urlInicial}
             currentUrl={currentUrl}
@@ -238,26 +236,15 @@ export function GrabadorClient({
             kinds={kinds}
           />
         </div>
-        <div className="min-h-[400px] lg:min-h-0">
-          <PasoPanel
-            specContent={spec}
-            bytes={bytes}
-            isLive={isLive}
-          />
+        <div className="lg:col-span-4">
+          <RecordingGuide connState={connState} />
         </div>
       </div>
-
-      <RecToolbar
-        currentUrl={currentUrl}
-        specContent={spec}
-        disabled={!isLive}
-        onDetener={handleDetener}
-      />
 
       {lastUpdateAt && (
         <div
           data-testid="grabador-last-update"
-          className="border-t border-m3-outline-variant bg-m3-surface-container-low px-4 py-1 font-mono-code text-label-sm text-m3-on-surface-variant"
+          className="-mt-3 rounded-lg bg-m3-surface-container-low px-4 py-1.5 font-mono-code text-label-sm text-m3-on-surface-variant"
         >
           Última edición del spec:{" "}
           {new Date(lastUpdateAt).toLocaleTimeString()} · sesión{" "}

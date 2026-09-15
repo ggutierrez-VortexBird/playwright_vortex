@@ -62,7 +62,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-48 rounded border border-m3-outline-variant bg-m3-surface-container-lowest py-1 shadow-lg"
+          className="scroll-hidden absolute left-0 top-full z-50 mt-1 max-h-72 min-w-48 overflow-y-auto rounded border border-m3-outline-variant bg-m3-surface-container-lowest py-1 shadow-lg"
           role="listbox"
         >
           {espacios.length === 0 ? (
