@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { CasoTable } from "@/components/casos/caso-table";
 import type { CasoPruebaListItem } from "@/types/caso";
 
@@ -80,22 +80,28 @@ describe("CasoTable", () => {
 
   it("renders all casos rows", () => {
     render(<CasoTable casos={mockCasos} />);
-    expect(screen.getByText("CP-TEST-01")).toBeInTheDocument();
-    expect(screen.getByText("CP-TEST-02")).toBeInTheDocument();
-    expect(screen.getByText("CP-TEST-03")).toBeInTheDocument();
+    // El componente renderiza DOS vistas (md:table y móvil:cards), ambas en
+    // el DOM — verificamos que cada código aparezca AL MENOS una vez.
+    expect(screen.getAllByText("CP-TEST-01").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("CP-TEST-02").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("CP-TEST-03").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders estado pills with correct labels", () => {
     render(<CasoTable casos={mockCasos} />);
-    expect(screen.getByText("Pasó")).toBeInTheDocument();
-    expect(screen.getByText("Falló en el paso 2")).toBeInTheDocument();
-    expect(screen.getByText("Sin ejecutar")).toBeInTheDocument();
+    // Cada estado aparece tanto en la fila de tabla como en la card móvil.
+    expect(screen.getAllByText("Pasó").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Falló en el paso 2").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Sin ejecutar").length).toBeGreaterThanOrEqual(1);
   });
 
   it("calls onEdit when edit button clicked", () => {
     const onEdit = jest.fn();
     render(<CasoTable casos={mockCasos} canEdit onEdit={onEdit} />);
-    const row = screen.getByText("CP-TEST-01").closest("tr");
+    // Buscamos dentro de la tabla para evitar ambigüedad entre la fila
+    // desktop y la card móvil.
+    const table = screen.getByRole("table");
+    const row = within(table).getByText("CP-TEST-01").closest("tr");
     if (!row) throw new Error("Row not found");
     const editBtn = row.querySelector("button[aria-label='Editar']");
     expect(editBtn).toBeInTheDocument();
@@ -106,7 +112,8 @@ describe("CasoTable", () => {
   it("calls onDelete when delete button clicked", () => {
     const onDelete = jest.fn();
     render(<CasoTable casos={mockCasos} canEdit onDelete={onDelete} />);
-    const row = screen.getByText("CP-TEST-01").closest("tr");
+    const table = screen.getByRole("table");
+    const row = within(table).getByText("CP-TEST-01").closest("tr");
     if (!row) throw new Error("Row not found");
     const deleteBtn = row.querySelector("button[aria-label='Eliminar']");
     expect(deleteBtn).toBeInTheDocument();
@@ -118,11 +125,12 @@ describe("CasoTable", () => {
     // Antes de este fix no había forma de llegar a /casos/[id] desde
     // ningún lado de la interfaz — quedaba inalcanzable.
     render(<CasoTable casos={mockCasos} />);
-    expect(screen.getByText("CP-TEST-01")).toHaveAttribute("href", "/casos/caso-1");
-    expect(screen.getByText("Caso de prueba A")).toHaveAttribute(
-      "href",
-      "/casos/caso-1",
-    );
+    // Tomamos el primer <a> con ese href (tabla o card móvil — ambos
+    // tienen el mismo href esperado).
+    const links = screen.getAllByRole("link", { name: "CP-TEST-01" });
+    expect(links[0]).toHaveAttribute("href", "/casos/caso-1");
+    const nombreLinks = screen.getAllByRole("link", { name: "Caso de prueba A" });
+    expect(nombreLinks[0]).toHaveAttribute("href", "/casos/caso-1");
   });
 
   it("does not show action buttons when canEdit is false", () => {

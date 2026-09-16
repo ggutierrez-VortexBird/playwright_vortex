@@ -66,12 +66,11 @@ describe("createEspacio", () => {
   it("should throw 403 when user is not superadmin", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
+    // `requireSuperadmin` lanza marker error con message "FORBIDDEN"; los
+    // route handlers lo mapean a HTTP 403. Verificamos el marker.
     await expect(
       createEspacio({ nombre: "Acme Corp", color: "#C9822F" }, mockSession)
-    ).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    ).rejects.toThrow("FORBIDDEN");
   });
 
   it("should create espacio successfully", async () => {
@@ -174,10 +173,8 @@ describe("updateEspacio", () => {
   it("should throw 403 when user is not superadmin", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
-    await expect(updateEspacio("abc123", { nombre: "New Name" }, mockSession)).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    // Verificamos el marker error "FORBIDDEN" que produce requireSuperadmin.
+    await expect(updateEspacio("abc123", { nombre: "New Name" }, mockSession)).rejects.toThrow("FORBIDDEN");
   });
 
   it("should update espacio nombre successfully", async () => {
@@ -235,10 +232,8 @@ describe("deleteEspacio", () => {
   it("should throw 403 when user is not superadmin", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
-    await expect(deleteEspacio("abc123", mockSession)).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    // Verificamos el marker error "FORBIDDEN" que produce requireSuperadmin.
+    await expect(deleteEspacio("abc123", mockSession)).rejects.toThrow("FORBIDDEN");
   });
 
   it("should soft delete espacio successfully", async () => {

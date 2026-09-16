@@ -8,6 +8,7 @@ jest.mock("@/lib/db", () => ({
   prisma: {
     usuario: {
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
   },
 }));
@@ -35,6 +36,7 @@ describe("iniciarSesion", () => {
       email: "admin@admin.com",
       passwordHash: "hashed",
       rol: "superadmin",
+      activo: true,
     };
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue(mockUser);
     (verifyPassword as jest.Mock).mockResolvedValue(true);
@@ -95,6 +97,7 @@ describe("iniciarSesion", () => {
       email: "admin@admin.com",
       passwordHash: "hashed",
       rol: "superadmin",
+      activo: true,
     };
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue(mockUser);
     (verifyPassword as jest.Mock).mockResolvedValue(true);
@@ -115,6 +118,7 @@ describe("iniciarSesion", () => {
       email: "admin@admin.com",
       passwordHash: "hashed",
       rol: "superadmin",
+      activo: true,
     };
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue(mockUser);
     (verifyPassword as jest.Mock).mockResolvedValue(true);

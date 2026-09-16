@@ -3,11 +3,17 @@ import { getEspacioById, updateEspacio, deleteEspacio } from "@/lib/espacios/act
 import { getSession } from "@/lib/auth";
 import type { SessionData } from "@/lib/auth";
 
+// El handler importa `getSession` desde `@/lib/auth`, no desde las actions.
+// Hay que mockear `@/lib/auth` (no `@/lib/espacios/actions`) para que el
+// handler encuentre la función mockeada en su lookup.
+jest.mock("@/lib/auth", () => ({
+  getSession: jest.fn(),
+}));
+
 jest.mock("@/lib/espacios/actions", () => ({
   getEspacioById: jest.fn(),
   updateEspacio: jest.fn(),
   deleteEspacio: jest.fn(),
-  getSession: jest.fn(),
 }));
 
 const mockSession: SessionData = {
@@ -21,7 +27,9 @@ describe("DELETE /api/espacios/[id]/", () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
   });
 
-  it("should return 204 on successful delete", async () => {
+  it("should return 200 on successful delete", async () => {
+    // El handler devuelve 200 con el body de resultado (no 204) porque
+    // 204 No Content no permite body y aquí queremos devolver `{ success: true }`.
     (deleteEspacio as jest.Mock).mockResolvedValue({ success: true });
 
     const request = new Request("http://localhost/api/espacios/espacio-1", {
@@ -30,7 +38,7 @@ describe("DELETE /api/espacios/[id]/", () => {
 
     const response = await DELETE(request, { params: Promise.resolve({ id: "espacio-1" }) });
 
-    expect(response.status).toBe(204);
+    expect(response.status).toBe(200);
   });
 
   it("should return 409 when espacio has active proyectos", async () => {

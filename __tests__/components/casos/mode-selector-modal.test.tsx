@@ -44,7 +44,7 @@ describe("ModeSelectorModal (HU-G20)", () => {
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "¿Cómo querés crear tu caso de prueba?",
+        name: "¿Cómo quieres crear tu caso de prueba?",
       }),
     ).toBeInTheDocument();
 
@@ -117,7 +117,7 @@ describe("ModeSelectorModal (HU-G20)", () => {
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "¿Cómo querés crear tu caso de prueba?",
+        name: "¿Cómo quieres crear tu caso de prueba?",
       }),
     ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();

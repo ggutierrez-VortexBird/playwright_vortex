@@ -94,19 +94,17 @@ describe("auth", () => {
 
   describe("requireSuperadmin", () => {
     it("should throw 403 when userId is missing", async () => {
-      await expect(requireSuperadmin({ userId: undefined, email: "" })).rejects.toEqual({
-        status: 403,
-        body: { error: "forbidden", message: "superadmin required" },
-      });
+      // `requireSuperadmin` lanza un marker error `FORBIDDEN_ERROR` (Error con
+      // message "FORBIDDEN") que los route handlers mapean a HTTP 403.
+      // Verificamos el marker, no el shape HTTP, porque ese shape solo lo
+      // produce la capa de route handler (lib/auth.ts solo lanza el marker).
+      await expect(requireSuperadmin({ userId: undefined, email: "" })).rejects.toThrow("FORBIDDEN");
     });
 
     it("should throw 403 when user.rol !== 'superadmin'", async () => {
       (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
-      await expect(requireSuperadmin(mockSuperadminSession)).rejects.toEqual({
-        status: 403,
-        body: { error: "forbidden", message: "superadmin required" },
-      });
+      await expect(requireSuperadmin(mockSuperadminSession)).rejects.toThrow("FORBIDDEN");
     });
 
     it("should not throw when user.rol === 'superadmin'", async () => {

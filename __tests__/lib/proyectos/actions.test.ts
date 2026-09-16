@@ -53,10 +53,9 @@ describe("requireSuperadmin", () => {
   it("should throw 403 when user.rol !== 'superadmin'", async () => {
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
-    await expect(requireSuperadmin(mockSession)).rejects.toEqual({
-      status: 403,
-      body: { error: "forbidden", message: "superadmin required" },
-    });
+    // `requireSuperadmin` lanza un marker error con message "FORBIDDEN"; los
+    // route handlers lo mapean a HTTP 403. Verificamos el marker.
+    await expect(requireSuperadmin(mockSession)).rejects.toThrow("FORBIDDEN");
   });
 
   it("should not throw when user.rol === 'superadmin'", async () => {
