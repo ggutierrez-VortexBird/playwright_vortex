@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { SesionesRecuperablesClient } from "@/components/grabador/sesiones-recuperables-client";
 import { parseSpecToSteps } from "@/lib/recorder/parse-spec";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 /**
  * HU-GR-1 — Página /casos/grabar
@@ -76,30 +78,39 @@ export default async function SesionesRecuperablesPage({ searchParams }: PagePro
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-        <h2 className="font-headline text-headline-lg text-m3-primary">Grabaciones</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">
-          {sesionesView.length} sesión{sesionesView.length !== 1 ? "es" : ""} · recuperables y activas
-        </span>
-        <span className="ml-auto" />
-        <Link href="/casos/grabar/nueva" className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity" data-testid="link-nueva-grabacion">
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          Nueva grabación
-        </Link>
-      </div>
+      <PageHeader
+        title="Grabador"
+        subtitle={`${sesionesView.length} ${sesionesView.length === 1 ? "sesión" : "sesiones"} recuperables`}
+        badge={{ value: sesionesView.length, label: "sesiones" }}
+        actions={
+          <Link
+            href="/casos/grabar/nueva"
+            className="inline-flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
+            data-testid="link-nueva-grabacion"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Nueva grabación
+          </Link>
+        }
+      />
 
       <SesionesRecuperablesClient sesiones={sesionesView} />
 
       {sesionesView.length === 0 && (
-        <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
-          <p className="text-m3-on-surface-variant">No hay sesiones de grabación previas.</p>
-          <Link
-            href="/casos/grabar/nueva"
-            className="mt-2 inline-block text-sm text-m3-secondary hover:underline"
-          >
-            Iniciar una grabación
-          </Link>
-        </div>
+        <EmptyState
+          icon="videocam"
+          title="No hay sesiones de grabación"
+          description="Las sesiones se recuperan automáticamente si cierras el navegador"
+          action={
+            <Link
+              href="/casos/grabar/nueva"
+              className="inline-flex items-center gap-2 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              Iniciar nueva grabación
+            </Link>
+          }
+        />
       )}
     </div>
   );

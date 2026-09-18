@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, requireEspacioAdmin, FORBIDDEN_ERROR } from "@/lib/auth";
 import { getEspacioById, updateEspacio, deleteEspacio } from "@/lib/espacios/actions";
 
 interface RouteParams {
@@ -19,6 +19,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   try {
+    // Igual que el flujo /espacios/[id]/proyectos: solo superadmin o el
+    // admin de este espacio pueden ver su detalle vía API.
+    await requireEspacioAdmin(session, id);
     const espacio = await getEspacioById(id);
     if (!espacio) {
       return NextResponse.json(
@@ -28,6 +31,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
     return NextResponse.json(espacio);
   } catch (err: any) {
+    if (err === FORBIDDEN_ERROR || err?.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
     }

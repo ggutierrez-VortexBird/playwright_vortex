@@ -6,7 +6,17 @@
 
 @layer base {
   :root {
-    --radius: 0.875rem;
+    /* Escala única de radio (grid de 8px) — ver tailwind.config.ts
+       borderRadius. sm: chips/controles chicos · md: botones/inputs ·
+       lg: cards, modales, contenedores de tabla (radio canónico único). */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    /* M3 font role tokens — Archivo for display/headline/body/label,
+       JetBrains Mono for code. Resolves taste-brief Section 2 font decisions. */
+    --m3-font-headline: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --m3-font-body: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --m3-font-code: var(--font-jetbrains-mono), "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   }
 
   * {
@@ -23,9 +33,11 @@
   body {
     background: var(--m3-background);
     color: var(--m3-on-surface);
-    font-family: var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* Igual al token `body-md` (tailwind.config.ts) para que el texto
+       sin tokenizar comparta el mismo ritmo vertical que el tokenizado. */
     font-size: 14px;
-    line-height: 1.45;
+    line-height: 20px;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -86,7 +98,7 @@
  * ============================================================ */
 .proj-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(298px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(298px, 400px));
   gap: 16px;
 }
 
@@ -279,7 +291,7 @@ dialog[open] {
 
 @layer base {
   :root {
-    --m3-primary: #000000;
+    --m3-primary: #2f5fbd;
     --m3-on-primary: #ffffff;
     --m3-primary-container: #131b2e;
     --m3-on-primary-container: #7c839b;
@@ -324,7 +336,7 @@ dialog[open] {
     --m3-info-container: #e9eefb;
     --m3-danger-container: #fce8e6;
     --m3-warn-container: #fff3df;
-    --m3-tertiary: #000000;
+    --m3-tertiary: #12805c;
     --m3-on-tertiary: #ffffff;
     --m3-tertiary-container: #002113;
     --m3-on-tertiary-container: #009668;

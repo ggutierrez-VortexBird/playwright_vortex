@@ -262,7 +262,14 @@ export function spawnCodegen(
       new Promise<void>((resolvePromise) => {
         if (stopping) return resolvePromise();
         stopping = true;
-        if (proc.exitCode !== null) return resolvePromise();
+        if (proc.exitCode !== null) {
+          // El proceso ya había terminado por su cuenta (ej. el usuario
+          // cerró la ventana del navegador) antes de que se pidiera kill().
+          // Sin este cleanup, el storage-state temporal quedaba huérfano
+          // en disco para siempre.
+          cleanupStorageState();
+          return resolvePromise();
+        }
 
         let settled = false;
         const finish = () => {

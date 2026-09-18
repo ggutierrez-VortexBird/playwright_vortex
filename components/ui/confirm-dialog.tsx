@@ -1,5 +1,8 @@
 "use client";
 
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -14,6 +17,13 @@ interface ConfirmDialogProps {
   isLoading?: boolean;
 }
 
+/**
+ * Diálogo de confirmación compartido — compone el overlay canónico de
+ * Modal (Escape/click-outside) en vez de duplicar su propio backdrop.
+ * Los botones de footer son a propósito de ancho igual (flex-1), distinto
+ * del alineado por defecto que usan los formularios vía Modal — es
+ * intencional para confirm/cancel, no un descuido.
+ */
 export function ConfirmDialog({
   open,
   title,
@@ -26,19 +36,9 @@ export function ConfirmDialog({
   onCancel,
   isLoading,
 }: ConfirmDialogProps) {
-  if (!open) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
-    >
-      <div className="w-full max-w-md rounded-2xl bg-m3-surface-container-lowest p-8 text-center shadow-2xl">
+    <Modal open={open} onClose={onCancel} labelledBy="confirm-dialog-title" className="max-w-md">
+      <div className="p-8 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-m3-danger-container">
           <span className="material-symbols-outlined text-[26px] text-m3-error">delete</span>
         </div>
@@ -57,23 +57,14 @@ export function ConfirmDialog({
         )}
 
         <div className="mt-6 flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-xl border border-m3-outline-variant py-2.5 font-label text-label-lg font-semibold text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
-          >
+          <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
             {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 rounded-xl bg-m3-error py-2.5 font-label text-label-lg font-semibold text-m3-on-error transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
+          </Button>
+          <Button type="button" variant="danger" onClick={onConfirm} disabled={isLoading} className="flex-1">
             {isLoading ? "Eliminando…" : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

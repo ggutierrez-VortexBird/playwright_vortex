@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession, getUsuarioActual, requireProyectoAccess, FORBIDDEN_ERROR, NOT_FOUND_ERROR } from "@/lib/auth";
 import { getProyectoById } from "@/lib/proyectos/actions";
 import { listCasos } from "@/lib/casos/actions";
 import { CasosClient } from "@/app/(dashboard)/casos/casos-client";
+import { Skeleton, TableSkeleton } from "@/components/ui/skeleton";
 import type { CasoPruebaListItem } from "@/types/caso";
 
 interface PageProps {
@@ -16,19 +16,14 @@ function CasosSkeleton() {
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <div>
-          <div className="h-8 w-48 animate-pulse rounded bg-m3-surface-container-high" />
-          <div className="mt-2 h-4 w-64 animate-pulse rounded bg-m3-surface-container-high" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="mt-2 h-4 w-64" />
         </div>
-        <div className="h-9 w-32 animate-pulse rounded bg-m3-surface-container-high" />
+        <Skeleton className="h-9 w-32" />
       </div>
       <div className="space-y-4">
-        <div className="h-6 w-40 animate-pulse rounded bg-m3-surface-container-high" />
-        <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest">
-          <div className="h-10 animate-pulse bg-m3-surface-container-high" />
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 animate-pulse bg-m3-surface-container-high/50" />
-          ))}
-        </div>
+        <Skeleton className="h-6 w-40" />
+        <TableSkeleton rows={3} columns={6} />
       </div>
     </div>
   );
@@ -59,26 +54,11 @@ export default async function ProyectoCasosPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-        <h2 className="font-headline text-headline-lg text-m3-primary">{proyecto.nombre}</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">{proyecto.ambiente} · Casos de prueba</span>
-        <span className="ml-auto" />
-        {canEdit && (
-          <Link
-            href={`/casos/grabar/nueva?proyectoId=${proyectoId}`}
-            className="flex items-center gap-2 rounded bg-m3-secondary-container px-4 py-2 font-label text-label-md font-semibold text-m3-on-secondary-container transition-colors hover:bg-m3-secondary-fixed"
-          >
-            <span className="material-symbols-outlined text-[18px]">videocam</span>
-            Grabar caso
-          </Link>
-        )}
-      </div>
-
-      {/* Casos with Suspense */}
       <Suspense fallback={<CasosSkeleton />}>
         <ProyectoCasosGrid
           proyectoId={proyectoId}
+          proyectoNombre={proyecto.nombre}
+          proyectoAmbiente={proyecto.ambiente}
           canEdit={canEdit}
         />
       </Suspense>
@@ -88,9 +68,13 @@ export default async function ProyectoCasosPage({ params }: PageProps) {
 
 async function ProyectoCasosGrid({
   proyectoId,
+  proyectoNombre,
+  proyectoAmbiente,
   canEdit,
 }: {
   proyectoId: string;
+  proyectoNombre: string;
+  proyectoAmbiente: string;
   canEdit: boolean;
 }) {
   const casos = await listCasos(proyectoId);
@@ -100,6 +84,7 @@ async function ProyectoCasosGrid({
       casosIniciales={casos}
       canEdit={canEdit}
       proyectoId={proyectoId}
+      proyectoContext={{ nombre: proyectoNombre, ambiente: proyectoAmbiente }}
     />
   );
 }

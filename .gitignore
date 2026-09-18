@@ -17,6 +17,7 @@ prisma/migrations/*/
 !prisma/migrations/20260911214445_add_proyecto_color/
 !prisma/migrations/20260914163736_add_parent_case_and_storage_state/
 !prisma/migrations/20260915185138_usuario_perfil_fields/
+!prisma/migrations/20260917120000_add_ejecucion_composite_index/
 
 # Docker
 postgres-data/

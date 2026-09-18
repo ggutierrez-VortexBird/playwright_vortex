@@ -3,11 +3,14 @@
 import { useState, useCallback } from "react";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 import type { Espacio } from "@/types/espacio";
-import { ProyectoCard } from "@/components/proyectos/proyecto-card";
+import { ProyectoCard, codigoProyecto } from "@/components/proyectos/proyecto-card";
 import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form";
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
 import { TestersDialog } from "@/components/proyectos/testers-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionSearch } from "@/components/ui/section-search";
+import { Button } from "@/components/ui/button";
 
 interface ProyectosClientProps {
   espacios: Espacio[];
@@ -22,6 +25,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingProyecto, setDeletingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const refreshProyectos = useCallback(async () => {
     const allProyectos: ProyectoWithMetrics[] = [];
@@ -87,9 +91,21 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
     setEditingProyecto(null);
   }
 
-  // Group proyectos by espacio
+  // Group proyectos by espacio (ya filtrados por la búsqueda local) — busca
+  // por nombre, ambiente, descripción o código (#PRY-XXXX), no solo nombre.
+  const q = busqueda.trim().toLowerCase();
+  const proyectosFiltrados = q
+    ? proyectos.filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(q) ||
+          p.ambiente.toLowerCase().includes(q) ||
+          (p.descripcion ?? "").toLowerCase().includes(q) ||
+          codigoProyecto(p.id).toLowerCase().includes(q)
+      )
+    : proyectos;
+
   const proyectosByEspacio = new Map<string, ProyectoWithMetrics[]>();
-  for (const proyecto of proyectos) {
+  for (const proyecto of proyectosFiltrados) {
     const list = proyectosByEspacio.get(proyecto.espacioId) || [];
     list.push(proyecto);
     proyectosByEspacio.set(proyecto.espacioId, list);
@@ -104,34 +120,30 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Encabezado de página */}
-      <div className="flex flex-col gap-4 border-b border-m3-outline-variant pb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h2 className="font-headline text-headline-lg text-m3-primary">Proyectos</h2>
-            <span className="rounded-full border border-m3-outline-variant bg-m3-surface-container px-3 py-0.5 font-body text-body-sm font-medium text-m3-on-surface-variant">
-              {proyectos.length} proyecto{proyectos.length !== 1 ? "s" : ""} · {espacioCount} espacio
-              {espacioCount !== 1 ? "s" : ""}
-            </span>
-          </div>
-          <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
-            Supervisa y ejecuta las suites de automatización organizadas por espacios de trabajo
-          </p>
-        </div>
-        {canEdit && (
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setEditingProyecto(null);
-            }}
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-m3-primary px-4 py-2.5 font-label text-label-sm font-semibold text-m3-on-primary shadow-sm transition hover:opacity-90 active:scale-95"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Nuevo Proyecto
-          </button>
-        )}
+      <PageHeader
+        title="Proyectos"
+        badge={{ value: proyectos.length, label: proyectos.length === 1 ? "proyecto" : "proyectos" }}
+        subtitle={`${proyectos.length} proyecto${proyectos.length !== 1 ? "s" : ""} · ${espacioCount} espacio${espacioCount !== 1 ? "s" : ""}`}
+        description="Supervisa y ejecuta las suites de automatización organizadas por espacios de trabajo"
+        actions={
+          canEdit ? (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setShowForm(true);
+                setEditingProyecto(null);
+              }}
+              className="inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              Nuevo Proyecto
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex justify-end">
+        <SectionSearch value={busqueda} onChange={setBusqueda} placeholder="Buscar proyecto…" />
       </div>
 
       {/* Create form */}

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listUsuarios } from "@/lib/usuarios/actions";
 import { UsuariosClient } from "./usuarios-client";
+import { PageHeader } from "@/components/ui/page-header";
+import { NuevoUsuarioTrigger } from "@/components/usuarios/nuevo-usuario-trigger";
 
 export default async function UsuariosPage() {
   const session = await getSession();
@@ -16,15 +18,16 @@ export default async function UsuariosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-        <h2 className="font-headline text-headline-lg text-m3-primary">Usuarios</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">
-          {usuario.rol === "superadmin"
-            ? "Crea administradores y testers"
-            : "Crea testers para asignarlos a los proyectos de tu espacio"}
-        </span>
-        <span className="ml-auto" />
-      </div>
+      <PageHeader
+        title="Usuarios"
+        subtitle={
+          usuario.rol === "superadmin"
+            ? "Gestión de miembros y roles — crea administradores y testers"
+            : "Gestión de miembros y roles — crea testers para asignarlos a los proyectos de tu espacio"
+        }
+        badge={{ value: usuarios.length, label: "usuarios" }}
+        actions={<NuevoUsuarioTrigger />}
+      />
       <UsuariosClient
         initialUsuarios={usuarios}
         puedeElegirRol={usuario.rol === "superadmin"}

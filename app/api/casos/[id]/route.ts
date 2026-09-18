@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";
 import { getCasoById, updateCaso, deleteCaso } from "@/lib/casos/actions";
 
 interface RouteParams {
@@ -20,8 +20,12 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   try {
     const caso = await getCasoById(id);
+    await requireProyectoAccess(session, caso.proyectoId);
     return NextResponse.json(caso);
   } catch (err: any) {
+    if (err === FORBIDDEN_ERROR || err?.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
     }

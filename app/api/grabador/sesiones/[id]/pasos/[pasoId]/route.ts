@@ -130,6 +130,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ ok: true, paso: updated });
   } catch (err) {
+    console.error(`[grabador] Error en PATCH paso ${pasoId} (sesion ${sesionId}):`, err);
     throw err;
   }
 }

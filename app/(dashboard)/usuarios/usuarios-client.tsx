@@ -1,8 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { SectionSearch } from "@/components/ui/section-search";
 import { UsuarioEspaciosDialog } from "@/components/usuarios/usuario-espacios-dialog";
 import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
 import type { UsuarioRow } from "@/types/usuario";
@@ -33,6 +39,15 @@ function formatFecha(iso: string | null): string {
 }
 
 export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actorRol }: UsuariosClientProps) {
+  // Listen for the "Nuevo usuario" button click dispatched from PageHeader
+  useEffect(() => {
+    function handleOpenModal() {
+      setShowCreateModal(true);
+    }
+    document.addEventListener("open-create-usuario-modal", handleOpenModal);
+    return () => document.removeEventListener("open-create-usuario-modal", handleOpenModal);
+  }, []);
+
   const [usuarios, setUsuarios] = useState<UsuarioRow[]>(initialUsuarios);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,10 +64,11 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
 
   const kpis = useMemo(() => {
     const total = usuarios.length;
-    const adminsYSuperadmins = usuarios.filter((u) => u.rol === "admin" || u.rol === "superadmin").length;
+    const superadmins = usuarios.filter((u) => u.rol === "superadmin").length;
+    const admins = usuarios.filter((u) => u.rol === "admin").length;
     const testersActivos = usuarios.filter((u) => u.rol === "tester" && u.activo).length;
     const suspendidos = usuarios.filter((u) => !u.activo).length;
-    return { total, adminsYSuperadmins, testersActivos, suspendidos };
+    return { total, superadmins, admins, testersActivos, suspendidos };
   }, [usuarios]);
 
   const filtrados = useMemo(() => {
@@ -145,23 +161,31 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Total usuarios" value={kpis.total} />
-        <KpiCard label="Admins / Superadmins" value={kpis.adminsYSuperadmins} />
-        <KpiCard label="Testers activos" value={kpis.testersActivos} accent="success" />
-        <KpiCard label="Usuarios suspendidos" value={kpis.suspendidos} accent={kpis.suspendidos > 0 ? "warn" : undefined} />
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-m3-primary px-4 py-2.5 font-label text-label-sm font-semibold text-m3-on-primary shadow-sm transition hover:opacity-90 active:scale-95"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Nuevo usuario
-        </button>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiTile
+          label="Total usuarios"
+          value={kpis.total}
+          accent="secondary"
+          icon="group"
+        />
+        <KpiTile
+          label="Superadmins"
+          value={kpis.superadmins}
+          accent="secondary"
+          icon="shield"
+        />
+        <KpiTile
+          label="Admins"
+          value={kpis.admins}
+          accent="secondary"
+          icon="admin_panel_settings"
+        />
+        <KpiTile
+          label="Testers activos"
+          value={kpis.testersActivos}
+          accent="success"
+          icon="how_to_reg"
+        />
       </div>
 
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} labelledBy="create-usuario-title" className="max-w-md">
@@ -170,14 +194,9 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
             <h2 id="create-usuario-title" className="font-headline text-headline-md text-m3-primary">
               Nuevo usuario
             </h2>
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(false)}
-              aria-label="Cerrar"
-              className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-            >
+            <Button variant="ghost" size="sm" type="button" onClick={() => setShowCreateModal(false)} aria-label="Cerrar">
               <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
+            </Button>
           </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
@@ -222,115 +241,120 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
             )}
 
             <div className="mt-1 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
-              >
+              <Button variant="secondary" type="button" onClick={() => setShowCreateModal(false)}>
                 Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="primary" type="submit" disabled={submitting}>
                 {submitting ? "Creando…" : "Crear usuario"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
       </Modal>
 
-      {/* Toolbar: filtros + búsqueda */}
-      <div className="flex flex-col gap-4 rounded-t-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          {(
-            [
-              { id: "todos" as const, label: "Todos", count: usuarios.length },
-              { id: "superadmin" as const, label: "Superadmins", count: usuarios.filter((u) => u.rol === "superadmin").length },
-              { id: "admin" as const, label: "Admins", count: usuarios.filter((u) => u.rol === "admin").length },
-              { id: "tester" as const, label: "Testers", count: usuarios.filter((u) => u.rol === "tester").length },
-              { id: "suspendidos" as const, label: "Suspendidos", count: kpis.suspendidos },
-            ]
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleFiltroChange(tab.id)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 font-label text-label-sm font-semibold transition ${
-                filtro === tab.id
-                  ? "bg-m3-info-container text-m3-info"
-                  : "text-m3-on-surface-variant hover:bg-m3-surface-container-high"
-              }`}
-            >
-              {tab.label} <span className="ml-1 text-[11px]">{tab.count}</span>
-            </button>
-          ))}
-        </div>
-        <input
-          type="text"
+      <div className="flex justify-end">
+        <SectionSearch
           value={busqueda}
-          onChange={(e) => {
-            setBusqueda(e.target.value);
+          onChange={(v) => {
+            setBusqueda(v);
             setPage(1);
           }}
           placeholder="Buscar por email o nombre…"
-          className="w-full rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-sm text-m3-on-surface placeholder:text-m3-on-surface-variant focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary sm:w-80"
         />
       </div>
 
-      {/* Tabla (md+) */}
-      <div className="hidden overflow-hidden rounded-b-2xl border-x border-b border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm md:block">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-m3-outline-variant bg-m3-surface-container text-m3-on-surface-variant">
-                <th className="px-5 py-3 font-label text-label-sm">Usuario</th>
-                <th className="px-5 py-3 font-label text-label-sm">Rol</th>
-                <th className="px-5 py-3 font-label text-label-sm">Espacios</th>
-                <th className="px-5 py-3 font-label text-label-sm">Estado</th>
-                <th className="px-5 py-3 font-label text-label-sm">Último acceso</th>
-                <th className="px-5 py-3 text-right font-label text-label-sm">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuariosPagina.map((u) => (
-                <UsuarioTr
-                  key={u.id}
-                  usuario={u}
-                  esYoMismo={u.id === actorId}
-                  puedeEditar={puedeEditar(u)}
-                  puedeGestionarEspacios={actorRol === "superadmin" && u.rol === "admin"}
-                  onEditar={() => setEditingUsuario(u)}
-                  onGestionarEspacios={() => setManagingEspaciosFor(u)}
-                />
-              ))}
-              {usuariosPagina.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-5 py-6 text-center text-m3-on-surface-variant">
-                    No hay usuarios que coincidan con el filtro.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
+        {/* Toolbar: filtros */}
+        <div className="flex flex-col gap-4 border-b border-m3-outline-variant p-4">
+          <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1">
+            {(
+              [
+                { id: "todos" as const, label: "Todos", count: usuarios.length },
+                { id: "superadmin" as const, label: "Superadmins", count: usuarios.filter((u) => u.rol === "superadmin").length },
+                { id: "admin" as const, label: "Admins", count: usuarios.filter((u) => u.rol === "admin").length },
+                { id: "tester" as const, label: "Testers", count: usuarios.filter((u) => u.rol === "tester").length },
+                { id: "suspendidos" as const, label: "Inactivos", count: kpis.suspendidos },
+              ]
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleFiltroChange(tab.id)}
+                className={`shrink-0 border-b-2 px-3 py-1.5 font-label text-label-sm font-semibold transition-colors ${
+                  filtro === tab.id
+                    ? "border-m3-primary text-m3-primary"
+                    : "border-transparent text-m3-on-surface-variant hover:border-m3-outline-variant hover:text-m3-on-surface"
+                }`}
+              >
+                {tab.label} <span className="ml-1 text-[11px]">{tab.count}</span>
+              </button>
+            ))}
+            {(busqueda || filtro !== "todos") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBusqueda("");
+                  handleFiltroChange("todos");
+                }}
+                className="ml-auto shrink-0 font-label text-label-sm text-m3-secondary hover:underline"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
 
-        <PaginacionFooter
-          mostrando={usuariosPagina.length}
-          total={filtrados.length}
-          paginaActual={paginaActual}
-          totalPages={totalPages}
-          onAnterior={() => setPage((p) => Math.max(1, p - 1))}
-          onSiguiente={() => setPage((p) => Math.min(totalPages, p + 1))}
-        />
+        {/* Tabla (md+) */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-m3-outline-variant bg-m3-surface-container text-m3-on-surface-variant">
+                  <th className="px-5 py-3 font-label text-label-sm font-semibold">Usuario</th>
+                  <th className="px-5 py-3 font-label text-label-sm font-semibold">Rol</th>
+                  <th className="px-5 py-3 font-label text-label-sm font-semibold">Espacios</th>
+                  <th className="px-5 py-3 font-label text-label-sm font-semibold">Estado</th>
+                  <th className="px-5 py-3 font-label text-label-sm font-semibold">Último acceso</th>
+                  <th className="px-5 py-3 text-right font-label text-label-sm font-semibold">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-m3-outline-variant">
+                {usuariosPagina.map((u) => (
+                  <UsuarioTr
+                    key={u.id}
+                    usuario={u}
+                    esYoMismo={u.id === actorId}
+                    puedeEditar={puedeEditar(u)}
+                    puedeGestionarEspacios={actorRol === "superadmin" && u.rol === "admin"}
+                    onEditar={() => setEditingUsuario(u)}
+                    onGestionarEspacios={() => setManagingEspaciosFor(u)}
+                  />
+                ))}
+                {usuariosPagina.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-4">
+                      <EmptyState icon="group" title="No hay usuarios que coincidan con el filtro." />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <PaginacionFooter
+            mostrando={usuariosPagina.length}
+            total={filtrados.length}
+            paginaActual={paginaActual}
+            totalPages={totalPages}
+            onAnterior={() => setPage((p) => Math.max(1, p - 1))}
+            onSiguiente={() => setPage((p) => Math.min(totalPages, p + 1))}
+          />
+        </div>
       </div>
 
       {/* Tarjetas (móvil) */}
       <div className="flex flex-col gap-3 md:hidden">
         {usuariosPagina.length === 0 ? (
-          <div className="rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-sm text-m3-on-surface-variant shadow-sm">
-            No hay usuarios que coincidan con el filtro.
-          </div>
+          <EmptyState icon="group" title="No hay usuarios que coincidan con el filtro." />
         ) : (
           usuariosPagina.map((u) => (
             <UsuarioCard
@@ -375,26 +399,17 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
   );
 }
 
-function KpiCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number;
-  accent?: "success" | "warn";
-}) {
-  const valueClass =
-    accent === "success"
-      ? "text-m3-success"
-      : accent === "warn"
-        ? "text-m3-secondary"
-        : "text-m3-on-surface";
+function RolBadge({ rol }: { rol: RolUsuario }) {
+  const classes =
+    rol === "superadmin"
+      ? "bg-m3-secondary-container text-m3-secondary"
+      : rol === "admin"
+        ? "bg-m3-surface-container-high text-m3-on-surface-variant"
+        : "bg-m3-tertiary-container text-m3-tertiary";
   return (
-    <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
-      <p className="font-label text-label-sm font-medium uppercase tracking-wider text-m3-on-surface-variant">{label}</p>
-      <p className={`mt-1 font-headline text-display ${valueClass}`}>{value}</p>
-    </div>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${classes}`}>
+      {ROL_LABEL[rol]}
+    </span>
   );
 }
 
@@ -412,15 +427,10 @@ function EspaciosCell({ espacios }: { espacios: UsuarioRow["espacios"] }) {
 }
 
 function EstadoBadge({ activo }: { activo: boolean }) {
-  return activo ? (
-    <span className="inline-flex items-center gap-1.5 font-label text-label-sm font-medium text-m3-success">
-      <span className="h-2 w-2 rounded-full bg-m3-success" /> Activo
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1.5 font-label text-label-sm font-medium text-m3-error">
-      <span className="h-2 w-2 rounded-full bg-m3-error" /> Suspendido
-    </span>
-  );
+  // "Suspendido" usa tone="neutral", no "error" — suspender una cuenta no es
+  // un estado de fallo, es simplemente inactividad (paridad con el tono
+  // "neutral" que usa StatusBadge para "sin ejecuciones" en caso-table).
+  return <StatusBadge tone={activo ? "success" : "neutral"}>{activo ? "Activo" : "Suspendido"}</StatusBadge>;
 }
 
 function RowActions({
@@ -436,28 +446,26 @@ function RowActions({
 }) {
   return (
     <div className="inline-flex items-center gap-1">
-      <button
+      <Button
+        variant="ghost"
+        className="hover:text-m3-primary disabled:opacity-30"
         onClick={onEditar}
         disabled={!puedeEditar}
         title={puedeEditar ? "Editar rol y estado" : "No puedes editar este usuario"}
         aria-label="Editar rol y estado"
-        className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-primary disabled:cursor-not-allowed disabled:opacity-30"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-        </svg>
-      </button>
+        <span className="material-symbols-outlined text-[20px]">edit</span>
+      </Button>
       {puedeGestionarEspacios && (
-        <button
+        <Button
+          variant="ghost"
+          className="hover:text-m3-secondary"
           onClick={onGestionarEspacios}
           title="Gestionar espacios asignados"
           aria-label="Gestionar espacios asignados"
-          className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-secondary"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-        </button>
+          <span className="material-symbols-outlined text-[20px]">share</span>
+        </Button>
       )}
     </div>
   );
@@ -480,7 +488,7 @@ function UsuarioTr({
 }) {
   const iniciales = (usuario.nombre || usuario.email).slice(0, 2).toUpperCase();
   return (
-    <tr className={`border-b border-m3-outline-variant last:border-b-0 ${!usuario.activo ? "opacity-60" : ""}`}>
+    <tr className={`hover:bg-m3-surface-container-high ${!usuario.activo ? "opacity-60" : ""}`}>
       <td className="px-5 py-3">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-m3-surface-container-high font-label text-label-sm font-bold text-m3-on-surface-variant">
@@ -496,9 +504,7 @@ function UsuarioTr({
         </div>
       </td>
       <td className="px-5 py-3">
-        <span className="inline-flex items-center rounded-full bg-m3-surface-container-high px-2.5 py-0.5 font-label text-label-sm font-medium text-m3-on-surface-variant">
-          {ROL_LABEL[usuario.rol]}
-        </span>
+        <RolBadge rol={usuario.rol} />
       </td>
       <td className="px-5 py-3">
         <EspaciosCell espacios={usuario.espacios} />
@@ -534,7 +540,7 @@ function UsuarioCard({
 }) {
   const iniciales = (usuario.nombre || usuario.email).slice(0, 2).toUpperCase();
   return (
-    <div className={`rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm ${!usuario.activo ? "opacity-70" : ""}`}>
+    <div className={`rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card ${!usuario.activo ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-m3-surface-container-high font-label text-label-sm font-bold text-m3-on-surface-variant">
@@ -553,9 +559,7 @@ function UsuarioCard({
         />
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-m3-outline-variant pt-3 text-xs">
-        <span className="inline-flex items-center rounded-full bg-m3-surface-container-high px-2.5 py-0.5 font-label text-label-sm font-medium text-m3-on-surface-variant">
-          {ROL_LABEL[usuario.rol]}
-        </span>
+        <RolBadge rol={usuario.rol} />
         <EstadoBadge activo={usuario.activo} />
         <EspaciosCell espacios={usuario.espacios} />
         <span className="font-body text-body-sm text-m3-on-surface-variant">{formatFecha(usuario.ultimoAccesoAt)}</span>
@@ -588,23 +592,15 @@ function PaginacionFooter({
         <span className="font-semibold text-m3-on-surface">{total}</span> usuarios registrados
       </p>
       <div className="flex items-center gap-2">
-        <button
-          onClick={onAnterior}
-          disabled={paginaActual <= 1}
-          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button variant="secondary" size="sm" onClick={onAnterior} disabled={paginaActual <= 1}>
           Anterior
-        </button>
+        </Button>
         <span className="rounded-lg border border-m3-info bg-m3-info-container px-3 py-1.5 font-bold text-m3-info">
           {paginaActual}
         </span>
-        <button
-          onClick={onSiguiente}
-          disabled={paginaActual >= totalPages}
-          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button variant="secondary" size="sm" onClick={onSiguiente} disabled={paginaActual >= totalPages}>
           Siguiente
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -656,14 +652,9 @@ function EditUsuarioDialog({
           <h2 id="edit-usuario-title" className="font-headline text-headline-md text-m3-primary">
             Editar usuario
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={onClose} aria-label="Cerrar">
             <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+          </Button>
         </div>
         <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">{usuario.email}</p>
 
@@ -701,21 +692,12 @@ function EditUsuarioDialog({
           )}
 
           <div className="mt-1 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
-            >
+            <Button variant="secondary" type="button" onClick={onClose}>
               Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleGuardar}
-              disabled={saving}
-              className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="primary" type="button" onClick={handleGuardar} disabled={saving}>
               {saving ? "Guardando…" : "Guardar cambios"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { StatusBadge, type StatusBadgeTone } from "@/components/ui/status-badge";
 import type { CasoPruebaListItem } from "@/types/caso";
 
 const PAGE_SIZE = 10;
@@ -37,41 +40,41 @@ function getEstadoBadge(
 ) {
   const map: Record<
     CasoPruebaListItem["estado"],
-    { label: string; className: string }
+    { label: string; tone: StatusBadgeTone; className?: string }
   > = {
     "sin ejecuciones": {
       label: "Sin ejecutar",
-      className: "bg-m3-surface-container-high text-m3-on-surface-variant",
+      tone: "neutral",
     },
     paso: {
       label: "Pasó",
-      className: "bg-m3-success-container text-m3-success",
+      tone: "success",
     },
     fallo: {
       label:
         primerPasoFallidoNumero != null
           ? `Falló en el paso ${primerPasoFallidoNumero}`
           : "Falló",
-      className: "bg-m3-danger-container text-m3-error",
+      tone: "error",
     },
     reparado: {
       label: "Reparado",
-      className: "bg-m3-reparado-container text-m3-reparado",
+      tone: "reparado",
     },
     errorMotor: {
       label: "Error motor",
-      className: "bg-m3-danger-container text-m3-error",
+      tone: "error",
     },
   };
   // Fallback for unknown estados (e.g. "pendiente", "corriendo") coming from
   // legacy rows, API/DB drift, or future states not yet mapped. Without this
-  // guard, reading `badge.className` would throw "Cannot read properties of
+  // guard, reading `badge.tone` would throw "Cannot read properties of
   // undefined".
   return (
     map[estado] ?? {
       label: estado,
-      className:
-        "bg-m3-surface-container-high text-m3-on-surface-variant border border-m3-outline-variant",
+      tone: "neutral" as StatusBadgeTone,
+      className: "border border-m3-outline-variant",
     }
   );
 }
@@ -87,17 +90,11 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
   );
 
   if (casos.length === 0) {
-    return (
-      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
-        <p className="font-body text-body-md text-m3-on-surface-variant">
-          No hay casos de prueba
-        </p>
-      </div>
-    );
+    return <EmptyState icon="fact_check" title="No hay casos de prueba" />;
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
       {/* Tabla — md y superior */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-left">
@@ -106,12 +103,12 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
               {["Código", "Caso", "Responsable", "Estado", "Última ejecución"].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant"
+                  className="px-5 py-3 font-label text-label-sm font-semibold text-m3-on-surface-variant"
                 >
                   {h}
                 </th>
               ))}
-              <th className="px-4 py-3 text-left font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
+              <th className="px-5 py-3 text-left font-label text-label-sm font-semibold text-m3-on-surface-variant">
                 Acciones
               </th>
             </tr>
@@ -123,6 +120,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                 <CasoRow
                   key={caso.id}
                   caso={caso}
+                  badgeTone={badge.tone}
                   badgeClassName={badge.className}
                   badgeLabel={badge.label}
                   canEdit={canEdit}
@@ -143,6 +141,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
             <CasoCard
               key={caso.id}
               caso={caso}
+              badgeTone={badge.tone}
               badgeClassName={badge.className}
               badgeLabel={badge.label}
               canEdit={canEdit}
@@ -159,23 +158,25 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
           <span className="font-semibold text-m3-on-surface">{casos.length}</span> casos registrados
         </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={paginaActual <= 1}
-            className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
           >
             Anterior
-          </button>
+          </Button>
           <span className="rounded-lg border border-m3-info bg-m3-info-container px-3 py-1.5 font-bold text-m3-info">
             {paginaActual}
           </span>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={paginaActual >= totalPages}
-            className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
           >
             Siguiente
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -184,7 +185,8 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
 
 interface CasoRowProps {
   caso: CasoPruebaListItem;
-  badgeClassName: string;
+  badgeTone: StatusBadgeTone;
+  badgeClassName?: string;
   badgeLabel: string;
   canEdit: boolean;
   onEdit?: (caso: CasoPruebaListItem) => void;
@@ -249,7 +251,9 @@ interface AccionesCasoProps {
 function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDelete }: AccionesCasoProps) {
   return (
     <div className="flex items-center gap-1">
-      <button
+      <Button
+        variant="ghost"
+        className="hover:text-m3-success"
         onClick={(e) => {
           e.stopPropagation();
           onEjecutar();
@@ -257,7 +261,6 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
         disabled={running}
         aria-label={`Ejecutar caso ${caso.codigo}`}
         title={running ? "Lanzando…" : "Ejecutar"}
-        className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-success disabled:cursor-not-allowed disabled:opacity-50"
       >
         {running ? (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -265,11 +268,9 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
           </svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4.5 3.5A1 1 0 003 4.4v11.2a1 1 0 001.5.87l10-5.6a1 1 0 000-1.74l-10-5.6a1 1 0 00-1-.06z" clipRule="evenodd" />
-          </svg>
+          <span className="material-symbols-outlined text-[20px]">play_arrow</span>
         )}
-      </button>
+      </Button>
       {canEdit && (
         <Link
           href={`/casos/${caso.id}?editarScript=1`}
@@ -279,48 +280,43 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
           data-testid="editar-script-row-action"
           className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-primary"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="16" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="m7 9 3 3-3 3M13 15h4" />
-          </svg>
+          <span className="material-symbols-outlined text-[20px]">code</span>
         </Link>
       )}
       {canEdit && onEdit && (
-        <button
+        <Button
+          variant="ghost"
+          className="hover:text-m3-primary"
           onClick={(e) => {
             e.stopPropagation();
             onEdit(caso);
           }}
           aria-label="Editar"
           title="Editar"
-          className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-primary"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-          </svg>
-        </button>
+          <span className="material-symbols-outlined text-[20px]">edit</span>
+        </Button>
       )}
       {canEdit && onDelete && (
-        <button
+        <Button
+          variant="ghost"
+          className="hover:bg-m3-danger-container hover:text-m3-error"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(caso);
           }}
           aria-label="Eliminar"
           title="Eliminar"
-          className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-danger-container hover:text-m3-error"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-        </button>
+          <span className="material-symbols-outlined text-[20px]">delete</span>
+        </Button>
       )}
       {error && <span className="font-label text-label-sm text-m3-error">{error}</span>}
     </div>
   );
 }
 
-function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoRow({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
   const { running, error, handleEjecutar } = useEjecutarCaso(caso);
 
   function handleRowClick() {
@@ -333,10 +329,10 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
 
   return (
     <tr
-      className={`group${hasEjecucion ? " cursor-pointer hover:bg-m3-surface-container-high" : ""}`}
+      className={`group hover:bg-m3-surface-container-high${hasEjecucion ? " cursor-pointer" : ""}`}
       onClick={handleRowClick}
     >
-      <td className="px-4 py-3">
+      <td className="px-5 py-3">
         <Link
           href={`/casos/${caso.id}`}
           onClick={(e) => e.stopPropagation()}
@@ -345,7 +341,7 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
           {caso.codigo}
         </Link>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-5 py-3">
         <Link
           href={`/casos/${caso.id}`}
           onClick={(e) => e.stopPropagation()}
@@ -362,20 +358,18 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
           </div>
         )}
       </td>
-      <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
+      <td className="px-5 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {caso.responsableEmail}
       </td>
-      <td className="px-4 py-3">
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${badgeClassName}`}
-        >
+      <td className="px-5 py-3">
+        <StatusBadge tone={badgeTone} className={badgeClassName}>
           {badgeLabel}
-        </span>
+        </StatusBadge>
       </td>
-      <td className="px-4 py-3 font-body text-body-sm text-m3-on-surface-variant">
+      <td className="px-5 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {formatDate(caso.fechaUltimaEjecucion)}
       </td>
-      <td className="px-4 py-3">
+      <td className="px-5 py-3">
         <AccionesCaso
           caso={caso}
           canEdit={canEdit}
@@ -390,7 +384,7 @@ function CasoRow({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }
   );
 }
 
-function CasoCard({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoCard({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
   const { running, error, handleEjecutar } = useEjecutarCaso(caso);
   const hasEjecucion = !!caso.ultimaEjecucionId;
 
@@ -422,11 +416,9 @@ function CasoCard({ caso, badgeClassName, badgeLabel, canEdit, onEdit, onDelete 
             {caso.nombre}
           </Link>
         </div>
-        <span
-          className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${badgeClassName}`}
-        >
+        <StatusBadge tone={badgeTone} className={`shrink-0 ${badgeClassName ?? ""}`}>
           {badgeLabel}
-        </span>
+        </StatusBadge>
       </div>
 
       {caso.parentCaseCodigo && (

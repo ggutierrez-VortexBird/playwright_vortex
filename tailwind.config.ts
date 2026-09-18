@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
-  darkMode: ["class"],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -30,8 +29,8 @@ const config: Config = {
         // Material Design 3 — tokens for grabador screens (HU-G1).
         // Source: fase2/mockups/{nuevo-caso-video,grabar-test}.html.
         m3: {
-          // Brand / primary
-          "primary": "#000000",
+          // Brand / primary — debe coincidir con --m3-primary en app/globals.css
+          "primary": "#2F5FBD",
           "on-primary": "#FFFFFF",
           "primary-container": "#131B2E",
           "on-primary-container": "#7C839B",
@@ -85,8 +84,8 @@ const config: Config = {
           "warn-container": "#FFF3DF",
           "reparado": "#6741C9",
           "reparado-container": "#EFEAFB",
-          // Tertiary (mint)
-          "tertiary": "#000000",
+          // Tertiary (mint) — debe coincidir con --m3-tertiary en app/globals.css
+          "tertiary": "#12805C",
           "on-tertiary": "#FFFFFF",
           "tertiary-container": "#002113",
           "on-tertiary-container": "#009668",
@@ -99,12 +98,13 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-archivo)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         mono: ["var(--font-ibm-plex-mono)", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
-        // Material-Design 3 type roles used in grabador screens.
-        // All aliases resolve to Inter (loaded as --font-inter).
-        display: ["var(--font-inter)", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
-        headline: ["var(--font-inter)", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
-        body: ["var(--font-inter)", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
-        label: ["var(--font-inter)", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
+        // Material-Design 3 type roles — Archivo for display/headline/body/label,
+        // JetBrains Mono for mono-code. Resolves taste-brief constraint: Archivo +
+        // JetBrains Mono as sole font families (no Inter).
+        display: ["var(--font-archivo)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        headline: ["var(--font-archivo)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        body: ["var(--font-archivo)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        label: ["var(--font-archivo)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         // Mono role for URLs, IDs, and code-like labels.
         "mono-code": [
           "var(--font-jetbrains-mono)",
@@ -139,15 +139,20 @@ const config: Config = {
         rail: "224px",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        // Radio de tarjeta del mockup de referencia (18px).
-        card: "18px",
+        // Escala única de radio (grid de 8px) — reemplaza el radio de
+        // mockup hardcodeado (18px) y los `rounded-xl`/`rounded-2xl`
+        // sueltos que competían por el mismo concepto de "card".
+        lg: "var(--radius-lg)",
+        md: "var(--radius-md)",
+        sm: "var(--radius-sm)",
       },
       boxShadow: {
-        // Sombra de tarjeta del mockup de referencia.
+        // Reposo: cards, contenedores de tabla, inputs.
         card: "0 1px 2px rgba(19,27,46,0.04), 0 8px 24px -12px rgba(19,27,46,0.18)",
+        // Hover/abierto: un paso más de elevación que `card`.
+        "card-hover": "0 4px 8px rgba(19,27,46,0.06), 0 16px 32px -16px rgba(19,27,46,0.24)",
+        // El nivel más alto — reservado al shell de modal canónico.
+        modal: "0 8px 16px rgba(19,27,46,0.08), 0 24px 48px -12px rgba(19,27,46,0.32)",
       },
     },
   },

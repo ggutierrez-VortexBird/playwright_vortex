@@ -10,6 +10,13 @@ export async function POST(request: Request) {
 
   const body = await request.json();
 
+  if (typeof body?.actual !== "string" || typeof body?.nueva !== "string") {
+    return NextResponse.json(
+      { error: "validation", message: "actual y nueva son requeridos" },
+      { status: 400 }
+    );
+  }
+
   try {
     const result = await cambiarPasswordPropia(body.actual, body.nueva, session);
     return NextResponse.json(result);

@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual, requireEspacioAdmin, FORBIDDEN_ERROR } from "@/lib/auth";
 import { listProyectosByEspacio, getMetrics } from "@/lib/proyectos/actions";
 import { getEspacioById } from "@/lib/espacios/actions";
+import { PageHeader } from "@/components/ui/page-header";
+import { NuevoProyectoTrigger } from "@/components/proyectos/nuevo-proyecto-trigger";
 import { ProyectoGrid } from "./proyecto-grid";
-import { ScopeBar } from "@/components/ui/scope-bar";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 import type { UsuarioActual } from "@/lib/auth";
 
@@ -84,11 +85,11 @@ export default async function ProyectosPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div>
-        <ScopeBar espacioNombre={espacio.nombre} espacioColor={espacio.color} />
-        <p className="mt-1 text-m3-on-surface-variant">Proyectos del espacio</p>
-      </div>
+      <PageHeader
+        title={espacio.nombre}
+        description="Proyectos de este espacio de trabajo"
+        actions={canCreate ? <NuevoProyectoTrigger /> : undefined}
+      />
 
       {/* Proyectos Grid with Suspense */}
       <Suspense fallback={<ProyectoSkeleton />}>

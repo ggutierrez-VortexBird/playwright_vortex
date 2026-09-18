@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR, NOT_FOUND_ERROR } from "@/lib/auth";
 import { getProyectoById, updateProyecto, deleteProyecto } from "@/lib/proyectos/actions";
 
 interface RouteParams {
@@ -19,9 +19,16 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   try {
+    await requireProyectoAccess(session, id);
     const proyecto = await getProyectoById(id);
     return NextResponse.json(proyecto);
   } catch (err: any) {
+    if (err === FORBIDDEN_ERROR || err?.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
+    if (err === NOT_FOUND_ERROR || err?.message === "NOT_FOUND") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
     if (err.status) {
       return NextResponse.json(err.body, { status: err.status });
     }

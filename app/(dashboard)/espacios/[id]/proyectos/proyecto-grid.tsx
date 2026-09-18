@@ -6,6 +6,8 @@ import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form"
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
 import { TestersDialog } from "@/components/proyectos/testers-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
 interface ProyectoGridProps {
@@ -24,6 +26,14 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
   const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
   const [deletingProyecto, setDeletingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    function handleOpenModal() {
+      setShowForm(true);
+    }
+    document.addEventListener("open-create-proyecto-modal", handleOpenModal);
+    return () => document.removeEventListener("open-create-proyecto-modal", handleOpenModal);
+  }, []);
 
   useEffect(() => {
     async function fetchProyectos() {
@@ -140,18 +150,9 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
   return (
     <div className="space-y-4">
-      {/* Botón y formularios de creación/edición */}
-      {canEdit && (
+      {/* Formularios de creación/edición — el botón "Nuevo Proyecto" vive en el PageHeader */}
+      {canEdit && (showForm || editingProyecto) && (
         <div>
-          {!showForm && !editingProyecto && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="rounded-md bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90"
-            >
-              + Nuevo Proyecto
-            </button>
-          )}
-
           {showForm && (
             <CreateProyectoForm
               espacioId={espacioId}
@@ -172,17 +173,17 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
       {/* Grid de proyectos */}
       {proyectos.length === 0 && !showForm ? (
-        <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
-          <p className="text-m3-on-surface-variant">No hay proyectos en este espacio.</p>
-          {canEdit && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="mt-2 text-sm text-m3-secondary hover:underline"
-            >
-              Crear el primer proyecto
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon="folder_open"
+          title="No hay proyectos en este espacio."
+          action={
+            canEdit ? (
+              <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
+                Crear el primer proyecto
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {proyectos.map((proyecto) => (

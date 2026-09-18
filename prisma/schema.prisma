@@ -214,6 +214,7 @@ model Ejecucion {
   @@index([casoPruebaId])
   @@index([estado])
   @@index([loteId])
+  @@index([casoPruebaId, estado])
 }
 
 model PasoEjecucion {

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 interface UsuarioOption {
   id: string;
@@ -21,7 +23,6 @@ interface TestersDialogProps {
 }
 
 export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [asignados, setAsignados] = useState<TesterAsignado[]>([]);
   const [candidatos, setCandidatos] = useState<UsuarioOption[]>([]);
   const [selected, setSelected] = useState("");
@@ -53,7 +54,6 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
   }
 
   useEffect(() => {
-    dialogRef.current?.showModal();
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proyectoId]);
@@ -92,7 +92,6 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
   }
 
   function handleClose() {
-    dialogRef.current?.close();
     onClose();
   }
 
@@ -100,24 +99,13 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
   const disponibles = candidatos.filter((c) => !asignadosIds.has(c.id));
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClick={(e) => {
-        if (e.target === dialogRef.current) handleClose();
-      }}
-      onClose={onClose}
-      className="rounded-2xl border-none bg-m3-surface-container-lowest p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
-    >
-      <div className="max-h-[85vh] w-96 max-w-full overflow-y-auto p-6">
+    <Modal open onClose={handleClose} labelledBy="testers-dialog-title" className="max-w-md">
+      <div className="p-6">
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="font-headline text-headline-md text-m3-on-surface">Testers del proyecto</h3>
-          <button
-            onClick={handleClose}
-            className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-            aria-label="Cerrar"
-          >
+          <h3 id="testers-dialog-title" className="font-headline text-headline-md text-m3-on-surface">Testers del proyecto</h3>
+          <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Cerrar">
             <span className="material-symbols-outlined text-[18px]">close</span>
-          </button>
+          </Button>
         </div>
         <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">{proyectoNombre}</p>
 
@@ -149,13 +137,15 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
                     <div className="truncate font-body text-body-sm font-medium text-m3-on-surface">{a.email}</div>
                     <div className="font-body text-body-sm text-m3-on-surface-variant">Tester</div>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:text-m3-error"
                     onClick={() => handleQuitar(a.id)}
                     aria-label={`Quitar ${a.email}`}
-                    className="rounded p-1 text-m3-on-surface-variant hover:text-m3-error"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -176,13 +166,9 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
                   </option>
                 ))}
               </select>
-              <button
-                onClick={handleAsignar}
-                disabled={!selected}
-                className="rounded-lg border border-m3-outline-variant px-4 py-2 font-label text-label-sm font-semibold text-m3-on-surface hover:bg-m3-surface-container-high disabled:opacity-40"
-              >
+              <Button variant="secondary" onClick={handleAsignar} disabled={!selected}>
                 Asignar
-              </button>
+              </Button>
             </div>
             {disponibles.length === 0 && (
               <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
@@ -191,16 +177,13 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
             )}
 
             <div className="mt-5 flex justify-end">
-              <button
-                onClick={handleClose}
-                className="font-label text-label-md text-m3-on-surface-variant hover:underline"
-              >
+              <Button variant="secondary" onClick={handleClose}>
                 Cerrar
-              </button>
+              </Button>
             </div>
           </>
         )}
       </div>
-    </dialog>
+    </Modal>
   );
 }

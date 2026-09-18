@@ -6,14 +6,40 @@ interface ScopeBarProps {
   espacioColor?: string | null;
 }
 
+/**
+ * Scope indicator — shows the active Espacio + Proyecto as a contextual breadcrumb.
+ * Mandatory on all screens except /login (PRD Criterio #2).
+ *
+ * Anatomy:
+ *   - Small left-border client-band accent in espacioColor
+ *   - espacioNombre in text-m3-on-surface-variant
+ *   - Chevron separator
+ *   - proyectoNombre in text-m3-primary (emphasized as active)
+ *
+ * Impeccable: layout (always visible) + colorize (semantic emphasis).
+ */
 export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeBarProps) {
-  // Hide scope-bar when no project is active (at project grid level)
+  // If no project is active, show the espacio only (e.g. project listing)
   if (!proyectoNombre) {
-    return null;
+    return (
+      <div className="relative flex items-center gap-2 overflow-hidden">
+        {espacioColor && (
+          <i
+            className="scope-bar-icon"
+            style={{ backgroundColor: espacioColor }}
+            aria-hidden="true"
+          />
+        )}
+        <span className="font-label text-label-md text-m3-on-surface-variant truncate">
+          {espacioNombre}
+        </span>
+      </div>
+    );
   }
 
   return (
-    <div className="scope-bar flex items-center gap-2 font-body text-body-md font-medium text-m3-on-surface">
+    <div className="relative flex items-center gap-2 overflow-hidden">
+      {/* Left accent border — espacio color */}
       {espacioColor && (
         <i
           className="scope-bar-icon"
@@ -21,7 +47,16 @@ export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeB
           aria-hidden="true"
         />
       )}
-      <span>{proyectoNombre}</span>
+      {/* Breadcrumb: espacio > proyecto */}
+      <span className="font-label text-label-md text-m3-on-surface-variant truncate">
+        {espacioNombre}
+      </span>
+      <span className="text-m3-on-surface-variant" aria-hidden="true">
+        /
+      </span>
+      <span className="font-label text-label-md font-medium text-m3-primary truncate">
+        {proyectoNombre}
+      </span>
     </div>
   );
 }

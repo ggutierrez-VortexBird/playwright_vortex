@@ -97,8 +97,9 @@ export async function createUsuario(input: CreateUsuarioInput, session: SessionD
  * página de gestión de usuarios como para el selector de "responsable" al
  * crear un caso (por eso siempre incluye al usuario que pregunta):
  * - superadmin: todos.
- * - admin: los usuarios con rol tester, más él mismo (para poder asignar
- *   proyectos/casos y también auto-asignarse como responsable).
+ * - admin: él mismo, más los testers asignados a un proyecto de alguno de
+ *   los espacios que administra (nunca otros admins ni superadmins, y
+ *   nunca testers de espacios ajenos).
  * - tester: solo él mismo.
  */
 export async function listUsuarios(session: SessionData) {
@@ -117,7 +118,21 @@ export async function listUsuarios(session: SessionData) {
 
   if (actor.rol === "admin") {
     const usuarios = await prisma.usuario.findMany({
-      where: { OR: [{ rol: "tester" }, { id: actor.id }] },
+      where: {
+        OR: [
+          { id: actor.id },
+          {
+            rol: "tester",
+            proyectos: {
+              some: {
+                proyecto: {
+                  espacio: { miembros: { some: { usuarioId: actor.id } } },
+                },
+              },
+            },
+          },
+        ],
+      },
       select: USUARIO_LIST_SELECT,
       orderBy: { email: "asc" },
     });

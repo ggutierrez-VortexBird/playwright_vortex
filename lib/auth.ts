@@ -8,9 +8,19 @@ export interface SessionData {
   email?: string;
 }
 
+// Falla temprano y con un mensaje claro en vez de dejar que iron-session
+// reciba `undefined` (vía `!`) y explote más abajo con un error críptico
+// sobre longitud de password.
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error(
+    "SESSION_SECRET no está definida. Configúrala en .env (mínimo 32 caracteres)."
+  );
+}
+
 export const sessionOptions = {
   cookieName: "vortest_session",
-  password: process.env.SESSION_SECRET!,
+  password: SESSION_SECRET,
   cookieOptions: {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ParametrosPanel, type ParametroPanelItem } from "@/components/grabador/parametros-panel";
-import { ignorePlaywrightModuleDiagnostics } from "@/lib/recorder/monaco-setup";
+import { configureVortestEditor, VORTEST_DARK_THEME } from "@/lib/recorder/monaco-setup";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { OrigenChip } from "@/components/ejecuciones/origen-chip";
+import { useBreadcrumbExtra } from "@/components/breadcrumb-context";
 
 // Monaco toca `window`/`navigator` al cargar — se difiere al cliente para
 // no romper el render del servidor de esta pantalla.
@@ -18,18 +22,21 @@ const Editor = dynamic(() => import("@monaco-editor/react").then((m) => m.Editor
 });
 
 /**
- * CasoDetalleCliente — case detail page (HU-G16 + HU-G12 + HU-G13).
+ * CasoDetalleCliente — case detail page (HU-G16 + HU-G12).
  *
  * Shows the saved script + "Ejecutar" button. The full detalle con
  * ejecuciones pasadas vive en /ejecuciones/[id] (HU-4.x).
  *
  * HU-G12: panel de parámetros editable (PATCH /api/casos/[id]/parametros/[paramId]).
  *         Credenciales NO editables — sólo lectura enmascarada.
- * HU-G13: subir CSV data-driven. POST /api/casos/[id]/juego-de-datos
- *         (multipart/form-data con campo "archivo"). Las columnas del
- *         CSV deben matchear los nombres de los parametros. Preview de
- *         las primeras 5 filas se muestra tras subir.
  */
+
+function formatBytes(chars: number): string {
+  if (chars === 0) return "0 B";
+  const kb = chars / 1024;
+  if (kb < 1) return `${chars} B`;
+  return `${kb.toFixed(1)} KB`;
+}
 
 export interface CasoDetalleParametro {
   id: string;
@@ -60,13 +67,6 @@ export interface CasoDetalleClienteProps {
   autoAbrirEditorScript?: boolean;
 }
 
-interface PreviewRow {
-  headers: string[];
-  filas: Array<Record<string, string>>;
-  nombreArchivo: string;
-  totalFilas: number;
-}
-
 export function CasoDetalleCliente({
   caso,
   backHref,
@@ -77,10 +77,12 @@ export function CasoDetalleCliente({
   const [parametros, setParametros] = useState<ParametroPanelItem[]>(
     caso.parametros,
   );
-  const [csvBusy, setCsvBusy] = useState(false);
-  const [csvError, setCsvError] = useState<string | null>(null);
-  const [csvPreview, setCsvPreview] = useState<PreviewRow | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { setExtra } = useBreadcrumbExtra();
+  useEffect(() => {
+    setExtra([{ label: "Script" }, { label: caso.nombre }]);
+    return () => setExtra([]);
+  }, [caso.nombre, setExtra]);
 
   // Editor del script — separado del formulario "Editar" (nombre, código,
   // responsable) que vive en la tabla de Casos. Este edita el .spec.ts en
@@ -176,76 +178,41 @@ export function CasoDetalleCliente({
     }
   }
 
-  async function handleCsvUpload(file: File) {
-    setCsvBusy(true);
-    setCsvError(null);
-    try {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      const res = await fetch(
-        `/api/casos/${encodeURIComponent(caso.id)}/juego-de-datos`,
-        { method: "POST", body: fd },
-      );
-      const data = (await res.json().catch(() => ({}))) as {
-        message?: string;
-        errors?: Array<{ column?: string; message: string }>;
-        headers?: string[];
-        previewRows?: Array<Record<string, string>>;
-        juego?: { nombreArchivo: string };
-      };
-      if (!res.ok) {
-        const msg =
-          data.message ??
-          (data.errors && data.errors.length > 0
-            ? data.errors.map((e) => e.message).join("; ")
-            : `Subir falló (${res.status})`);
-        setCsvError(msg);
-        return;
-      }
-      setCsvPreview({
-        headers: data.headers ?? [],
-        filas: data.previewRows ?? [],
-        nombreArchivo: data.juego?.nombreArchivo ?? file.name,
-        totalFilas: (data.previewRows ?? []).length,
-      });
-    } catch {
-      setCsvError("Error de red al subir CSV");
-    } finally {
-      setCsvBusy(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6" data-testid="caso-detalle-cliente">
-      <div className="bg-m3-surface-container-lowest border border-m3-outline-variant rounded-lg shadow-sm">
-        <div className="p-5 border-b border-m3-outline-variant flex justify-between items-start gap-4 flex-wrap">
-          <div className="min-w-0">
-            <Link
-              href={backHref}
-              className="font-label text-label-sm text-m3-on-surface-variant hover:text-m3-primary"
-              data-testid="back-link"
-            >
-              ← Volver
-            </Link>
-            <h2 className="font-headline text-headline-lg text-m3-primary font-semibold mt-2">
-              {caso.nombre}
-            </h2>
-            <p className="font-mono-code text-xs text-m3-on-surface-variant mt-1">
-              {caso.codigo} · origen: {caso.origen}
-              {caso.scriptFileName ? ` · ${caso.scriptFileName}` : ""}
-            </p>
+      <PageHeader
+        title={caso.nombre}
+        subtitle={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-[11px] text-m3-on-surface-variant">
+              {caso.codigo}
+            </span>
+            <OrigenChip origen={caso.origen} />
+            {caso.scriptFileName && (
+              <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-[11px] text-m3-on-surface-variant">
+                {caso.scriptFileName}
+              </span>
+            )}
           </div>
-          <button
-            type="button"
+        }
+        actions={
+          <Button
+            variant="primary"
             onClick={handleEjecutar}
             disabled={busy}
             data-testid="ejecutar-button"
-            className="px-4 py-2 bg-m3-primary text-m3-on-primary rounded font-label text-label-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+            className="inline-flex items-center gap-1.5"
           >
+            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
             {busy ? "Encolando…" : "Ejecutar"}
-          </button>
-        </div>
+          </Button>
+        }
+      />
+      <Link href={backHref} className="sr-only" data-testid="back-link">
+        ← Volver
+      </Link>
 
+      <div className="bg-m3-surface-container-lowest border border-m3-outline-variant rounded-lg shadow-sm">
         {errorMsg && (
           <div
             role="alert"
@@ -308,19 +275,33 @@ export function CasoDetalleCliente({
             </div>
           )}
 
-          {editingScript ? (
-            <div
-              data-testid="script-editor-container"
-              className="h-[320px] overflow-hidden rounded border border-m3-outline-variant lg:h-[440px]"
-            >
+          <div
+            data-testid="script-editor-container"
+            className="flex h-[380px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0f172a] shadow-xl lg:h-[440px]"
+          >
+            {/* Titlebar + tab del archivo — mismo tratamiento que el editor del grabador */}
+            <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
+              <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">
+                <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-[9px] font-bold text-white">
+                  TS
+                </span>
+                <span className="font-medium">{caso.scriptFileName ?? `${caso.codigo}.spec.ts`}</span>
+                <span className="ml-1 text-[10px] text-slate-500">
+                  {formatBytes((editingScript ? scriptDraft : script).length)}
+                </span>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1">
               <Editor
                 height="100%"
                 defaultLanguage="typescript"
-                theme="vs"
-                value={scriptDraft}
-                onChange={(value) => setScriptDraft(value ?? "")}
-                beforeMount={ignorePlaywrightModuleDiagnostics}
+                theme={VORTEST_DARK_THEME}
+                value={editingScript ? scriptDraft : script}
+                onChange={(value) => editingScript && setScriptDraft(value ?? "")}
+                beforeMount={configureVortestEditor}
                 options={{
+                  readOnly: !editingScript,
                   minimap: { enabled: false },
                   fontSize: 13,
                   scrollBeyondLastLine: false,
@@ -329,14 +310,16 @@ export function CasoDetalleCliente({
                 }}
               />
             </div>
-          ) : (
-            <pre
-              data-testid="script-block"
-              className="bg-m3-surface-container rounded p-4 overflow-x-auto font-mono-code text-mono-code text-m3-on-surface whitespace-pre text-xs"
-            >
-              {script}
-            </pre>
-          )}
+
+            {/* Statusbar */}
+            <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className={`h-2 w-2 rounded-full ${editingScript ? "bg-amber-400" : "bg-emerald-400"}`} />
+                {editingScript ? "Editando" : "Solo lectura"}
+              </span>
+              <span className="text-slate-500">Playwright Test Runner</span>
+            </div>
+          </div>
         </div>
 
         {parametros.length > 0 && (
@@ -350,107 +333,6 @@ export function CasoDetalleCliente({
             />
           </div>
         )}
-
-        {/* HU-G13 — Juego de datos (CSV data-driven) */}
-        <div
-          className="p-5 border-t border-m3-outline-variant"
-          data-testid="csv-section"
-        >
-          <h3 className="font-headline text-headline-md text-m3-primary tracking-wide mb-2">
-            JUEGO DE DATOS (CSV)
-          </h3>
-          <p className="font-body text-body-sm text-m3-on-surface-variant mb-3">
-            Sube un CSV con una fila por escenario. Las columnas deben
-            coincidir con los nombres de los parámetros (header obligatorio).
-            Al ejecutar, el caso corre 1 vez por fila.
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              data-testid="csv-file-input"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleCsvUpload(file);
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={csvBusy}
-              data-testid="csv-upload-button"
-              className="px-4 py-2 bg-m3-secondary-container text-m3-on-secondary-container rounded font-label text-label-sm font-medium hover:bg-m3-secondary-fixed transition-colors disabled:opacity-50 shadow-sm"
-            >
-              {csvBusy ? "Subiendo…" : "Subir CSV"}
-            </button>
-            {csvPreview && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCsvPreview(null);
-                  setCsvError(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-                data-testid="csv-clear-button"
-                className="px-3 py-2 text-m3-on-surface-variant hover:text-m3-primary font-label text-label-sm"
-              >
-                Quitar
-              </button>
-            )}
-          </div>
-          {csvError && (
-            <div
-              role="alert"
-              data-testid="csv-error"
-              className="mt-3 px-3 py-2 border border-m3-error/30 bg-m3-error-container/10 text-m3-error font-body text-body-sm rounded"
-            >
-              {csvError}
-            </div>
-          )}
-          {csvPreview && (
-            <div
-              className="mt-4"
-              data-testid="csv-preview"
-            >
-              <p className="font-label text-label-sm text-m3-on-surface-variant mb-2">
-                {csvPreview.nombreArchivo} · primeras {csvPreview.filas.length}{" "}
-                de {csvPreview.totalFilas} filas mostradas
-              </p>
-              <div className="overflow-x-auto border border-m3-outline-variant rounded">
-                <table className="w-full text-body-sm font-mono-code">
-                  <thead className="bg-m3-surface-container">
-                    <tr>
-                      {csvPreview.headers.map((h) => (
-                        <th
-                          key={h}
-                          className="px-3 py-2 text-left text-xs font-semibold text-m3-on-surface border-b border-m3-outline-variant"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {csvPreview.filas.map((fila, idx) => (
-                      <tr key={idx} className="border-b border-m3-outline-variant/50">
-                        {csvPreview.headers.map((h) => (
-                          <td
-                            key={h}
-                            className="px-3 py-1.5 text-m3-on-surface whitespace-nowrap"
-                          >
-                            {fila[h] ?? ""}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

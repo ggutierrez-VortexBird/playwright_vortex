@@ -10,16 +10,11 @@ interface ProyectoOption {
   espacioNombre: string;
 }
 
-interface CasosPageProps {
-  searchParams: Promise<{ q?: string }>;
-}
-
-export default async function CasosPage({ searchParams }: CasosPageProps) {
-  const { q } = await searchParams;
+export default async function CasosPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
 
-  const [casosSinFiltrar, proyectos] = await Promise.all([
+  const [casos, proyectos] = await Promise.all([
     listCasos(undefined, usuario),
     prisma.proyecto.findMany({
       where: {
@@ -30,13 +25,6 @@ export default async function CasosPage({ searchParams }: CasosPageProps) {
       orderBy: { nombre: "asc" },
     }),
   ]);
-
-  const query = q?.trim().toLowerCase();
-  const casos = query
-    ? casosSinFiltrar.filter(
-        (c) => c.nombre.toLowerCase().includes(query) || c.codigo.toLowerCase().includes(query)
-      )
-    : casosSinFiltrar;
 
   // Casos y Ejecuciones los puede crear/editar cualquier rol autenticado
   // con acceso al proyecto puntual — el guard real vive en la acción
@@ -51,11 +39,7 @@ export default async function CasosPage({ searchParams }: CasosPageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <CasosClient
-        casosIniciales={casos}
-        canEdit={canEdit}
-        proyectos={proyectosOptions}
-      />
+      <CasosClient casosIniciales={casos} canEdit={canEdit} proyectos={proyectosOptions} />
     </div>
   );
 }

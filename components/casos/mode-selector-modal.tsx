@@ -23,6 +23,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui/modal";
 import { CreateCasoForm } from "./create-caso-form";
 import { NuevaGrabacionForm } from "@/components/grabador/nueva-grabacion-form";
 import { encodeDraftQuery } from "@/lib/grabador/draft";
@@ -91,16 +92,6 @@ export function ModeSelectorModal({
     }
   }, [open]);
 
-  // Escape cierra el modal.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(ev: KeyboardEvent) {
-      if (ev.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
   // Mover foco al primer botón cuando abre.
   useEffect(() => {
     if (open && step === "select") {
@@ -110,8 +101,6 @@ export function ModeSelectorModal({
     }
     return undefined;
   }, [open, step]);
-
-  if (!open) return null;
 
   function handleCardClick(card: ModeCard) {
     setStep(card.id);
@@ -127,129 +116,123 @@ export function ModeSelectorModal({
   const contentWidth = step === "select" ? "max-w-3xl" : step === "grabar" ? "max-w-2xl" : "max-w-md";
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mode-selector-title"
+    <Modal
+      open={open}
+      onClose={onClose}
+      labelledBy="mode-selector-title"
       data-testid="mode-selector-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      onClick={(e) => {
-        // Click en el backdrop (no en el contenido) cierra.
-        if (e.target === e.currentTarget) onClose();
-      }}
+      className={`flex w-full ${contentWidth} max-h-[90vh] flex-col overflow-hidden`}
     >
-      <div className={`flex w-full ${contentWidth} max-h-[90vh] flex-col overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-2xl`}>
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-m3-outline-variant px-6 py-5">
-          <div>
-            <h2
-              id="mode-selector-title"
-              className="font-headline text-headline-lg text-m3-primary"
-            >
-              {title}
-            </h2>
-            {step === "select" && (
-              <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
-                Elige un modo para empezar. Puedes cambiarlo más tarde.
-              </p>
-            )}
-          </div>
-          {step !== "select" && (
-            <button
-              type="button"
-              onClick={() => setStep("select")}
-              data-testid="mode-selector-back"
-              className="group inline-flex shrink-0 items-center gap-1 font-label text-label-sm font-semibold text-m3-secondary transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                arrow_back
-              </span>
-              <span className="group-hover:underline">Volver</span>
-            </button>
+      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-m3-outline-variant px-6 py-5">
+        <div>
+          <h2
+            id="mode-selector-title"
+            className="font-headline text-headline-lg text-m3-primary"
+          >
+            {title}
+          </h2>
+          {step === "select" && (
+            <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
+              Elige un modo para empezar. Puedes cambiarlo más tarde.
+            </p>
           )}
         </div>
-
-        {step === "select" && (
-          <div className="scroll-hidden overflow-y-auto">
-            <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-              {CARDS.map((card, idx) => (
-                <button
-                  key={card.id}
-                  ref={idx === 0 ? firstButtonRef : undefined}
-                  type="button"
-                  onClick={() => handleCardClick(card)}
-                  data-testid={`mode-selector-card-${card.id}`}
-                  className="group flex flex-col items-center rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center transition-all hover:border-m3-secondary hover:bg-m3-secondary-fixed/20 focus:outline-none focus-visible:border-m3-secondary focus-visible:bg-m3-secondary-fixed/20 focus-visible:ring-2 focus-visible:ring-m3-secondary"
-                >
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-m3-surface-container-high transition-all group-hover:scale-105 group-hover:bg-m3-secondary-container">
-                    <span
-                      className="material-symbols-outlined text-[32px] text-m3-on-surface-variant transition-colors group-hover:text-m3-on-surface"
-                      aria-hidden="true"
-                    >
-                      {card.icon}
-                    </span>
-                  </div>
-                  <h3 className="mb-2 font-headline text-headline-md text-m3-primary">
-                    {card.title}
-                  </h3>
-                  <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">
-                    {card.description}
-                  </p>
-                  <span className="inline-flex items-center gap-1 font-label text-label-md font-medium text-m3-secondary group-hover:text-m3-on-secondary-container">
-                    {card.ctaLabel}
-                    <span
-                      className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1"
-                      aria-hidden="true"
-                    >
-                      arrow_forward
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-end px-6 pb-6">
-              <button
-                type="button"
-                onClick={onClose}
-                data-testid="mode-selector-cancel"
-                className="font-label text-label-md text-m3-on-surface-variant transition-colors hover:underline focus:outline-none"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === "subir" && (
-          <div className="scroll-hidden overflow-y-auto p-6">
-            <CreateCasoForm
-              embedded
-              proyectoId={proyectoId}
-              proyectos={proyectos}
-              onSuccess={() => {
-                onClose();
-                onCasoCreated?.();
-              }}
-              onCancel={onClose}
-            />
-          </div>
-        )}
-
-        {step === "grabar" && (
-          <div className="scroll-hidden overflow-y-auto p-6">
-            <NuevaGrabacionForm
-              embedded
-              proyectoId={proyectoId}
-              proyectos={proyectoId ? undefined : proyectos}
-              onCancel={() => setStep("select")}
-              onContinue={(draft) => {
-                onClose();
-                router.push(`/casos/grabar/preparar?${encodeDraftQuery(draft)}`);
-              }}
-            />
-          </div>
+        {step !== "select" && (
+          <button
+            type="button"
+            onClick={() => setStep("select")}
+            data-testid="mode-selector-back"
+            className="group inline-flex shrink-0 items-center gap-1 font-label text-label-sm font-semibold text-m3-secondary transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+              arrow_back
+            </span>
+            <span className="group-hover:underline">Volver</span>
+          </button>
         )}
       </div>
-    </div>
+
+      {step === "select" && (
+        <div className="scroll-hidden overflow-y-auto">
+          <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+            {CARDS.map((card, idx) => (
+              <button
+                key={card.id}
+                ref={idx === 0 ? firstButtonRef : undefined}
+                type="button"
+                onClick={() => handleCardClick(card)}
+                data-testid={`mode-selector-card-${card.id}`}
+                className="group flex flex-col items-center rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center transition-all hover:border-m3-secondary hover:bg-m3-secondary-fixed/20 focus:outline-none focus-visible:border-m3-secondary focus-visible:bg-m3-secondary-fixed/20 focus-visible:ring-2 focus-visible:ring-m3-secondary"
+              >
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-m3-surface-container-high transition-all group-hover:scale-105 group-hover:bg-m3-secondary-container">
+                  <span
+                    className="material-symbols-outlined text-[32px] text-m3-on-surface-variant transition-colors group-hover:text-m3-on-surface"
+                    aria-hidden="true"
+                  >
+                    {card.icon}
+                  </span>
+                </div>
+                <h3 className="mb-2 font-headline text-headline-md text-m3-primary">
+                  {card.title}
+                </h3>
+                <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">
+                  {card.description}
+                </p>
+                <span className="inline-flex items-center gap-1 font-label text-label-md font-medium text-m3-secondary group-hover:text-m3-on-secondary-container">
+                  {card.ctaLabel}
+                  <span
+                    className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1"
+                    aria-hidden="true"
+                  >
+                    arrow_forward
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-end px-6 pb-6">
+            <button
+              type="button"
+              onClick={onClose}
+              data-testid="mode-selector-cancel"
+              className="font-label text-label-md text-m3-on-surface-variant transition-colors hover:underline focus:outline-none"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === "subir" && (
+        <div className="scroll-hidden overflow-y-auto p-6">
+          <CreateCasoForm
+            embedded
+            proyectoId={proyectoId}
+            proyectos={proyectos}
+            onSuccess={() => {
+              onClose();
+              onCasoCreated?.();
+            }}
+            onCancel={onClose}
+          />
+        </div>
+      )}
+
+      {step === "grabar" && (
+        <div className="scroll-hidden overflow-y-auto p-6">
+          <NuevaGrabacionForm
+            embedded
+            proyectoId={proyectoId}
+            proyectos={proyectoId ? undefined : proyectos}
+            onCancel={() => setStep("select")}
+            onContinue={(draft) => {
+              onClose();
+              router.push(`/casos/grabar/preparar?${encodeDraftQuery(draft)}`);
+            }}
+          />
+        </div>
+      )}
+    </Modal>
   );
 }
