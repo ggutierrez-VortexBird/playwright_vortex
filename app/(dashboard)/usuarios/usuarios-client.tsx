@@ -270,8 +270,14 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
             {(
               [
                 { id: "todos" as const, label: "Todos", count: usuarios.length },
-                { id: "superadmin" as const, label: "Superadmins", count: usuarios.filter((u) => u.rol === "superadmin").length },
-                { id: "admin" as const, label: "Admins", count: usuarios.filter((u) => u.rol === "admin").length },
+                // Un admin nunca ve superadmins ni a otros admins (solo se ve a
+                // sí mismo) — filtrar por esos roles no tiene sentido en su vista.
+                ...(actorRol === "superadmin"
+                  ? [
+                      { id: "superadmin" as const, label: "Superadmins", count: usuarios.filter((u) => u.rol === "superadmin").length },
+                      { id: "admin" as const, label: "Admins", count: usuarios.filter((u) => u.rol === "admin").length },
+                    ]
+                  : []),
                 { id: "tester" as const, label: "Testers", count: usuarios.filter((u) => u.rol === "tester").length },
                 { id: "suspendidos" as const, label: "Inactivos", count: kpis.suspendidos },
               ]
@@ -400,12 +406,18 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
 }
 
 function RolBadge({ rol }: { rol: RolUsuario }) {
+  // Mismo patrón para las 3: fondo claro + texto saturado, nunca fondo
+  // oscuro con texto apagado. Los 3 tonos están repartidos lejos entre sí
+  // en el círculo cromático (ámbar / teal / rosa) — nada de tonos vecinos
+  // como índigo-morado, que a este tamaño de pill son difíciles de
+  // distinguir de un vistazo — y ninguno reutiliza los tokens de ESTADO
+  // (m3-success/m3-error/m3-info) para no confundirse con Pasó/Falló/Conforme.
   const classes =
     rol === "superadmin"
       ? "bg-m3-secondary-container text-m3-secondary"
       : rol === "admin"
-        ? "bg-m3-surface-container-high text-m3-on-surface-variant"
-        : "bg-m3-tertiary-container text-m3-tertiary";
+        ? "bg-teal-100 text-teal-700"
+        : "bg-pink-100 text-pink-700";
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${classes}`}>
       {ROL_LABEL[rol]}
