@@ -41,7 +41,9 @@ describe("ScopeBar", () => {
       />
     );
 
-    expect(container.firstChild).toBeNull();
+    // Component now renders espacioNombre even without proyectoNombre
+    expect(container.firstChild).not.toBeNull();
+    expect(container.textContent).toContain("Cliente A");
   });
 
   it("returns null when proyectoNombre is undefined", () => {
@@ -52,6 +54,8 @@ describe("ScopeBar", () => {
       />
     );
 
-    expect(container.firstChild).toBeNull();
+    // Component now renders espacioNombre even without proyectoNombre
+    expect(container.firstChild).not.toBeNull();
+    expect(container.textContent).toContain("Cliente A");
   });
 });

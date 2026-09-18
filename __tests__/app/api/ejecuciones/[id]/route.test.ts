@@ -8,6 +8,11 @@ jest.mock("@/lib/ejecuciones/queries", () => ({
   getEjecucionConPasos: jest.fn(),
 }));
 
+jest.mock("@/lib/auth", () => ({
+  getSession: jest.fn(),
+  requireProyectoAccess: jest.fn(),
+}));
+
 // Mock NextResponse.json to return a standard Response with readable body in jsdom
 jest.mock("next/server", () => {
   const actual = jest.requireActual("next/server");
@@ -36,6 +41,7 @@ async function readJson(res: Response): Promise<unknown> {
 describe("GET /api/ejecuciones/[id]", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (require("@/lib/auth").getSession as jest.Mock).mockResolvedValue({ userId: "user-1" });
   });
 
   it("retorna 404 cuando la ejecución no existe", async () => {

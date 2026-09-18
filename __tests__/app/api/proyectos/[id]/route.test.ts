@@ -5,6 +5,9 @@ import type { SessionData } from "@/lib/auth";
 
 jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
+  requireProyectoAccess: jest.fn(),
+  FORBIDDEN_ERROR: new Error("FORBIDDEN"),
+  NOT_FOUND_ERROR: new Error("NOT_FOUND"),
 }));
 
 jest.mock("@/lib/proyectos/actions", () => ({
