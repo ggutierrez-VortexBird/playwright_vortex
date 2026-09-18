@@ -8,6 +8,7 @@ import * as fs from "fs";
 
 jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
+  requireProyectoAccess: jest.fn(),
 }));
 
 jest.mock("@/lib/db", () => ({
@@ -57,6 +58,7 @@ describe("GET /api/artefactos/[id]", () => {
       id: "art-1",
       path: "/storage/artefactos/ejec-1/video.webm",
       tipo: "video",
+      ejecucion: { casoPrueba: { proyectoId: "proy-1" } },
     });
     (fs.existsSync as jest.Mock).mockReturnValue(false);
 
@@ -74,6 +76,7 @@ describe("GET /api/artefactos/[id]", () => {
       id: "art-1",
       path: "/storage/artefactos/ejec-1/video.webm",
       tipo: "video",
+      ejecucion: { casoPrueba: { proyectoId: "proy-1" } },
     });
     (fs.existsSync as jest.Mock).mockReturnValue(true);
 
@@ -96,6 +99,7 @@ describe("GET /api/artefactos/[id]", () => {
       id: "art-2",
       path: "/storage/artefactos/ejec-1/screenshot.png",
       tipo: "captura",
+      ejecucion: { casoPrueba: { proyectoId: "proy-1" } },
     });
     (fs.existsSync as jest.Mock).mockReturnValue(true);
 

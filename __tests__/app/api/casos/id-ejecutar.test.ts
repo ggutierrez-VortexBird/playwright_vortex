@@ -21,6 +21,7 @@ jest.mock("next/server", () => ({
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),
   getSession: jest.fn(),
+  requireProyectoAccess: jest.fn(),
 }));
 
 const mockFindUnique = jest.fn();
@@ -33,6 +34,18 @@ jest.mock("@/lib/db", () => ({
     },
     ejecucion: {
       create: (...args: unknown[]) => mockCreate(...args),
+    },
+    usuario: {
+      findUnique: jest.fn(),
+    },
+    proyecto: {
+      findUnique: jest.fn(),
+    },
+    usuarioEspacio: {
+      findUnique: jest.fn(),
+    },
+    usuarioProyecto: {
+      findUnique: jest.fn(),
     },
   },
 }));

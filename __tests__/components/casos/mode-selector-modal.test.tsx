@@ -136,7 +136,7 @@ describe("ModeSelectorModal (HU-G20)", () => {
     const onClose = jest.fn();
     render(<ModeSelectorModal open={true} onClose={onClose} />);
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(document, { key: "Escape" });
 
     expect(onClose).toHaveBeenCalled();
   });

@@ -3,6 +3,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { EjecucionDetalleClient } from "@/components/ejecuciones/ejecucion-detalle-client";
+import { BreadcrumbProvider } from "@/components/breadcrumb-context";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: jest.fn() }),
@@ -37,7 +38,7 @@ function mockEjecucion(overrides: Record<string, unknown> = {}) {
 describe("EjecucionDetalleClient", () => {
   it("muestra 'Generando evidencia' cuando está corriendo y no hay artefactos", () => {
     const ejecucion = mockEjecucion({ estado: "corriendo", artefactos: [] });
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
     expect(screen.getByText("Generando evidencia")).toBeInTheDocument();
   });
@@ -49,7 +50,7 @@ describe("EjecucionDetalleClient", () => {
         { id: "art-1", tipo: "video", nombre: "video.webm", pasoEjecucionId: null, bytes: 1024, createdAt: "2026-08-12T10:01:00.000Z" },
       ],
     });
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
     const video = screen.getByTestId("video-player");
     expect(video).toBeInTheDocument();
@@ -58,7 +59,7 @@ describe("EjecucionDetalleClient", () => {
 
   it("renderiza accordion de pasos en lugar de lista plana", () => {
     const ejecucion = mockEjecucion();
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
     expect(screen.getByText("Navegar")).toBeInTheDocument();
     expect(screen.getByText("Click")).toBeInTheDocument();
     expect(screen.getByText("Pasos ejecutados")).toBeInTheDocument();
@@ -66,7 +67,7 @@ describe("EjecucionDetalleClient", () => {
 
   it("renderiza detalles de entorno y aserciones en columna derecha", () => {
     const ejecucion = mockEjecucion();
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
     expect(screen.getByText("Producción")).toBeInTheDocument();
     expect(screen.getByText("Chrome 115")).toBeInTheDocument();
     expect(screen.getByText("124")).toBeInTheDocument();
@@ -86,7 +87,7 @@ describe("EjecucionDetalleClient", () => {
         { id: "art-1", tipo: "video", nombre: "video.webm", pasoEjecucionId: null, bytes: 1024, createdAt: "2026-08-12T10:01:00.000Z" },
       ],
     });
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
     const chapters = screen.getAllByTestId("chapter-bar");
     expect(chapters).toHaveLength(3);
@@ -99,7 +100,7 @@ describe("EjecucionDetalleClient", () => {
     const ejecucion = mockEjecucion({
       casoPrueba: { nombre: "Caso Grabado", codigo: "CP-G-01", origen: "grabador" },
     });
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
     const chip = screen.getByTestId("origen-chip");
     expect(chip).toBeInTheDocument();
@@ -111,7 +112,7 @@ describe("EjecucionDetalleClient", () => {
     const ejecucion = mockEjecucion({
       casoPrueba: { nombre: "Caso Subido", codigo: "CP-S-01", origen: "subirScript" },
     });
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
     const chip = screen.getByTestId("origen-chip");
     expect(chip).toHaveTextContent("Origen: Subir Script");
@@ -123,7 +124,7 @@ describe("EjecucionDetalleClient", () => {
     const ejecucion = mockEjecucion({
       casoPrueba: { nombre: "Caso Legacy", codigo: "CP-L-01" },
     });
-    render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+    render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
     expect(screen.queryByTestId("origen-chip")).not.toBeInTheDocument();
   });
@@ -176,7 +177,7 @@ describe("EjecucionDetalleClient", () => {
 
     it("renderiza los botones clickables del chapter bar cuando hay video", () => {
       const ejecucion = mockEjecWithChapters();
-      render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+      render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
       const bar = screen.getByTestId("video-chapter-bar");
       expect(bar).toBeInTheDocument();
@@ -189,7 +190,7 @@ describe("EjecucionDetalleClient", () => {
 
     it("cada capítulo tiene un aria-label accesible", () => {
       const ejecucion = mockEjecWithChapters();
-      render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+      render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
       const segments = screen.getAllByTestId("chapter-bar");
       expect(segments[0]).toHaveAttribute("aria-label", "Paso 1: Login");
@@ -222,7 +223,7 @@ describe("EjecucionDetalleClient", () => {
           { id: "art-1", tipo: "video", nombre: "video.webm", pasoEjecucionId: null, bytes: 1024, createdAt: "2026-08-12T10:01:00.000Z" },
         ],
       });
-      render(<EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} />);
+      render(<BreadcrumbProvider><EjecucionDetalleClient ejecucionId="ejec-1" initialEjecucion={ejecucion} /></BreadcrumbProvider>);
 
       const segments = screen.getAllByTestId("chapter-bar");
       expect(segments[0]).toHaveClass("done");

@@ -21,6 +21,7 @@ jest.mock("next/server", () => ({
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),
   getSession: jest.fn(),
+  requireProyectoAccess: jest.fn(),
 }));
 
 jest.mock("@/lib/casos/actions", () => ({

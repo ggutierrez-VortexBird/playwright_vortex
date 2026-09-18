@@ -71,7 +71,7 @@ describe("iniciarSesion", () => {
 
     const result = await iniciarSesion({}, formData);
 
-    expect(result).toEqual({ error: "Credenciales inválidas" });
+    expect(result).toEqual({ field: "password", error: "Contraseña incorrecta" });
     expect(saveSession).not.toHaveBeenCalled();
     expect(redirect).not.toHaveBeenCalled();
   });
@@ -85,7 +85,7 @@ describe("iniciarSesion", () => {
 
     const result = await iniciarSesion({}, formData);
 
-    expect(result).toEqual({ error: "Credenciales inválidas" });
+    expect(result).toEqual({ field: "email", error: "Usuario no encontrado" });
     expect(verifyPassword).not.toHaveBeenCalled();
     expect(saveSession).not.toHaveBeenCalled();
     expect(redirect).not.toHaveBeenCalled();

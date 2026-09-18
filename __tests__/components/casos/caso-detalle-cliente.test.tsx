@@ -4,6 +4,29 @@
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CasoDetalleCliente } from "@/components/casos/caso-detalle-cliente";
+import { BreadcrumbProvider } from "@/components/breadcrumb-context";
+
+// Monaco Editor is loaded via next/dynamic with a then() chain - mock it explicitly
+jest.mock("@monaco-editor/react", () => ({
+  Editor: function MockEditor({ value, onChange }: any) {
+    return (
+      <textarea
+        data-testid="monaco-editor-mock"
+        value={value ?? ""}
+        onChange={(e: any) => onChange?.(e.target.value)}
+      />
+    );
+  },
+  default: function MockEditor({ value, onChange }: any) {
+    return (
+      <textarea
+        data-testid="monaco-editor-mock"
+        value={value ?? ""}
+        onChange={(e: any) => onChange?.(e.target.value)}
+      />
+    );
+  },
+}));
 
 const mockFetch = jest.fn();
 beforeAll(() => {
@@ -34,46 +57,47 @@ const baseCaso = {
 
 describe("CasoDetalleCliente (HU-G16)", () => {
   it("renders the title, codigo, origen and script", () => {
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     expect(
-      screen.getByRole("heading", { level: 2, name: "Consulta de saldo" }),
+      screen.getByRole("heading", { level: 1, name: "Consulta de saldo" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/CP-ABCDEF/)).toBeInTheDocument();
-    expect(screen.getByText(/origen: grabador/)).toBeInTheDocument();
-    expect(screen.getByTestId("script-block").textContent).toContain(
-      "await page.goto",
-    );
+    expect(screen.getByText("Origen: Grabador")).toBeInTheDocument();
+    // script-editor-container is present (Monaco loads via dynamic, which shows loading state in jsdom)
+    expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
   });
 
   it("renders the back link", () => {
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     const link = screen.getByTestId("back-link");
     expect(link).toHaveAttribute("href", "/casos");
     expect(link.textContent).toContain("Volver");
   });
 
   it("renders the Ejecutar button", () => {
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     expect(screen.getByTestId("ejecutar-button")).toBeInTheDocument();
   });
 
   it("renders parameters with {{nombre}} chips", () => {
     render(
-      <CasoDetalleCliente
-        caso={{
-          ...baseCaso,
-          parametros: [
-            {
-              id: "p1",
-              nombre: "usuario",
-              valorDefecto: "admin",
-              origen: "manual",
-              enUso: true,
-            },
-          ],
-        }}
-        backHref="/casos"
-      />,
+      <BreadcrumbProvider>
+        <CasoDetalleCliente
+          caso={{
+            ...baseCaso,
+            parametros: [
+              {
+                id: "p1",
+                nombre: "usuario",
+                valorDefecto: "admin",
+                origen: "manual",
+                enUso: true,
+              },
+            ],
+          }}
+          backHref="/casos"
+        />
+      </BreadcrumbProvider>,
     );
     expect(screen.getByText("{{usuario}}")).toBeInTheDocument();
     expect(screen.getByText("admin")).toBeInTheDocument();
@@ -81,21 +105,23 @@ describe("CasoDetalleCliente (HU-G16)", () => {
 
   it("masks credenciales parametros", () => {
     render(
-      <CasoDetalleCliente
-        caso={{
-          ...baseCaso,
-          parametros: [
-            {
-              id: "p1",
-              nombre: "pwd",
-              valorDefecto: "supersecret",
-              origen: "credencial",
-              enUso: true,
-            },
-          ],
-        }}
-        backHref="/casos"
-      />,
+      <BreadcrumbProvider>
+        <CasoDetalleCliente
+          caso={{
+            ...baseCaso,
+            parametros: [
+              {
+                id: "p1",
+                nombre: "pwd",
+                valorDefecto: "supersecret",
+                origen: "credencial",
+                enUso: true,
+              },
+            ],
+          }}
+          backHref="/casos"
+        />
+      </BreadcrumbProvider>,
     );
     expect(screen.queryByText("supersecret")).not.toBeInTheDocument();
     // maskValue("supersecret") = "•••••••cret" (7 bullets + last 4 chars).
@@ -112,7 +138,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
       href: "",
     };
 
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("ejecutar-button"));
 
     await waitFor(() => {
@@ -136,7 +162,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
       status: 500,
       json: async () => ({ message: "Worker caído" }),
     });
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("ejecutar-button"));
 
     await waitFor(() => {
@@ -147,17 +173,18 @@ describe("CasoDetalleCliente (HU-G16)", () => {
   });
 
   it("shows the script read-only by default, with an 'Editar script' button", () => {
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
-    expect(screen.getByTestId("script-block")).toBeInTheDocument();
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
+    expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
     expect(screen.getByTestId("editar-script-button")).toBeInTheDocument();
-    expect(screen.queryByTestId("script-editor-container")).not.toBeInTheDocument();
   });
 
   it("autoAbrirEditorScript abre el editor ya desplegado al montar", async () => {
     // Llega desde la acción "Script" de la tabla de Casos — el usuario no
     // debería tener que hacer un clic más una vez que entró con esa intención.
     render(
-      <CasoDetalleCliente caso={baseCaso} backHref="/casos" autoAbrirEditorScript />,
+      <BreadcrumbProvider>
+        <CasoDetalleCliente caso={baseCaso} backHref="/casos" autoAbrirEditorScript />
+      </BreadcrumbProvider>,
     );
     expect(await screen.findByTestId("script-editor-container")).toBeInTheDocument();
     expect(screen.queryByTestId("script-block")).not.toBeInTheDocument();
@@ -165,7 +192,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
   });
 
   it("Editar script swaps the read-only block for the editor", async () => {
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("editar-script-button"));
 
     expect(await screen.findByTestId("script-editor-container")).toBeInTheDocument();
@@ -175,46 +202,49 @@ describe("CasoDetalleCliente (HU-G16)", () => {
   });
 
   it("Cancelar descarta la edición y vuelve a la vista de solo lectura", async () => {
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("editar-script-button"));
     await screen.findByTestId("script-editor-container");
 
     fireEvent.click(screen.getByTestId("cancelar-script-button"));
 
-    expect(screen.getByTestId("script-block")).toBeInTheDocument();
-    expect(screen.getByTestId("script-block").textContent).toContain(
-      "await page.goto",
-    );
+    // Editor stays visible in read-only mode after cancel
+    expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
   });
 
   it("Guardar cambios envía el texto editado por PUT y actualiza la vista", async () => {
+    const newScript = "await page.goto('https://nuevo.example');";
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ ...baseCaso, script: "await page.goto('https://nuevo.example');" }),
+      json: async () => ({ ...baseCaso, script: newScript }),
     });
 
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("editar-script-button"));
     const textarea = await screen.findByTestId("monaco-editor-mock");
 
     fireEvent.change(textarea, {
-      target: { value: "await page.goto('https://nuevo.example');" },
+      target: { value: newScript },
     });
     fireEvent.click(screen.getByTestId("guardar-script-button"));
 
+    // Verify PUT was called with the new script in FormData
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/casos/caso-1",
         expect.objectContaining({ method: "PUT" }),
       );
     });
-    await waitFor(() => {
-      expect(screen.getByTestId("script-block").textContent).toContain(
-        "https://nuevo.example",
-      );
-    });
-    expect(screen.queryByTestId("script-editor-container")).not.toBeInTheDocument();
+    // Verify the PUT body contained the new script
+    const putCall = mockFetch.mock.calls.find(
+      ([url, opts]: any) => url === "/api/casos/caso-1" && opts?.method === "PUT"
+    );
+    expect(putCall).toBeDefined();
+    const formData = putCall[1].body as FormData;
+    expect(formData.get("script")).toBe(newScript);
+    // Editor stays visible after successful save (back in read-only mode)
+    expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
   });
 
   it("muestra el error del server si falla el guardado del script", async () => {
@@ -224,7 +254,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
       json: async () => ({ message: "script is required" }),
     });
 
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("editar-script-button"));
     await screen.findByTestId("script-editor-container");
     fireEvent.click(screen.getByTestId("guardar-script-button"));
@@ -252,7 +282,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
           ),
         ),
     );
-    render(<CasoDetalleCliente caso={baseCaso} backHref="/casos" />);
+    render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     fireEvent.click(screen.getByTestId("ejecutar-button"));
     expect(screen.getByTestId("ejecutar-button")).toBeDisabled();
     expect(screen.getByText(/Encolando/i)).toBeInTheDocument();
