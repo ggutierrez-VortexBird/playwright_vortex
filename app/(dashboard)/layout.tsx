@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { Logo } from "@/components/ui/logo";
@@ -9,8 +8,8 @@ import { EspacioSwitcher } from "@/components/ui/espacio-switcher";
 import { ProyectoSwitcher } from "@/components/ui/proyecto-switcher";
 import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
 import { UserMenu } from "@/components/ui/user-menu";
-import { GlobalSearch } from "@/components/ui/global-search";
 import { ProjectProvider } from "@/components/project-context";
+import { BreadcrumbProvider } from "@/components/breadcrumb-context";
 import { ScopeBarWithContext } from "@/components/scope-bar-with-context";
 import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
 import { MobileNavProvider } from "@/components/mobile-nav-context";
@@ -59,7 +58,8 @@ export default async function DashboardLayout({
 
   return (
     <ProjectProvider>
-      <MobileNavProvider>
+      <BreadcrumbProvider>
+        <MobileNavProvider>
         <div className="flex min-h-screen bg-m3-background">
           {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html).
               lg: completo (sin cambios) · md: riel de solo iconos · <md: cajón. */}
@@ -82,9 +82,11 @@ export default async function DashboardLayout({
             <nav className="flex flex-1 flex-col gap-1 px-3">
               <SidebarNav items={navItems} />
             </nav>
-            <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3 md:hidden lg:block">
-              <ProyectoSwitcher proyectos={proyectos} />
-            </div>
+            {usuario.rol !== "superadmin" && (
+              <div className="border-t border-m3-on-primary-fixed-variant/30 px-4 py-3 md:hidden lg:block">
+                <ProyectoSwitcher proyectos={proyectos} />
+              </div>
+            )}
             <div className="flex items-center gap-2.5 border-t border-m3-on-primary-fixed-variant/30 px-4 py-3.5 md:justify-center lg:justify-start">
               <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white font-label text-label-sm font-bold text-m3-primary-container">
                 {usuario.email.slice(0, 2).toUpperCase()}
@@ -104,34 +106,19 @@ export default async function DashboardLayout({
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="sticky top-0 z-10 flex min-h-16 flex-wrap items-center gap-3 border-b border-m3-outline-variant bg-m3-surface px-4 py-2 sm:gap-4 lg:px-6">
               <MobileMenuButton />
-              <ScopeBarWithContext />
-              <EspacioSwitcher espacios={espacios} />
-              <Suspense fallback={null}>
-                <GlobalSearch />
-              </Suspense>
+              <ScopeBarWithContext items={navItems} />
+              {usuario.rol !== "superadmin" && <EspacioSwitcher espacios={espacios} />}
               <div className="ml-auto flex items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="relative hidden h-9 w-9 items-center justify-center rounded-full bg-m3-secondary-container text-m3-secondary sm:flex"
-                >
-                  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    notifications
-                  </span>
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-m3-error ring-2 ring-m3-secondary-container" />
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="hidden h-9 w-9 items-center justify-center rounded-full bg-m3-surface-container text-m3-on-surface-variant sm:flex"
-                >
-                  <span className="material-symbols-outlined text-[18px]">settings</span>
-                </span>
                 <UserMenu email={usuario.email} rol={usuario.rol} />
               </div>
             </header>
-            <main className="flex-1 p-4 lg:p-6">{children}</main>
+            <main className="flex-1 p-4 lg:p-6">
+              <div className="mx-auto w-full max-w-[1680px]">{children}</div>
+            </main>
           </div>
         </div>
       </MobileNavProvider>
+      </BreadcrumbProvider>
     </ProjectProvider>
   );
 }

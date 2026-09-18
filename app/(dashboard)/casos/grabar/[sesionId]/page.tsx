@@ -11,6 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { GrabadorClient } from "@/components/grabador/grabador-client";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface PageProps {
   params: Promise<{ sesionId: string }>;
@@ -54,9 +55,10 @@ export default async function SesionGrabacionPage({
   if (!finalToken) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="-mx-4 -mt-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-          <h2 className="font-headline text-headline-lg text-m3-primary">Grabación</h2>
-        </div>
+        <PageHeader
+          title="Sesión de grabación"
+          breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Sesión" }]}
+        />
         <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">
           Esta sesión no tiene un token activo. Vuelve a iniciar la grabación.
         </div>
@@ -73,12 +75,18 @@ export default async function SesionGrabacionPage({
   ).toISOString();
 
   return (
-    <GrabadorClient
-      wsUrl={finalWsUrl}
-      urlInicial={sesion.urlInicial}
-      sesionId={sesion.id}
-      startedAt={startedAtIso}
-      titulo={sesion.nombre}
-    />
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Sesión de grabación"
+        breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: sesion.nombre }]}
+      />
+      <GrabadorClient
+        wsUrl={finalWsUrl}
+        urlInicial={sesion.urlInicial}
+        sesionId={sesion.id}
+        startedAt={startedAtIso}
+        titulo={sesion.nombre}
+      />
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { ResponsableSelect } from "./responsable-select";
 import { ScriptFileInput } from "./script-file-input";
+import { Button } from "@/components/ui/button";
 
 interface EditCasoFormProps {
   caso: CasoPruebaListItem;
@@ -62,83 +63,72 @@ export function EditCasoForm({ caso, onSuccess, onCancel }: EditCasoFormProps) {
   }
 
   return (
-    <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-sm">
-      <h2 className="mb-4 font-headline text-headline-md text-m3-primary">Editar Caso de Prueba</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label htmlFor="edit-codigo" className="block text-sm font-medium text-m3-on-surface">
-            Código
-          </label>
-          <input
-            id="edit-codigo"
-            type="text"
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value)}
-            required
-            maxLength={50}
-            className="mt-1 block w-full rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 text-m3-on-surface placeholder:text-m3-on-surface-variant focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
-            placeholder="Ej: CP-LOGIN-01"
-          />
-        </div>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-codigo" className="font-label text-label-sm font-semibold text-m3-on-surface">
+          Código
+        </label>
+        <input
+          id="edit-codigo"
+          type="text"
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+          required
+          maxLength={50}
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant transition-shadow focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
+          placeholder="Ej: CP-LOGIN-01"
+        />
+      </div>
 
-        <div>
-          <label htmlFor="edit-nombre" className="block text-sm font-medium text-m3-on-surface">
-            Nombre del caso
-          </label>
-          <input
-            id="edit-nombre"
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            maxLength={200}
-            className="mt-1 block w-full rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 text-m3-on-surface placeholder:text-m3-on-surface-variant focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
-            placeholder="Ej: Login con credenciales válidas"
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-nombre" className="font-label text-label-sm font-semibold text-m3-on-surface">
+          Nombre del caso
+        </label>
+        <input
+          id="edit-nombre"
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          required
+          maxLength={200}
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant transition-shadow focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
+          placeholder="Ej: Login con credenciales válidas"
+        />
+      </div>
 
-        <div>
-          <label htmlFor="edit-scriptFile" className="block text-sm font-medium text-m3-on-surface">
-            Script de Playwright
-          </label>
-          <ScriptFileInput
-            fileName={caso.scriptFileName}
-            onChange={setScriptFile}
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-scriptFile" className="font-label text-label-sm font-semibold text-m3-on-surface">
+          Script de Playwright
+        </label>
+        <ScriptFileInput
+          fileName={caso.scriptFileName}
+          onChange={setScriptFile}
+        />
+      </div>
 
-        <div>
-          <label htmlFor="edit-responsable" className="block text-sm font-medium text-m3-on-surface">
-            Responsable
-          </label>
-          <ResponsableSelect value={responsableId} onChange={setResponsableId} />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-responsable" className="font-label text-label-sm font-semibold text-m3-on-surface">
+          Responsable
+        </label>
+        <ResponsableSelect value={responsableId} onChange={setResponsableId} />
+      </div>
 
-        {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-m3-error">
-            {error}
-          </div>
+      {error && (
+        <p role="alert" className="font-body text-body-sm text-m3-error">
+          {error}
+        </p>
+      )}
+
+      <div className="mt-1 flex justify-end gap-3">
+        {onCancel && (
+          <Button variant="secondary" type="button" onClick={onCancel}>
+            Cancelar
+          </Button>
         )}
-
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Guardando..." : "Guardar cambios"}
-          </button>
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-md border border-m3-outline-variant px-4 py-2 text-sm font-medium text-m3-on-surface transition-colors hover:bg-m3-surface-container-high"
-            >
-              Cancelar
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
+        <Button variant="primary" type="submit" disabled={loading}>
+          {loading ? "Guardando…" : "Guardar cambios"}
+        </Button>
+      </div>
+    </form>
   );
 }

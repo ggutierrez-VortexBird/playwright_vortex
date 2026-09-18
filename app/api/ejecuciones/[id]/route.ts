@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getEjecucionConPasos } from '@/lib/ejecuciones/queries'
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,11 +8,25 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession()
+  if (!session.userId) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  }
+
   const { id } = await params
   const ejecucion = await getEjecucionConPasos(id)
 
   if (!ejecucion) {
     return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+  }
+
+  try {
+    await requireProyectoAccess(session, ejecucion.casoPrueba.proyectoId)
+  } catch (err) {
+    if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+    throw err
   }
 
   return NextResponse.json({

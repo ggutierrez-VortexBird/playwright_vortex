@@ -109,7 +109,14 @@ export async function renderActaToPdf(args: {
         printBackground: true,
         margin: { top: "18mm", right: "14mm", bottom: "18mm", left: "14mm" },
       })
-      fs.writeFileSync(pdfPath, pdfBuffer)
+      try {
+        fs.writeFileSync(pdfPath, pdfBuffer)
+      } catch (err) {
+        throw new Error(
+          `No se pudo escribir el PDF del acta en "${pdfPath}": ${err instanceof Error ? err.message : String(err)}`,
+          { cause: err },
+        )
+      }
       return { pdfPath, consecutivo }
     } finally {
       await page.close().catch(() => undefined)

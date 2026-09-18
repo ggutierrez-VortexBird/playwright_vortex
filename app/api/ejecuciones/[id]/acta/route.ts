@@ -9,7 +9,8 @@
  *   5) Persiste/actualiza la fila Acta (1-a-1 con ejecución)
  *   6) Devuelve { ok, actaId, consecutivo, pdfPath, downloadUrl }
  *
- * Auth: requiere ser superadmin.
+ * Auth: requiere acceso al proyecto de la ejecución (superadmin, admin del
+ * espacio o tester asignado) — ver requireProyectoAccess más abajo.
  *
  * Idempotente: si ya existe un Acta para esta ejecución, regenera el PDF
  * con el mismo consecutivo (no incrementa el correlativo). El cliente

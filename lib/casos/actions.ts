@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { requireProyectoAccess, scopeProyectoWhere } from "@/lib/auth";
 import type { SessionData, UsuarioActual } from "@/lib/auth";
 import type { CasoPruebaFormData, CasoPruebaListItem, ParentCaseOption } from "@/types/caso";
@@ -134,7 +135,7 @@ export async function createCaso(
  * Computes estado from latest ejecucion.
  */
 export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | null): Promise<CasoPruebaListItem[]> {
-  const where: any = { activo: true };
+  const where: Prisma.CasoPruebaWhereInput = { activo: true };
   if (proyectoId) {
     where.proyectoId = proyectoId;
   }
@@ -268,7 +269,7 @@ export async function updateCaso(
 
   await requireProyectoAccess(session, existing.proyectoId);
 
-  const updateData: any = {};
+  const updateData: Prisma.CasoPruebaUncheckedUpdateInput = {};
 
   if (input.codigo !== undefined) {
     updateData.codigo = input.codigo.trim();
@@ -289,7 +290,13 @@ export async function updateCaso(
     updateData.responsableId = input.responsableId.trim();
   }
   if (input.proyectoId !== undefined) {
-    updateData.proyectoId = input.proyectoId.trim();
+    const nuevoProyectoId = input.proyectoId.trim();
+    // Mover un caso a otro proyecto requiere acceso al proyecto DESTINO
+    // también — el guard de arriba solo cubrió el proyecto de origen.
+    if (nuevoProyectoId !== existing.proyectoId) {
+      await requireProyectoAccess(session, nuevoProyectoId);
+    }
+    updateData.proyectoId = nuevoProyectoId;
   }
 
   const proyectoIdForValidation = input.proyectoId !== undefined ? input.proyectoId.trim() : existing.proyectoId;

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 interface UsuarioOption {
   id: string;
@@ -24,7 +26,6 @@ interface AdminsDialogProps {
 }
 
 export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: AdminsDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [asignados, setAsignados] = useState<AdminAsignado[]>([]);
   const [candidatos, setCandidatos] = useState<UsuarioOption[]>([]);
   const [selected, setSelected] = useState("");
@@ -58,7 +59,6 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
   }
 
   useEffect(() => {
-    dialogRef.current?.showModal();
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [espacioId]);
@@ -97,7 +97,6 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
   }
 
   function handleClose() {
-    dialogRef.current?.close();
     onClose();
   }
 
@@ -105,24 +104,13 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
   const disponibles = candidatos.filter((c) => !asignadosIds.has(c.id));
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClick={(e) => {
-        if (e.target === dialogRef.current) handleClose();
-      }}
-      onClose={onClose}
-      className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
-    >
-      <div className="max-h-[85vh] w-96 max-w-full overflow-y-auto p-6">
+    <Modal open onClose={handleClose} labelledBy="admins-dialog-title" className="max-w-md">
+      <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-headline text-headline-md text-m3-primary">Administradores del espacio</h3>
-          <button
-            onClick={handleClose}
-            className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-            aria-label="Cerrar"
-          >
+          <h3 id="admins-dialog-title" className="font-headline text-headline-md text-m3-primary">Administradores del espacio</h3>
+          <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Cerrar">
             ✕
-          </button>
+          </Button>
         </div>
         <p className="mb-3 font-body text-body-sm text-m3-on-surface-variant">{espacioNombre}</p>
 
@@ -171,13 +159,9 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
                   </option>
                 ))}
               </select>
-              <button
-                onClick={handleAsignar}
-                disabled={!selected}
-                className="rounded bg-m3-primary px-3 py-2 font-label text-label-sm font-semibold text-m3-on-primary hover:opacity-90 disabled:opacity-40"
-              >
+              <Button variant="primary" size="sm" onClick={handleAsignar} disabled={!selected}>
                 Asignar
-              </button>
+              </Button>
             </div>
             {disponibles.length === 0 && (
               <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
@@ -187,6 +171,6 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
           </>
         )}
       </div>
-    </dialog>
+    </Modal>
   );
 }

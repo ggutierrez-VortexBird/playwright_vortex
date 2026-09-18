@@ -8,10 +8,10 @@
  * para que el usuario distinga al vuelo si un caso fue subido como
  * script .spec.ts o grabado por el modo No-Code.
  *
- * Diseño:
- *   - Color ámbar para `grabador` (consistente con el grabador UI)
- *   - Color gris/azul para `subirScript` (consistente con upload UI)
- *   - Color púrpura para `mixto` (ambos modos)
+ * Diseño (tokens M3, sin colores ad-hoc):
+ *   - Azul info para `grabador` (acción capturada en vivo)
+ *   - Gris neutro para `subirScript` (archivo subido)
+ *   - Ámbar cálido para `mixto` (ambos modos)
  */
 
 import type { CasoOrigen } from "@prisma/client";
@@ -25,8 +25,8 @@ export interface OrigenChipProps {
 const STYLES: Record<string, { label: string; bg: string; fg: string; icon: string }> = {
   grabador: {
     label: "Origen: Grabador",
-    bg: "bg-m3-secondary-container/25",
-    fg: "text-m3-on-secondary-container",
+    bg: "bg-m3-info-container",
+    fg: "text-m3-info",
     icon: "videocam",
   },
   subirScript: {
@@ -37,8 +37,8 @@ const STYLES: Record<string, { label: string; bg: string; fg: string; icon: stri
   },
   mixto: {
     label: "Origen: Mixto",
-    bg: "bg-purple-100",
-    fg: "text-purple-800",
+    bg: "bg-m3-warn-container",
+    fg: "text-m3-on-secondary-container",
     icon: "merge_type",
   },
 };
@@ -56,10 +56,10 @@ export function OrigenChip({ origen, className = "" }: OrigenChipProps) {
       data-testid="origen-chip"
       data-origen={origen}
       title={style.label}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${style.bg} ${style.fg} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-label text-[11px] font-semibold ${style.bg} ${style.fg} ${className}`}
     >
       <span
-        className="material-symbols-outlined text-[12px]"
+        className="material-symbols-outlined text-[14px] leading-none"
         style={{ fontVariationSettings: "'FILL' 1" }}
         aria-hidden="true"
       >

@@ -1,11 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { CasoTable } from "@/components/casos/caso-table";
 import { EditCasoForm } from "@/components/casos/edit-caso-form";
 import { ModeSelectorModal } from "@/components/casos/mode-selector-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionSearch } from "@/components/ui/section-search";
+import { Button } from "@/components/ui/button";
 
 interface ProyectoOption {
   id: string;
@@ -18,14 +23,25 @@ interface CasosClientProps {
   canEdit: boolean;
   proyectoId?: string;
   proyectos?: ProyectoOption[];
+  /** Cuando la vista está fijada a un único proyecto (e.g. /proyectos/[id]/casos). */
+  proyectoContext?: { nombre: string; ambiente: string };
 }
 
-export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: CasosClientProps) {
+export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, proyectoContext }: CasosClientProps) {
   const [casos, setCasos] = useState<CasoPruebaListItem[]>(casosIniciales);
   const [editingCaso, setEditingCaso] = useState<CasoPruebaListItem | null>(null);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [deletingCaso, setDeletingCaso] = useState<CasoPruebaListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+
+  const casosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return casos;
+    return casos.filter(
+      (c) => c.nombre.toLowerCase().includes(q) || c.codigo.toLowerCase().includes(q)
+    );
+  }, [casos, busqueda]);
 
   const refreshCasos = useCallback(async () => {
     try {
@@ -78,29 +94,32 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
   }
 
   const proyectoNames = Array.from(new Set(casos.map((c) => c.proyectoNombre))).sort();
+  const subtitle = proyectoContext
+    ? `${proyectoContext.nombre} · ${proyectoContext.ambiente} · ${casos.length} caso${casos.length !== 1 ? "s" : ""}`
+    : `${casos.length} caso${casos.length !== 1 ? "s" : ""} · ${proyectoNames.length} proyecto${proyectoNames.length !== 1 ? "s" : ""}`;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-        <div>
-          <h2 className="font-headline text-headline-lg text-m3-primary">Casos de prueba</h2>
-          <span className="font-body text-body-sm text-m3-on-surface-variant">
-            {casos.length} caso{casos.length !== 1 ? "s" : ""} · {proyectoNames.length} proyecto{proyectoNames.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-        <span className="ml-auto" />
-        {canEdit && (
-          <button
-            type="button"
-            onClick={() => setShowModeSelector(true)}
-            data-testid="nuevo-caso-button"
-            className="flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90"
-          >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-            Nuevo caso
-          </button>
-        )}
+      <PageHeader
+        title="Casos de prueba"
+        subtitle={subtitle}
+        actions={
+          canEdit ? (
+            <Button
+              variant="primary"
+              onClick={() => setShowModeSelector(true)}
+              data-testid="nuevo-caso-button"
+              className="inline-flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              Nuevo caso
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex justify-end">
+        <SectionSearch value={busqueda} onChange={setBusqueda} placeholder="Buscar caso…" />
       </div>
 
       {/* Mode selector modal (HU-G20): elegir modo + formulario embebido */}
@@ -112,33 +131,53 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos }: 
         {...(proyectoId ? { proyectoId } : {})}
       />
 
-      {/* Edit form */}
-      {editingCaso && (
-        <EditCasoForm
-          caso={editingCaso}
-          onSuccess={handleEditSuccess}
-          onCancel={handleCancel}
-        />
-      )}
+      {/* Edit modal */}
+      <Modal open={!!editingCaso} onClose={handleCancel} labelledBy="editar-caso-title" className="max-w-lg">
+        <div className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 id="editar-caso-title" className="font-headline text-headline-md text-m3-primary">
+              Editar caso de prueba
+            </h2>
+            <Button variant="ghost" size="sm" onClick={handleCancel} aria-label="Cerrar">
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </Button>
+          </div>
+          {editingCaso && (
+            <EditCasoForm
+              key={editingCaso.id}
+              caso={editingCaso}
+              onSuccess={handleEditSuccess}
+              onCancel={handleCancel}
+            />
+          )}
+        </div>
+      </Modal>
 
       {/* Casos grouped by proyecto, or flat when proyectoId is set */}
       {casos.length === 0 ? (
-        <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
-          <p className="font-body text-body-md text-m3-on-surface-variant">
-            No hay casos de prueba registrados.
-          </p>
-          {canEdit && (
-            <button
-              onClick={() => setShowModeSelector(true)}
-              className="mt-2 font-label text-label-md text-m3-secondary hover:underline"
-            >
-              Crear el primer caso
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon="fact_check"
+          title="No hay casos de prueba"
+          description="Graba tu primer caso para comenzar a ejecutar pruebas automatizadas."
+          action={
+            canEdit ? (
+              <Button
+                variant="primary"
+                onClick={() => setShowModeSelector(true)}
+                data-testid="nuevo-caso-button"
+                className="inline-flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                Nuevo caso
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : casosFiltrados.length === 0 ? (
+        <EmptyState icon="search_off" title={`Sin resultados para "${busqueda}"`} />
       ) : (
         <CasoTable
-          casos={casos}
+          casos={casosFiltrados}
           canEdit={canEdit}
           onEdit={canEdit ? handleEdit : undefined}
           onDelete={canEdit ? handleDelete : undefined}

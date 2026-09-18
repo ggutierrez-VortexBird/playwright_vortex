@@ -7,7 +7,9 @@
  * conjunto completo de espacios asignados de una sola vez (checklist +
  * Guardar), a diferencia de AdminsDialog que asigna/quita de a uno.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 import type { EspacioAsignado } from "@/types/usuario";
 
 interface EspacioOption {
@@ -24,7 +26,6 @@ interface UsuarioEspaciosDialogProps {
 }
 
 export function UsuarioEspaciosDialog({ usuarioId, usuarioEmail, onClose, onChanged }: UsuarioEspaciosDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [todosEspacios, setTodosEspacios] = useState<EspacioOption[]>([]);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,6 @@ export function UsuarioEspaciosDialog({ usuarioId, usuarioEmail, onClose, onChan
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    dialogRef.current?.showModal();
     let cancelled = false;
 
     async function cargar() {
@@ -99,29 +99,17 @@ export function UsuarioEspaciosDialog({ usuarioId, usuarioEmail, onClose, onChan
   }
 
   function handleClose() {
-    dialogRef.current?.close();
     onClose();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClick={(e) => {
-        if (e.target === dialogRef.current) handleClose();
-      }}
-      onClose={onClose}
-      className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
-    >
-      <div className="max-h-[85vh] w-96 max-w-full overflow-y-auto p-6">
+    <Modal open onClose={handleClose} labelledBy="usuario-espacios-dialog-title" className="max-w-md">
+      <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-headline text-headline-md text-m3-primary">Espacios asignados</h3>
-          <button
-            onClick={handleClose}
-            className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-            aria-label="Cerrar"
-          >
+          <h3 id="usuario-espacios-dialog-title" className="font-headline text-headline-md text-m3-primary">Espacios asignados</h3>
+          <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Cerrar">
             ✕
-          </button>
+          </Button>
         </div>
         <p className="mb-3 font-body text-body-sm text-m3-on-surface-variant">{usuarioEmail}</p>
 
@@ -153,25 +141,16 @@ export function UsuarioEspaciosDialog({ usuarioId, usuarioEmail, onClose, onChan
               ))}
             </ul>
             <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
-              >
+              <Button variant="secondary" type="button" onClick={handleClose}>
                 Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleGuardar}
-                disabled={saving}
-                className="rounded bg-m3-primary px-4 py-2 font-label text-label-sm font-semibold text-m3-on-primary hover:opacity-90 disabled:opacity-40"
-              >
+              </Button>
+              <Button variant="primary" type="button" onClick={handleGuardar} disabled={saving}>
                 {saving ? "Guardando…" : "Guardar"}
-              </button>
+              </Button>
             </div>
           </>
         )}
       </div>
-    </dialog>
+    </Modal>
   );
 }

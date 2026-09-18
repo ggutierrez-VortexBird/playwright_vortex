@@ -10,6 +10,13 @@ export async function PATCH(request: Request) {
 
   const body = await request.json();
 
+  if (typeof body?.nombre !== "string") {
+    return NextResponse.json(
+      { error: "validation", message: "nombre is required" },
+      { status: 400 }
+    );
+  }
+
   try {
     const usuario = await actualizarNombrePropio(body.nombre, session);
     return NextResponse.json({ usuario });

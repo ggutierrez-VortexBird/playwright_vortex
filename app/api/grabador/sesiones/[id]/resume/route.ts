@@ -106,6 +106,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
       elapsedMs,
     });
   } catch (err) {
+    console.error(`[grabador] Error en resume de sesion ${id}:`, err);
     throw err;
   }
 }

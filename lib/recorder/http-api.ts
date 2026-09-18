@@ -70,11 +70,27 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+/** Límite de tamaño del body para evitar DoS por memory exhaustion. */
+const MAX_JSON_BODY_BYTES = 10 * 1024 * 1024; // 10MB
+
 async function readJson(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let data = "";
-    req.on("data", (chunk: Buffer) => (data += chunk.toString("utf8")));
+    let bytes = 0;
+    let aborted = false;
+    req.on("data", (chunk: Buffer) => {
+      if (aborted) return;
+      bytes += chunk.length;
+      if (bytes > MAX_JSON_BODY_BYTES) {
+        aborted = true;
+        req.destroy();
+        reject(new Error("payload_too_large"));
+        return;
+      }
+      data += chunk.toString("utf8");
+    });
     req.on("end", () => {
+      if (aborted) return;
       try {
         resolve(data ? JSON.parse(data) : {});
       } catch (err) {

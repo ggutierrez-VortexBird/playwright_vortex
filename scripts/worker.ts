@@ -13,13 +13,31 @@ import type { CasoPrueba } from '@prisma/client'
 
 const POLL_INTERVAL_MS = 5000
 
+let shuttingDown = false
+
+async function shutdown(signal: string) {
+  if (shuttingDown) return
+  shuttingDown = true
+  console.log(`[worker] ${signal} recibido, cerrando conexión a la base de datos...`)
+  try {
+    await db.$disconnect()
+  } catch (err) {
+    console.error('[worker] Error al desconectar Prisma:', err)
+  } finally {
+    process.exit(0)
+  }
+}
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'))
+process.on('SIGINT', () => void shutdown('SIGINT'))
+
 async function main() {
   console.log('[worker] Arrancado, esperando ejecuciones pendientes...')
 
   // Cleanup inicial de scripts huérfanos
   await cleanupStaleScripts()
 
-  while (true) {
+  while (!shuttingDown) {
     try {
       // Atomic claim: si la ejecución fue cancelada entre findFirst y updateMany,
       // tryClaimPendingExecution retorna null y seguimos al próximo poll.
@@ -100,7 +118,9 @@ async function main() {
     }
 
     // Cleanup periódico (cada 10 iteraciones = 50s)
-    await cleanupStaleScripts().catch(() => {})
+    await cleanupStaleScripts().catch((err) => {
+      console.error('[worker] Error en cleanupStaleScripts:', err)
+    })
 
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
   }

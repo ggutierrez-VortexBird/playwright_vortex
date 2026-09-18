@@ -720,6 +720,11 @@ export async function runPlaywrightTest(
     })
 
     globalTimeoutId = setTimeout(async () => {
+      // Guard defensivo: si el proceso ya cerró y se resolvió/rechazó la
+      // promesa justo cuando este timer disparaba (clearTimeout no llega a
+      // tiempo de cancelarlo), evitamos hacer terminateProcess/esperas de
+      // más sobre un proceso que ya no existe.
+      if (settled) return
       console.warn('[runner] Global timeout (10min) reached, terminating process tree')
       await terminateProcess(false)
       await new Promise(r => setTimeout(r, 5000))

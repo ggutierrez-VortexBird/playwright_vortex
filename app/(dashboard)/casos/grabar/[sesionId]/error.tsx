@@ -1,5 +1,7 @@
 "use client";
 
+import { ErrorState } from "@/components/ui/error-state";
+
 interface ErrorProps {
   error: Error & { digest?: string };
   reset: () => void;
@@ -11,24 +13,16 @@ export default function SesionError({ error, reset }: ErrorProps) {
       <div className="-mx-4 -mt-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
         <h2 className="font-headline text-headline-lg text-m3-primary">Grabación</h2>
       </div>
-      <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-sm">
-        <div className="mb-4 rounded-md bg-m3-error-container/10 p-3 font-body text-body-sm text-m3-error">
-          <strong>Error:</strong> {error.message}
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={reset}
-            className="rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90"
-          >
-            Reintentar
-          </button>
-          <a
-            href="/casos"
-            className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high"
-          >
-            Volver a casos
-          </a>
-        </div>
+      <ErrorState message={error.message} onRetry={reset} />
+      {/* ErrorState no soporta una segunda acción — se mantiene "Volver a
+          casos" como elemento aparte, tal como pedía el plan aprobado. */}
+      <div className="flex justify-center">
+        <a
+          href="/casos"
+          className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high"
+        >
+          Volver a casos
+        </a>
       </div>
     </div>
   );

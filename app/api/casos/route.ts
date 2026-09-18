@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, getUsuarioActual } from "@/lib/auth";
+import { getSession, getUsuarioActual, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";
 import { listCasos, createCaso, listParentCaseOptions } from "@/lib/casos/actions";
 
 export async function GET(request: Request) {
@@ -23,6 +23,14 @@ export async function GET(request: Request) {
         { error: "validation", message: "proyectoId requerido" },
         { status: 400 }
       );
+    }
+    try {
+      await requireProyectoAccess(session, proyectoId);
+    } catch (err) {
+      if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === "FORBIDDEN") {
+        return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+      }
+      throw err;
     }
     const options = await listParentCaseOptions(proyectoId, excludeId);
     return NextResponse.json({ options });

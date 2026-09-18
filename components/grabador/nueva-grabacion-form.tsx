@@ -174,9 +174,9 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
       {!embedded && (
         <header className="bg-m3-surface border-b border-m3-surface-variant px-6 py-4 flex items-center justify-between gap-4">
           <div>
-            <h1 className="font-headline text-headline-lg text-m3-primary leading-tight">
+            <h2 className="font-headline text-headline-lg text-m3-primary leading-tight">
               Configuración de Grabación
-            </h1>
+            </h2>
             <p className="font-body text-body-md text-m3-on-surface-variant mt-1">
               Configure los parámetros iniciales. El navegador de grabación se abre recién en el paso siguiente.
             </p>

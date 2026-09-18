@@ -112,7 +112,7 @@ export async function collectArtifacts(
       const bytes = stats.size
 
       // Mover archivo con retry para Windows EPERM/EBUSY
-      moveWithRetry(sourcePath, destPath)
+      await moveWithRetry(sourcePath, destPath)
 
       // Determinar tipo
       const tipo: ArtefactoTipo = fileName.endsWith('.webm') ? 'video' : 'captura'
@@ -210,7 +210,7 @@ function detectPhase(fileName: string): 'captura-actual' | 'captura-referencia' 
   return null
 }
 
-function moveWithRetry(sourcePath: string, destPath: string, maxRetries = 3): void {
+async function moveWithRetry(sourcePath: string, destPath: string, maxRetries = 3): Promise<void> {
   let lastErr: Error | undefined
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -222,12 +222,10 @@ function moveWithRetry(sourcePath: string, destPath: string, maxRetries = 3): vo
       if (!retryable || attempt === maxRetries - 1) {
         throw err
       }
-      // Exponential backoff: 100ms, 200ms, 400ms
+      // Exponential backoff: 100ms, 200ms, 400ms — delay asíncrono, no
+      // bloquea el event loop (antes era un busy-wait síncrono).
       const delay = 100 * Math.pow(2, attempt)
-      const start = Date.now()
-      while (Date.now() - start < delay) {
-        // busy-wait sync delay
-      }
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
   if (lastErr) throw lastErr

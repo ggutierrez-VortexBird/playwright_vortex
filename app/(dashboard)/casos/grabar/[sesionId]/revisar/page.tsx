@@ -11,6 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { RevisarCliente } from "@/components/grabador/revisar-cliente";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface PageProps {
   params: Promise<{ sesionId: string }>;
@@ -64,12 +65,25 @@ export default async function RevisarSesionPage({
     .replace(/^-+|-+$/g, "") || sesion.id.slice(0, 8)}.spec.ts`;
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title="Revisar grabación"
+        breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Revisar" }]}
+        actions={
+          <a
+            href={`/casos/grabar/${sesion.id}/revisar`}
+            className="inline-flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
+          >
+            <span className="material-symbols-outlined text-[16px]">save</span>
+            Guardar como caso
+          </a>
+        }
+      />
       {avisoMotivo && (
         <div
           role="status"
           data-testid="aviso-motivo-fin"
-          className="mb-4 rounded-lg border border-m3-outline-variant bg-m3-surface-container px-4 py-3 font-body text-body-md text-m3-on-surface-variant"
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container px-4 py-3 font-body text-body-md text-m3-on-surface-variant"
         >
           {avisoMotivo}
         </div>
@@ -87,6 +101,6 @@ export default async function RevisarSesionPage({
         navegador={sesion.navegador}
         codegenFilePath={sesion.codegenFilePath ?? null}
       />
-    </>
+    </div>
   );
 }

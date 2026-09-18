@@ -317,6 +317,11 @@ async function main(): Promise<void> {
     wss.clients.forEach((c) => c.close(1001, "shutting down"));
     wss.close();
     httpServer.close();
+    try {
+      await prisma.$disconnect();
+    } catch (err) {
+      console.error("[recorder-worker] Error al desconectar Prisma:", err);
+    }
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown("SIGINT"));
@@ -400,7 +405,11 @@ async function handleWsConnection(
       return;
     }
     if (msg.type === "stop") {
-      void handleStop(sessionId);
+      // Fire-and-forget intencional: el handler de mensajes WS no es async.
+      // Igual capturamos cualquier rechazo para no perderlo silenciosamente.
+      void handleStop(sessionId).catch((err) =>
+        console.error(`[recorder-worker] error en handleStop(${sessionId}):`, err),
+      );
     }
   });
 

@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { StatusBadge, type StatusBadgeTone } from "@/components/ui/status-badge";
 
 interface SesionView {
   id: string;
@@ -61,19 +62,24 @@ function statusLabel(estado: string): string {
   }
 }
 
-function statusBadgeClass(estado: string): string {
+// Paridad con el precedente ya establecido en ejecucion-status.tsx:
+// "en curso" → warning (ámbar, como "corriendo"), "en espera" → info (azul,
+// como "pendiente"), resultado guardado → success, detenida/descartada →
+// neutral (recuperable o descartada, no es un fallo), error → error.
+function statusTone(estado: string): StatusBadgeTone {
   switch (estado) {
     case "activa":
-    case "guardada":
-      return "bg-m3-tertiary-container/15 text-m3-on-tertiary-container border border-m3-tertiary-container/40";
+      return "warning";
     case "pausada":
-      return "bg-m3-secondary-container/25 text-m3-on-secondary-container border border-m3-secondary/30";
+      return "info";
+    case "guardada":
+      return "success";
     case "error":
-      return "bg-m3-error-container/60 text-m3-error border border-m3-error/25";
+      return "error";
     case "detenida":
     case "descartada":
     default:
-      return "bg-m3-surface-container-high text-m3-on-surface-variant border border-m3-outline-variant";
+      return "neutral";
   }
 }
 
@@ -113,18 +119,18 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
       {/* Tabla — md y superior */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full font-body text-body-sm" data-testid="sesiones-recuperables-table">
           <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
-            <tr className="text-left font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-surface-variant">
-              <th className="px-4 py-3">Sesión</th>
-              <th className="px-4 py-3">Proyecto</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Pasos</th>
-              <th className="px-4 py-3">Actualizada</th>
-              <th className="px-4 py-3 text-right">Acciones</th>
+            <tr className="text-left font-label text-label-sm font-semibold text-m3-on-surface-variant">
+              <th className="px-5 py-3">Sesión</th>
+              <th className="px-5 py-3">Proyecto</th>
+              <th className="px-5 py-3">Estado</th>
+              <th className="px-5 py-3">Pasos</th>
+              <th className="px-5 py-3">Actualizada</th>
+              <th className="px-5 py-3 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-m3-outline-variant">
@@ -133,8 +139,9 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                 key={s.id}
                 data-testid="sesion-row"
                 data-sesion-estado={s.estado}
+                className="hover:bg-m3-surface-container-high"
               >
-                <td className="px-4 py-3">
+                <td className="px-5 py-3">
                   <div className="font-medium text-m3-on-surface">{s.nombre}</div>
                   <div className="max-w-xs truncate text-m3-on-surface-variant">
                     {s.urlInicial}
@@ -152,23 +159,20 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-m3-on-surface-variant">{s.proyecto.nombre}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${statusBadgeClass(s.estado)}`}
-                    data-testid="sesion-estado-badge"
-                  >
+                <td className="px-5 py-3 text-m3-on-surface-variant">{s.proyecto.nombre}</td>
+                <td className="px-5 py-3">
+                  <StatusBadge tone={statusTone(s.estado)} data-testid="sesion-estado-badge">
                     {statusLabel(s.estado)}
-                  </span>
+                  </StatusBadge>
                 </td>
-                <td className="px-4 py-3 text-m3-on-surface-variant">{s.pasosCount}</td>
+                <td className="px-5 py-3 text-m3-on-surface-variant">{s.pasosCount}</td>
                 <td
-                  className="px-4 py-3 text-m3-on-surface-variant"
+                  className="px-5 py-3 text-m3-on-surface-variant"
                   title={new Date(s.updatedAt).toLocaleString("es-ES")}
                 >
                   {formatRelative(s.updatedAt)}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-1">
                     {s.estado !== "descartada" && (
                       <button
@@ -207,11 +211,9 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                 <p className="truncate font-medium text-m3-on-surface">{s.nombre}</p>
                 <p className="truncate text-m3-on-surface-variant">{s.urlInicial}</p>
               </div>
-              <span
-                className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${statusBadgeClass(s.estado)}`}
-              >
+              <StatusBadge tone={statusTone(s.estado)} className="shrink-0">
                 {statusLabel(s.estado)}
-              </span>
+              </StatusBadge>
             </div>
             <div className="text-m3-on-surface-variant/70">
               {s.ambiente} · {s.navegador}

@@ -214,12 +214,12 @@ export function RevisarCliente({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="flex items-center gap-2 font-headline text-headline-sm text-m3-on-surface">
+                <h2 className="flex items-center gap-2 font-headline text-headline-sm text-m3-on-surface">
                   <span className="font-body font-medium text-m3-on-surface-variant">Revisar caso:</span>
                   <span className="rounded-md border border-m3-info bg-m3-info-container px-2.5 py-1 font-mono-code text-body-sm font-semibold text-m3-info">
                     {nombre}
                   </span>
-                </h1>
+                </h2>
                 <div className="flex items-center gap-1.5">
                   <span className="rounded-full border border-m3-success bg-m3-success-container px-2 py-0.5 font-label text-label-sm font-semibold text-m3-success">
                     {ambiente}

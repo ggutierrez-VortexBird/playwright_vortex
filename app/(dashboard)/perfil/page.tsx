@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual, ROL_LABEL } from "@/lib/auth";
 import { PerfilClient } from "./perfil-client";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function PerfilPage() {
   const session = await getSession();
@@ -12,13 +13,10 @@ export default async function PerfilPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-        <h2 className="font-headline text-headline-lg text-m3-primary">Mi perfil</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">
-          {ROL_LABEL[usuario.rol]} · {usuario.email}
-        </span>
-        <span className="ml-auto" />
-      </div>
+      <PageHeader
+        title="Mi perfil"
+        subtitle={`${ROL_LABEL[usuario.rol]} · ${usuario.email}`}
+      />
       <PerfilClient nombreActual={usuario.nombre} email={usuario.email} />
     </div>
   );

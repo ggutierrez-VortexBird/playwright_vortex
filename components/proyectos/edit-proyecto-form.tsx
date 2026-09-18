@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { Button } from "@/components/ui/button";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
 interface EditProyectoFormProps {
@@ -61,14 +62,9 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
             Editar proyecto
           </h2>
           {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              aria-label="Cerrar"
-              className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-            >
+            <Button variant="ghost" size="sm" type="button" onClick={onCancel} aria-label="Cerrar">
               <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
+            </Button>
           )}
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -152,21 +148,13 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
 
           <div className="mt-1 flex justify-end gap-3">
             {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
-              >
+              <Button variant="secondary" type="button" onClick={onCancel}>
                 Cancelar
-              </button>
+              </Button>
             )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
+            <Button variant="primary" type="submit" disabled={loading}>
               {loading ? "Guardando..." : "Guardar cambios"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -10,17 +10,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { from } = await searchParams;
 
   return (
-    <main
-      className="flex min-h-screen items-center justify-center p-4"
-      style={{
-        background:
-          "radial-gradient(circle at 30% 20%, #1B2438 0%, #131B2E 55%, #0B0F1A 100%)",
-      }}
-    >
-      <div className="w-full max-w-sm rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-8 shadow-2xl">
-        <div className="mb-6 flex flex-col items-center text-center">
+    <main className="flex min-h-screen items-center justify-center bg-m3-surface p-4">
+      <div className="w-full max-w-sm rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-8 shadow-card">
+        <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="light" />
-          <p className="mt-2 font-body text-body-sm text-m3-on-surface-variant">
+          <p className="mt-3 font-body text-body-sm text-m3-on-surface-variant">
             Automatización de pruebas
           </p>
         </div>

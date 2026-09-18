@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { EspaciosForm } from "./espacios-form";
 import { AdminsDialog } from "@/components/espacios/admins-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionSearch } from "@/components/ui/section-search";
 import type { Espacio, EspacioConMetrics } from "@/types/espacio";
 
 const AVATAR_COLORS = [
@@ -66,7 +71,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
   const miembrosOcultos = espacio.miembros.length - miembrosVisibles.length;
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-shadow hover:shadow-md">
+    <article className="group flex w-full max-w-sm flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5 hover:scale-[1.01]">
       {/* Cabecera coloreada */}
       <div className="flex flex-col justify-between px-5 pb-5 pt-4 text-white" style={{ backgroundColor: espacio.color }}>
         <div className="flex items-center justify-between gap-2 text-xs text-white/90">
@@ -88,9 +93,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   title={`${espacio.miembros.length} administrador${espacio.miembros.length !== 1 ? "es" : ""}`}
                   aria-label="Administradores del espacio"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                  </svg>
+                  <span className="material-symbols-outlined text-[16px]">group</span>
                 </button>
                 <button
                   onClick={() => onEdit(espacio)}
@@ -98,9 +101,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   title="Editar"
                   aria-label="Editar espacio"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
                 </button>
                 <button
                   onClick={() => onDelete(espacio)}
@@ -108,9 +109,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   title="Eliminar"
                   aria-label="Eliminar espacio"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
                 </button>
               </div>
             )}
@@ -190,15 +189,11 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
           </div>
           <button
             onClick={() => onEnter(espacio.id)}
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
-            style={{ backgroundColor: hover ? espacio.color : undefined }}
-            className="inline-flex items-center justify-center gap-1 rounded-full bg-m3-inverse-surface px-4 py-1.5 text-xs font-semibold text-m3-inverse-on-surface shadow-sm transition duration-200"
+            style={{ backgroundColor: espacio.color }}
+            className="inline-flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition duration-200 hover:opacity-90"
           >
             Entrar
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
+            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
           </button>
         </div>
       </div>
@@ -217,7 +212,7 @@ interface EspacioRowProps {
 
 function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelete }: EspacioRowProps) {
   return (
-    <div className="flex items-center gap-4 rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest px-4 py-3 shadow-card">
+    <div className="flex items-center gap-4 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-4 py-3 shadow-card">
       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: espacio.color }} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-body text-body-md font-semibold text-m3-on-surface">{espacio.nombre}</div>
@@ -233,43 +228,43 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
       </div>
       {canEdit && (
         <div className="flex shrink-0 items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            className="bg-m3-surface-container hover:text-m3-primary"
             onClick={() => onManageAdmins(espacio)}
-            className="rounded-lg bg-m3-surface-container p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
             title="Administradores del espacio"
             aria-label="Administradores del espacio"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-            </svg>
-          </button>
-          <button
+            <span className="material-symbols-outlined text-[16px]">group</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="bg-m3-surface-container hover:text-m3-primary"
             onClick={() => onEdit(espacio)}
-            className="rounded-lg bg-m3-surface-container p-1.5 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-primary"
             title="Editar"
             aria-label="Editar espacio"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-            </svg>
-          </button>
-          <button
+            <span className="material-symbols-outlined text-[16px]">edit</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="bg-m3-surface-container hover:bg-m3-danger-container hover:text-m3-error"
             onClick={() => onDelete(espacio)}
-            className="rounded-lg bg-m3-surface-container p-1.5 text-m3-on-surface-variant hover:bg-m3-danger-container hover:text-m3-error"
             title="Eliminar"
             aria-label="Eliminar espacio"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </button>
+            <span className="material-symbols-outlined text-[16px]">delete</span>
+          </Button>
         </div>
       )}
       <button
         onClick={() => onEnter(espacio.id)}
-        className="shrink-0 rounded-full bg-m3-inverse-surface px-4 py-1.5 text-xs font-semibold text-m3-inverse-on-surface hover:opacity-90"
+        className="shrink-0 rounded-full bg-m3-primary px-4 py-1.5 text-xs font-semibold text-m3-on-primary hover:opacity-90"
       >
-        Entrar →
+        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
       </button>
     </div>
   );
@@ -290,12 +285,26 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
   const [manageAdminsFor, setManageAdminsFor] = useState<EspacioConMetrics | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
+  const [busqueda, setBusqueda] = useState("");
 
-  const totalPages = Math.max(1, Math.ceil(espacios.length / PAGE_SIZE));
+  // Busca por nombre, código (#ESP-XXXX) o email de los administradores —
+  // no solo nombre.
+  const espaciosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return espacios;
+    return espacios.filter(
+      (e) =>
+        e.nombre.toLowerCase().includes(q) ||
+        codigoEspacio(e.id).toLowerCase().includes(q) ||
+        e.miembros.some((m) => m.email.toLowerCase().includes(q))
+    );
+  }, [espacios, busqueda]);
+
+  const totalPages = Math.max(1, Math.ceil(espaciosFiltrados.length / PAGE_SIZE));
   const paginaActual = Math.min(page, totalPages);
   const espaciosPagina = useMemo(
-    () => espacios.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE),
-    [espacios, paginaActual]
+    () => espaciosFiltrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE),
+    [espaciosFiltrados, paginaActual]
   );
 
   function handleViewProyectos(espacioId: string) {
@@ -304,51 +313,62 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
 
   if (espacios.length === 0) {
     return (
-      <div className="rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center shadow-card">
-        <p className="font-body text-body-md text-m3-on-surface-variant">
-          {canEdit ? "Todavía no hay espacios creados." : "No hay espacios asignados a tu cuenta."}
-        </p>
-      </div>
+      <EmptyState
+        icon="share"
+        title={canEdit ? "Todavía no hay espacios creados." : "No hay espacios asignados a tu cuenta."}
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-m3-info bg-m3-info-container px-2.5 py-0.5 font-label text-label-sm font-semibold text-m3-info">
           <span className="h-1.5 w-1.5 rounded-full bg-m3-info" />
-          {espacios.length} activo{espacios.length !== 1 ? "s" : ""}
+          {espaciosFiltrados.length} activo{espaciosFiltrados.length !== 1 ? "s" : ""}
         </span>
-        <div className="flex items-center gap-1 rounded-xl border border-m3-outline-variant bg-m3-surface-container p-1">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`rounded-lg p-1.5 transition-colors ${
-              viewMode === "grid" ? "bg-m3-surface-container-lowest text-m3-on-surface shadow-sm" : "text-m3-on-surface-variant hover:text-m3-on-surface"
-            }`}
-            title="Vista en cuadrícula"
-            aria-label="Vista en cuadrícula"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`rounded-lg p-1.5 transition-colors ${
-              viewMode === "list" ? "bg-m3-surface-container-lowest text-m3-on-surface shadow-sm" : "text-m3-on-surface-variant hover:text-m3-on-surface"
-            }`}
-            title="Vista en lista"
-            aria-label="Vista en lista"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
+        <div className="flex flex-1 items-center justify-end gap-2">
+          <SectionSearch
+            value={busqueda}
+            onChange={(v) => {
+              setBusqueda(v);
+              setPage(1);
+            }}
+            placeholder="Buscar espacio…"
+          />
+          <div className="flex items-center gap-1 rounded-xl border border-m3-outline-variant bg-m3-surface-container p-1">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${
+                viewMode === "grid"
+                  ? "bg-m3-primary text-white shadow-sm"
+                  : "text-m3-on-surface-variant hover:text-m3-on-surface hover:bg-m3-surface-container-high"
+              }`}
+              title="Vista en cuadrícula"
+              aria-label="Vista en cuadrícula"
+            >
+              <span className="material-symbols-outlined text-[16px]">grid_view</span>
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${
+                viewMode === "list"
+                  ? "bg-m3-primary text-white shadow-sm"
+                  : "text-m3-on-surface-variant hover:text-m3-on-surface hover:bg-m3-surface-container-high"
+              }`}
+              title="Vista en lista"
+              aria-label="Vista en lista"
+            >
+              <span className="material-symbols-outlined text-[16px]">view_list</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {espaciosFiltrados.length === 0 ? (
+        <EmptyState icon="search_off" title={`Sin resultados para "${busqueda}"`} />
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {espaciosPagina.map((espacio) => (
             <EspacioCard
               key={espacio.id}
@@ -380,26 +400,28 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
       <div className="flex flex-col items-center justify-between gap-4 pt-1 text-xs text-m3-on-surface-variant sm:flex-row">
         <p>
           Mostrando <span className="font-semibold text-m3-on-surface">{espaciosPagina.length}</span> de{" "}
-          <span className="font-semibold text-m3-on-surface">{espacios.length}</span> espacios registrados
+          <span className="font-semibold text-m3-on-surface">{espaciosFiltrados.length}</span> espacios
         </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={paginaActual <= 1}
-            className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
           >
             Anterior
-          </button>
+          </Button>
           <span className="rounded-lg border border-m3-info bg-m3-info-container px-3 py-1.5 font-bold text-m3-info">
             {paginaActual}
           </span>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={paginaActual >= totalPages}
-            className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-medium text-m3-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
           >
             Siguiente
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -432,23 +454,19 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deletingEspacio, setDeletingEspacio] = useState<EspacioConMetrics | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
   function openCreateModal() {
     setShowCreateForm(true);
-    dialogRef.current?.showModal();
   }
 
   function openEditModal(espacio: EspacioConMetrics) {
     setEditingEspacio(espacio);
     setShowCreateForm(false);
-    dialogRef.current?.showModal();
   }
 
   function closeModal() {
     setEditingEspacio(null);
     setShowCreateForm(false);
-    dialogRef.current?.close();
   }
 
   function handleDelete(espacio: EspacioConMetrics) {
@@ -511,61 +529,52 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
     return () => clearTimeout(timer);
   }, [successMessage]);
 
-  function handleDialogClick(e: React.MouseEvent<HTMLDialogElement>) {
-    if (e.target === dialogRef.current) {
-      closeModal();
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Espacios de Trabajo"
+        description={
+          canEdit
+            ? "Organiza tu trabajo por cliente o área. Cada espacio tiene un color propio que se propaga a sus proyectos, casos y ejecuciones."
+            : "Espacios que administrás. Solo el superadmin puede crear, editar o eliminar un espacio."
+        }
+        badge={{ value: espacios.length, label: espacios.length === 1 ? "espacio" : "espacios" }}
+        actions={
+          canEdit ? (
+            <Button variant="primary" className="inline-flex items-center gap-2" onClick={openCreateModal}>
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              Nuevo espacio
+            </Button>
+          ) : undefined
+        }
+      />
+
       {/* Success notification */}
       {successMessage && (
         <div className="fixed right-4 top-4 z-50 animate-in slide-in-from-right-2 fade-in duration-300">
           <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+            <span className="material-symbols-outlined text-[16px] text-green-600">check_circle</span>
             {successMessage}
           </div>
         </div>
       )}
 
-      {canEdit && (
-        <div className="flex justify-end">
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-m3-primary px-4 py-2.5 font-label text-label-sm font-semibold text-m3-on-primary shadow-sm transition hover:opacity-90 active:scale-95"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Nuevo espacio
-          </button>
-        </div>
-      )}
-
       {/* Modal */}
       {canEdit && (
-        <dialog
-          ref={dialogRef}
-          onClick={handleDialogClick}
-          className="rounded-card border border-m3-outline-variant bg-m3-surface-container-lowest p-0 shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+        <Modal
+          open={showCreateForm || !!editingEspacio}
+          onClose={closeModal}
+          labelledBy="espacios-dialog-title"
+          className="max-w-md"
         >
-          <div className="max-h-[85vh] w-[min(90vw,28rem)] overflow-y-auto p-6">
+          <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-headline text-headline-md text-m3-primary">
+              <h3 id="espacios-dialog-title" className="font-headline text-headline-md text-m3-primary">
                 {editingEspacio ? "Editar espacio" : "Nuevo espacio"}
               </h3>
-              <button
-                onClick={closeModal}
-                className="rounded p-1 text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface"
-                aria-label="Cerrar"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
+              <Button variant="ghost" size="sm" onClick={closeModal} aria-label="Cerrar">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </Button>
             </div>
             <EspaciosForm
               key={editingEspacio?.id ?? "create"}
@@ -574,7 +583,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
               onCancel={closeModal}
             />
           </div>
-        </dialog>
+        </Modal>
       )}
 
       <EspaciosList

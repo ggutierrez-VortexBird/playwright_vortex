@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession, getUsuarioActual, requireProyectoAccess, scopeProyectoWhere, FORBIDDEN_ERROR } from "@/lib/auth";
 import { NuevaGrabacionForm } from "@/components/grabador/nueva-grabacion-form";
 import type { CredencialListItem } from "@/lib/grabador/types";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface PageProps {
   searchParams: Promise<{ proyectoId?: string }>;
@@ -41,10 +42,8 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
     if (!firstProyecto) {
       return (
         <div className="flex flex-col gap-6">
-          <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-            <h2 className="font-headline text-headline-lg text-m3-primary">Nueva grabación</h2>
-          </div>
-          <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm p-6 text-center text-m3-on-surface-variant">
+          <PageHeader title="Nueva grabación" breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Nueva" }]} />
+          <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center text-m3-on-surface-variant">
             No hay proyectos activos. Crea un proyecto primero.
           </div>
         </div>
@@ -73,10 +72,8 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
   if (!proyecto) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-          <h2 className="font-headline text-headline-lg text-m3-primary">Nueva grabación</h2>
-        </div>
-        <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm p-6 text-center text-m3-on-surface-variant">Proyecto no encontrado.</div>
+        <PageHeader title="Nueva grabación" breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Nueva" }]} />
+        <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center text-m3-on-surface-variant">Proyecto no encontrado.</div>
       </div>
     );
   }
@@ -90,11 +87,11 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-        <h2 className="font-headline text-headline-lg text-m3-primary">Nueva grabación</h2>
-        <span className="font-body text-body-sm text-m3-on-surface-variant">{proyecto.nombre} · {proyecto.ambiente}</span>
-        <span className="ml-auto" />
-      </div>
+      <PageHeader
+        title="Nueva grabación"
+        breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Nueva" }]}
+        subtitle={`${proyecto.nombre} · ${proyecto.ambiente}`}
+      />
       <div className="w-full flex justify-center py-8">
         <NuevaGrabacionForm
           proyectoId={proyecto.id}

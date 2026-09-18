@@ -8,7 +8,7 @@ import { saveSession } from "@/lib/auth";
 export async function iniciarSesion(
   _prevState: Record<string, unknown>,
   formData: FormData
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; field?: "email" | "password" }> {
   const email = (formData.get("email") as string)?.trim() || "";
   const password = (formData.get("password") as string) || "";
 
@@ -17,13 +17,13 @@ export async function iniciarSesion(
   });
 
   if (!usuario) {
-    return { error: "Credenciales inválidas" };
+    return { field: "email" as const, error: "Usuario no encontrado" };
   }
 
   const isValid = await verifyPassword(password, usuario.passwordHash);
 
   if (!isValid) {
-    return { error: "Credenciales inválidas" };
+    return { field: "password" as const, error: "Contraseña incorrecta" };
   }
 
   if (!usuario.activo) {

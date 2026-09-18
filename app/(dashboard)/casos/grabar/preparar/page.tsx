@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { decodeDraft } from "@/lib/grabador/draft";
 import { PrepararGrabacionClient } from "@/components/grabador/preparar-grabacion-client";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface PageProps {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -27,9 +28,10 @@ export default async function PrepararGrabacionPage({ searchParams }: PageProps)
   if (!draft) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="-mx-4 -mt-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3 lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4">
-          <h2 className="font-headline text-headline-lg text-m3-primary">Nueva grabación</h2>
-        </div>
+        <PageHeader
+          title="Preparar grabación"
+          breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Preparar" }]}
+        />
         <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">
           Faltan datos de la grabación. Vuelve a completar el formulario.
         </div>
@@ -37,5 +39,13 @@ export default async function PrepararGrabacionPage({ searchParams }: PageProps)
     );
   }
 
-  return <PrepararGrabacionClient draft={draft} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Listo para grabar"
+        breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Preparar" }]}
+      />
+      <PrepararGrabacionClient draft={draft} />
+    </div>
+  );
 }

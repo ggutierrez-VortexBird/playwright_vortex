@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { Button } from "@/components/ui/button";
 import type { Espacio } from "@/types/espacio";
 
 interface EspaciosFormProps {
@@ -82,19 +83,11 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
 
       <div className="mt-1 flex justify-end gap-3">
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="font-label text-label-md font-semibold text-m3-on-surface-variant hover:underline"
-          >
+          <Button variant="secondary" type="button" onClick={onCancel}>
             Cancelar
-          </button>
+          </Button>
         )}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="rounded-xl bg-m3-primary px-5 py-2 font-label text-label-md font-semibold text-m3-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
+        <Button variant="primary" type="submit" disabled={isLoading}>
           {isLoading
             ? isEditing
               ? "Guardando..."
@@ -102,7 +95,7 @@ export function EspaciosForm({ espacio, onSuccess, onCancel }: EspaciosFormProps
             : isEditing
             ? "Guardar cambios"
             : "Crear espacio"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import * as fs from 'fs'
 
@@ -23,10 +23,20 @@ export async function GET(
   const { id } = await params
   const artefacto = await prisma.artefacto.findUnique({
     where: { id },
+    include: { ejecucion: { select: { casoPrueba: { select: { proyectoId: true } } } } },
   })
 
   if (!artefacto) {
     return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+  }
+
+  try {
+    await requireProyectoAccess(session, artefacto.ejecucion.casoPrueba.proyectoId)
+  } catch (err) {
+    if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === 'FORBIDDEN') {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+    throw err
   }
 
   if (!fs.existsSync(artefacto.path)) {
@@ -37,7 +47,9 @@ export async function GET(
 
   const stream = fs.createReadStream(artefacto.path)
 
-  return new Response(stream as any, {
+  // Node's fs.ReadStream doesn't structurally match the web ReadableStream
+  // type Response expects; `unknown` makes the cast explicit instead of `any`.
+  return new Response(stream as unknown as ReadableStream, {
     status: 200,
     headers: {
       'Content-Type': contentType,

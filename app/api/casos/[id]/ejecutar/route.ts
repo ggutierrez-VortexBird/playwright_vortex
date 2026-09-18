@@ -17,7 +17,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -33,11 +33,21 @@ export async function POST(_request: Request, { params }: RouteParams) {
 
   const caso = await prisma.casoPrueba.findUnique({
     where: { id },
-    select: { id: true, activo: true },
+    select: { id: true, activo: true, proyectoId: true },
   });
   if (!caso) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
+
+  try {
+    await requireProyectoAccess(session, caso.proyectoId);
+  } catch (err) {
+    if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
+    throw err;
+  }
+
   if (!caso.activo) {
     return NextResponse.json({ error: "caso_inactivo" }, { status: 409 });
   }
