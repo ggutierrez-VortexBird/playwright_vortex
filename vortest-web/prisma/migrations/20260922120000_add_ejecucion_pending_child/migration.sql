@@ -1,0 +1,11 @@
+-- Motor Fase 1 (encadenamiento padre/hijo vía RabbitMQ, sin polling):
+-- dispararEjecucion ya no puede esperar sincrónicamente en el mismo proceso
+-- a que un caso padre termine antes de despachar el job del hijo (eso vivía
+-- antes en scripts/worker.ts, un único proceso secuencial). Ahora el padre
+-- se publica a `engine.execute` y el nuevo scripts/execution-consumer.ts
+-- (proceso separado) es quien reacciona al evento `end` del padre para
+-- recién ahí publicar el job del hijo. Esa relación "esta fila-padre tiene
+-- un hijo esperando" debe sobrevivir el cruce de proceso (web -> consumer)
+-- y ser segura ante múltiples réplicas del consumer, así que se persiste en
+-- DB en vez de vivir en un Map en memoria de un solo proceso.
+ALTER TABLE "Ejecucion" ADD COLUMN "pendingChildEjecucionId" TEXT;

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // TypeScript 6 dejó de deducir rootDir a partir de los archivos incluidos.
+    // Sin esto la salida podría caer en dist/src/main.js en vez de dist/main.js,
+    // que es lo que espera el script `start` (node dist/main.js).
+    // Va solo aquí y no en tsconfig.json: ese archivo también incluye
+    // playwright.config.ts y los specs, que viven fuera de ./src.
+    "rootDir": "./src"
+  },
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "playwright.config.ts"]
+}

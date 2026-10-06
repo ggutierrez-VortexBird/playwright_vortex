@@ -1,23 +1,29 @@
-# Dependencies
+# Dependencies (matches at any depth: vortest-web/node_modules, vortest-engine/node_modules)
 node_modules/
 
 # Next.js
 .next/
 out/
 
-# Environment variables
+# NestJS / TypeScript build output (vortest-engine)
+dist/
+
+# Environment variables (matches at any depth in both subprojects)
 .env
 .env.*.local
 
-# Prisma
-prisma/migrations/*/
-!prisma/migrations/migration_lock.toml
-!prisma/migrations/20260907212500_pivot_pw_codegen_spec_text/
-!prisma/migrations/20260911190000_rbac_roles/
-!prisma/migrations/20260911214445_add_proyecto_color/
-!prisma/migrations/20260914163736_add_parent_case_and_storage_state/
-!prisma/migrations/20260915185138_usuario_perfil_fields/
-!prisma/migrations/20260917120000_add_ejecucion_composite_index/
+# Prisma (vortest-web) — patrones con "/" en medio quedan anclados al
+# directorio del .gitignore (repo root), así que deben incluir el prefijo
+# vortest-web/ explícitamente para seguir matcheando tras la reorganización.
+vortest-web/prisma/migrations/*/
+!vortest-web/prisma/migrations/migration_lock.toml
+!vortest-web/prisma/migrations/20260907212500_pivot_pw_codegen_spec_text/
+!vortest-web/prisma/migrations/20260911190000_rbac_roles/
+!vortest-web/prisma/migrations/20260911214445_add_proyecto_color/
+!vortest-web/prisma/migrations/20260914163736_add_parent_case_and_storage_state/
+!vortest-web/prisma/migrations/20260915185138_usuario_perfil_fields/
+!vortest-web/prisma/migrations/20260917120000_add_ejecucion_composite_index/
+!vortest-web/prisma/migrations/20260922120000_add_ejecucion_pending_child/
 
 # Docker
 postgres-data/
@@ -34,7 +40,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-/coverage
+# Coverage (unanchored: matches vortest-web/coverage y vortest-engine/coverage)
+coverage/
+
+# Cache incremental de TypeScript (tsc --incremental) — cambia en cada build
+# local y no debería versionarse. Ver [D-06] en mejoras-opus5.md: estaba
+# versionado sin estar acá (des-trackeado con `git rm --cached`).
+*.tsbuildinfo
 
 # Runtime: archivos temporales del worker de ejecuciones (no commitear)
 runtime/
@@ -42,19 +54,21 @@ playwright-report/
 test-results/
 .playwright/
 
-# Artefactos de ejecución (videos y capturas) — generados por el worker
-storage/artefactos/
+# Artefactos de ejecución (videos y capturas) — generados por el motor de
+# ejecución. Ruta anclada explícita porque un patrón con "/" en medio no
+# matchea por profundidad (ver nota de Prisma arriba).
+vortest-web/storage/artefactos/
 
 # Fixtures: scripts de prueba generados manualmente (no commitear)
 fixtures/
 
 # Debug scripts: scripts one-off creados durante el desarrollo (no commitear)
-scripts/check-ejecucion.ts
-scripts/cleanup-and-seed-simple.ts
-scripts/cleanup-test-cases.ts
-scripts/create-ejecucion-bad-ext.ts
-scripts/create-ejecucion-invalid-script.ts
-scripts/create-pending-ejecucion.ts
-scripts/create-two-concurrent.ts
-scripts/debug-ejecucion.ts
-scripts/seed-test-script.ts
+vortest-web/scripts/check-ejecucion.ts
+vortest-web/scripts/cleanup-and-seed-simple.ts
+vortest-web/scripts/cleanup-test-cases.ts
+vortest-web/scripts/create-ejecucion-bad-ext.ts
+vortest-web/scripts/create-ejecucion-invalid-script.ts
+vortest-web/scripts/create-pending-ejecucion.ts
+vortest-web/scripts/create-two-concurrent.ts
+vortest-web/scripts/debug-ejecucion.ts
+vortest-web/scripts/seed-test-script.ts

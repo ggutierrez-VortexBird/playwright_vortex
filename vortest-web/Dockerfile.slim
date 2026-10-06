@@ -1,0 +1,77 @@
+# Dockerfile.slim — imagen liviana para los servicios de este proyecto que
+# NO lanzan navegadores: `web` (Next.js) y `execution-consumer` (consumidor
+# de eventos, solo escribe en Postgres). Ver [C-04] en mejoras-opus5.md.
+#
+# NO usar para `recorder` — lanza `playwright codegen` y necesita
+# Chromium + las dependencias de sistema que esta imagen no trae. Ese
+# servicio sigue usando `Dockerfile` (base Playwright).
+#
+# Base: node:24-slim. La imagen oficial de Playwright v1.62.1-noble (que
+# usa el `Dockerfile` de al lado) embebe Node 24 — verificado con
+# `docker run --rm mcr.microsoft.com/playwright:v1.62.1-noble node --version`
+# → v24.18.1. Se usa la misma major acá para no introducir un cambio de
+# runtime entre servicios del mismo proyecto (el plan original sugería
+# node:22-slim, que en los hechos ya estaba desalineado con la imagen real).
+#
+# DESVIACIÓN DOCUMENTADA (igual que en el `Dockerfile` principal): no se hace
+# `npm ci --omit=dev` porque los comandos reales en docker-compose.dev.yml
+# (`next dev --turbo` para `web`, `node --import tsx scripts/execution-consumer.ts`
+# para `execution-consumer`) son de DESARROLLO y necesitan devDependencies
+# (`typescript`, `tailwindcss`, `postcss`, `tsx`) en runtime.
+FROM node:24-slim AS deps
+
+WORKDIR /app
+
+# openssl: requerido por el motor de queries de Prisma (libssl) en tiempo de
+# generate/runtime — node:24-slim (Debian bookworm) no lo trae por defecto,
+# a diferencia de la imagen de Playwright (Ubuntu, lo trae de fábrica).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY scripts ./scripts
+RUN npm ci
+
+COPY . .
+
+RUN npx prisma generate
+
+FROM node:24-slim AS runner
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=deps /app ./
+
+# `web` renderiza el PDF del Acta con Chromium (app/api/ejecuciones/[id]/acta →
+# lib/acta/render-pdf.ts, `playwright.chromium.launch`). Aunque no ejecute
+# tests, necesita UN navegador: solo el headless shell (mucho más liviano que
+# los 3 navegadores completos de la imagen de Playwright) + sus libs de
+# sistema. Ruta fija y legible por el usuario `node`.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install --with-deps chromium-headless-shell \
+    && chmod -R a+rX /ms-playwright \
+    && rm -rf /var/lib/apt/lists/*
+
+# [C-08] node:24-slim sí trae el usuario `node` (uid 1000) de fábrica. Igual
+# que en el Dockerfile de `recorder`: el chown es SOLO sobre las carpetas
+# que este servicio escribe, no sobre /app entero (evita duplicar el peso
+# de node_modules en esta capa — ver nota en el Dockerfile de al lado).
+# `next dev` (comando real de `web` en docker-compose.dev.yml) crea /app/.next
+# en runtime y reescribe next-env.d.ts y tsconfig.json; como /app es de root,
+# sin esto falla con `EACCES: mkdir '/app/.next/dev'` al arrancar.
+RUN mkdir -p /app/playwright-scripts /app/storage/actas /app/storage/artefactos /app/.next \
+    && chown -R node:node /app/playwright-scripts /app/storage /app/.next \
+    && chown node:node /app/next-env.d.ts /app/tsconfig.json
+USER node
+
+# 3000 = Next.js (web). execution-consumer no expone puerto (solo consume
+# de RabbitMQ y escribe en Postgres).
+EXPOSE 3000
+
+# Sin CMD por default: docker-compose.dev.yml fija `command:` explícito
+# por servicio.

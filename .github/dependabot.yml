@@ -1,0 +1,59 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /vortest-web
+    schedule:
+      interval: weekly
+    groups:
+      minor-y-patch:
+        update-types:
+          - minor
+          - patch
+    # [C-06] Next/Prisma/Tailwind/TypeScript mayores están explícitamente
+    # fuera de alcance de actualizaciones automáticas — requieren un spike
+    # dedicado por paquete, uno a la vez (ver mejoras-opus5.md).
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/client"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # [C-01] La versión de @playwright/test está pinneada exacta y
+      # acoplada al tag del Dockerfile — no debe actualizarse sola.
+      - dependency-name: "@playwright/test"
+
+  - package-ecosystem: npm
+    directory: /vortest-engine
+    schedule:
+      interval: weekly
+    groups:
+      minor-y-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "@nestjs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@playwright/test"
+
+  - package-ecosystem: docker
+    directory: /vortest-web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /vortest-engine
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,50 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        proyecto: [vortest-web, vortest-engine]
+    defaults:
+      run:
+        working-directory: ${{ matrix.proyecto }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.proyecto }}/package-lock.json
+
+      - run: npm ci
+
+      - name: Generar cliente de Prisma
+        if: matrix.proyecto == 'vortest-web'
+        run: npx prisma generate
+
+      # [C-01] Falla si @playwright/test (npm) y el tag del Dockerfile
+      # (imagen con binarios de navegador) se desalinean.
+      - name: Verificar alineación de versión de Playwright
+        run: npm run verify:playwright
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # [C-03] ESLint recién se configuró en esta tanda de correcciones y el
+      # repo todavía tiene un volumen no trivial de violaciones existentes
+      # (ver conteo en el reporte de la corrección). Informativo por ahora
+      # para no bloquear el resto de la matriz mientras se limpian
+      # progresivamente — sacar `continue-on-error` cuando el lint esté en
+      # verde.
+      # TODO: una vez limpiadas las violaciones de ESLint reportadas en
+      # mejoras-opus5.md [C-03], quitar `continue-on-error: true` acá para
+      # que el lint vuelva a ser bloqueante.
+      - name: Lint (informativo)
+        run: npm run lint
+        continue-on-error: true

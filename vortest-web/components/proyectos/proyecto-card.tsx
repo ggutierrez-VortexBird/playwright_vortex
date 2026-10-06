@@ -1,0 +1,187 @@
+"use client";
+
+import Link from "next/link";
+import type { ProyectoWithMetrics } from "@/types/proyecto";
+import { LOCALE, TIME_ZONE } from "@/lib/format";
+
+interface ProyectoCardProps {
+  proyecto: ProyectoWithMetrics;
+  espacioNombre?: string;
+  espacioColor?: string | null;
+  onEdit?: (proyecto: ProyectoWithMetrics) => void;
+  onDelete?: (proyecto: ProyectoWithMetrics) => void;
+  onManageTesters?: (proyecto: ProyectoWithMetrics) => void;
+  canEdit?: boolean;
+}
+
+function formatRelativeDate(dateString: string | null): string {
+  if (!dateString) return "sin ejecuciones";
+  const date = new Date(dateString);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMs / 3600000);
+  const days = Math.floor(diffMs / 86400000);
+
+  if (minutes < 1) return "hace instantes";
+  if (minutes < 60) return `hace ${minutes} min`;
+  if (hours < 24) return `hace ${hours} h`;
+  if (days === 1) return "ayer";
+  if (days < 30) return `hace ${days} d`;
+  return date.toLocaleDateString(LOCALE, {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function codigoProyecto(id: string): string {
+  return `#PRY-${id.replace(/-/g, "").slice(0, 4).toUpperCase()}`;
+}
+
+function ambienteDotColor(ambiente: string): string {
+  const a = ambiente.toLowerCase();
+  if (a.includes("prod")) return "bg-sky-500";
+  if (a.includes("stag") || a.includes("qa")) return "bg-purple-500";
+  if (a.includes("dev")) return "bg-amber-500";
+  return "bg-m3-outline";
+}
+
+export function ProyectoCard({
+  proyecto,
+  espacioNombre,
+  espacioColor,
+  onEdit,
+  onDelete,
+  onManageTesters,
+  canEdit = false,
+}: ProyectoCardProps) {
+  const color = proyecto.color ?? espacioColor ?? "#64748b";
+  const evaluados = proyecto.casosConformes + proyecto.casosNoConformes;
+  const tasaExito = evaluados > 0 ? Math.round((proyecto.casosConformes / evaluados) * 100) : null;
+
+  const tasaColor =
+    tasaExito === null
+      ? "text-m3-on-surface-variant"
+      : tasaExito < 50
+      ? "text-m3-error"
+      : tasaExito < 80
+      ? "text-m3-secondary"
+      : "text-m3-success";
+  const barColor =
+    tasaExito === null
+      ? "bg-m3-outline-variant"
+      : tasaExito < 50
+      ? "bg-m3-error"
+      : tasaExito < 80
+      ? "bg-m3-secondary-container"
+      : "bg-m3-success";
+
+  return (
+    <article className="group flex flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-shadow hover:shadow-card-hover">
+      {/* Cabecera coloreada */}
+      <div className="flex flex-col p-4 pb-5 text-white" style={{ backgroundColor: color }}>
+        <div className="mb-2.5 flex items-center justify-between text-xs">
+          <span className="rounded-md bg-black/20 px-2.5 py-0.5 font-mono-code text-[11px] font-semibold tracking-wider text-white/90">
+            {codigoProyecto(proyecto.id)}
+          </span>
+          {canEdit && (onManageTesters || onEdit || onDelete) && (
+            <div className="flex items-center gap-1">
+              {onManageTesters && (
+                <button
+                  onClick={() => onManageTesters(proyecto)}
+                  className="rounded-md p-1 text-white/90 transition hover:bg-black/20 hover:text-white"
+                  title="Testers"
+                  aria-label="Testers del proyecto"
+                >
+                  <span className="material-symbols-outlined text-[16px]">group</span>
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(proyecto)}
+                  className="rounded-md p-1 text-white/90 transition hover:bg-black/20 hover:text-white"
+                  title="Editar"
+                  aria-label="Editar proyecto"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={() => onDelete(proyecto)}
+                  className="rounded-md p-1 text-white/90 transition hover:bg-rose-950/40 hover:text-white"
+                  title="Eliminar"
+                  aria-label="Eliminar proyecto"
+                >
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {espacioNombre && (
+          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-white/80">{espacioNombre}</p>
+        )}
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <h3 className="truncate text-xl font-bold tracking-tight text-white">{proyecto.nombre}</h3>
+          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+            {proyecto.ambiente}
+          </span>
+        </div>
+      </div>
+
+      {/* Cuerpo */}
+      <div className="flex flex-1 flex-col justify-between gap-5 p-5">
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
+            <span className="text-m3-on-surface-variant">Tasa de éxito</span>
+            <span className={tasaColor}>{tasaExito !== null ? `${tasaExito}%` : "—"}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-m3-surface-container">
+            <div className={`h-2 rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${tasaExito ?? 0}%` }} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 rounded-xl border border-m3-outline-variant bg-m3-surface-container-low px-3 py-3 text-center">
+          <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">Casos</span>
+            <span className="text-lg font-bold leading-tight text-m3-on-surface">{proyecto.totalCasos}</span>
+          </div>
+          <div className="border-x border-m3-outline-variant">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">Conformes</span>
+            <span className="text-lg font-bold leading-tight text-m3-success">{proyecto.casosConformes}</span>
+          </div>
+          <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">No conf.</span>
+            <span
+              className={`text-lg font-bold leading-tight ${
+                proyecto.casosNoConformes > 0 ? "text-m3-error" : "text-m3-on-surface"
+              }`}
+            >
+              {proyecto.casosNoConformes}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 border-t border-m3-outline-variant pt-3 text-xs text-m3-on-surface-variant">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${ambienteDotColor(proyecto.ambiente)}`} />
+            <span className="truncate font-medium">{proyecto.ambiente}</span>
+            <span className="shrink-0">•</span>
+            <span className="shrink-0">{formatRelativeDate(proyecto.fechaUltimaEjecucion)}</span>
+          </div>
+          <Link
+            href={`/proyectos/${proyecto.id}/casos`}
+            style={{ backgroundColor: color }}
+            className="inline-flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white no-underline shadow-sm transition duration-200 hover:opacity-90"
+          >
+            Ver
+            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}

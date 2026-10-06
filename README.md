@@ -1,151 +1,63 @@
-﻿# VorTest
+# VorTest
 
 Plataforma de automatización de pruebas con Playwright.
 
----
+Este repositorio contiene **dos proyectos Node independientes** (sin workspaces —
+cada uno tiene su propio `node_modules`/lockfile y se instala/builda por separado):
 
-## 🚀 Cómo levantar el proyecto
+| Carpeta | Qué es |
+|---|---|
+| [`vortest-web/`](./vortest-web) | Dashboard Next.js (UI + API + Server Actions + base de datos). Ver [`vortest-web/README.md`](./vortest-web/README.md). |
+| [`vortest-engine/`](./vortest-engine) | Motor de ejecución de Playwright, servicio NestJS independiente que recibe trabajos por RabbitMQ y sube artefactos por HTTP interno a `vortest-web`. Sin acceso a base de datos. Ver [`vortest-engine/README.md`](./vortest-engine/README.md). |
 
-### Requisitos previos
-
-- [Node.js](https://nodejs.org/) 20+
-- [Docker](https://www.docker.com/) (para PostgreSQL)
-- [npm](https://www.npmjs.com/) (viene con Node)
-
-### 1. Levantar PostgreSQL con Docker
-
-```bash
-docker compose -f docker-compose.dev.yml up postgres -d
-```
-
-Eso crea y arranca el contenedor `vortest-postgres` en el puerto `5432`.
-
-### 2. Instalar dependencias
-
-```bash
-npm install
-```
-
-> El `postinstall` descargará automáticamente los navegadores de Playwright.
-
-### 3. Configurar variables de entorno
-
-Copia el archivo de ejemplo:
+## Levantar todo junto (Docker Compose)
 
 ```bash
 cp .env.example .env
-```
-
-Edita `.env` si necesitas cambiar contraseñas o el secreto de sesión. Por defecto ya funciona para desarrollo local.
-
-### 4. Crear las tablas en la base de datos
-
-```bash
-npx prisma migrate dev
-```
-
-Te pedirá un nombre para la migración; escribe `init` (o el que prefieras).
-
-> Alternativa rápida sin generar archivos de migración: `npx prisma db push`
-
-### 5. Ejecutar el seed (cargar usuario superadmin)
-
-```bash
-npx prisma db seed
-```
-
-Esto crea el usuario inicial:
-
-| Campo         | Valor por defecto     |
-|---------------|-----------------------|
-| Email         | `admin@admin.com`     |
-| Contraseña    | `admin123` (definida en `.env` como `SEED_ADMIN_PASSWORD`) |
-| Rol           | `superadmin`          |
-
-### 6. Levantar la aplicación
-
-```bash
-npm run dev
-```
-
-Eso arranca en paralelo:
-- **Web (Next.js)** → http://localhost:3000
-- **Worker** → proceso en segundo plano que ejecuta los tests de Playwright
-
-### 7. Verificar que todo funciona
-
-- Abre http://localhost:3000 e inicia sesión con las credenciales del seed.
-- Para inspeccionar la base de datos: `npx prisma studio`
-
----
-
-## 🛠️ Scripts útiles
-
-| Script | Descripción |
-|--------|-------------|
-| `npm run dev` | Levanta web + worker en paralelo |
-| `npm run dev:web` | Solo Next.js |
-| `npm run dev:worker` | Solo el worker |
-| `npm run db:migrate` | Crear/aplicar migraciones |
-| `npm run db:seed` | Ejecutar seed |
-| `npm run db:studio` | Abrir Prisma Studio |
-| `npm run db:reset` | Resetear base de datos (⚠️ borra todo) |
-| `npm test` | Ejecutar tests unitarios con Jest |
-| `npm run worker` | Ejecutar el worker manualmente |
-
----
-
-## 📁 Estructura del proyecto
-
-```
-playwright_vortex/
-├── app/              # Next.js App Router (páginas y API routes)
-├── components/       # Componentes React reutilizables
-├── lib/              # Utilidades, hooks, lógica de negocio
-├── prisma/           # Schema y migraciones de Prisma
-├── scripts/          # Scripts auxiliares (worker, etc.)
-├── types/            # Tipos TypeScript globales
-├── docker-compose.dev.yml  # Compose solo para desarrollo
-└── README.md         # Este archivo
-```
-
----
-
-## 🐳 Docker Compose (desarrollo)
-
-El repositorio incluye `docker-compose.dev.yml` que levanta:
-
-- **PostgreSQL 16** (`vortest-postgres`) con healthcheck
-- **`app`** — Next.js (migra, siembra y arranca `next dev`)
-- **`worker`** — motor de ejecución (`scripts/worker.ts`), antes ausente del compose: sin este servicio ningún "Ejecutar" corría dentro de Docker aunque `app` y `postgres` estuvieran sanos
-- **`recorder`** — recorder-worker del modo grabador
-- Volúmenes persistentes para datos, scripts de Playwright y artefactos
-
-Los tres servicios de Node comparten el mismo `Dockerfile` (basado en la imagen oficial de Playwright, que trae Chromium/Firefox/WebKit y sus dependencias del sistema preinstaladas) y solo difieren en el `command:`.
-
-```bash
 docker compose -f docker-compose.dev.yml up
 ```
 
-> **Limitación conocida, sin verificar todavía:** el servicio `recorder` lanza un navegador `headed` (`headless: false`, ver `scripts/codegen-runner.ts`) para el modo grabador. Eso necesita una pantalla — dentro de un contenedor Linux normalmente vía Xvfb — y este compose todavía no lo configura ni fue probado con una grabación real de punta a punta en Docker. `app` y `worker` (que corren siempre headless) sí deberían funcionar tal cual.
+Esto levanta PostgreSQL, RabbitMQ, `engine` (motor de ejecución),
+`execution-consumer` (consume eventos del motor y escribe en la base) y `web`
+(dashboard Next.js).
 
----
+**El grabador corre en tu máquina, no en Docker:** Playwright Codegen abre una
+ventana real del navegador en tu escritorio, que es donde hacés los clics que
+se graban, y un contenedor no tiene pantalla que mostrar. En otra terminal:
 
-## 🔐 Variables de entorno
+```bash
+cd vortest-web
+npm run dev:recorder:host   # o `make recorder` si tenés make
+```
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `DATABASE_URL` | Conexión a PostgreSQL | `postgresql://vortest:vortest@localhost:5432/vortest?schema=public` |
-| `SESSION_SECRET` | Secreto para sesiones (mínimo 32 chars) | `vortest-super-secret-key-2026-vortexbird-sas-32chars` |
-| `SEED_ADMIN_PASSWORD` | Contraseña del usuario seed | `admin123` |
-| `NODE_ENV` | Entorno de ejecución | `development` |
+`web` lo encuentra en `host.docker.internal:3100`. Requiere `npm install` en
+`vortest-web/` y los navegadores de Playwright instalados en el host
+(`npx playwright install`).
 
----
+Gaps conocidos, vigentes (no bloqueantes para correr en local):
+- Sin dead-letter queue de RabbitMQ configurada para `engine.execute`
+  (infraestructura, ver `docker-compose.dev.yml` y el motor).
+- Cancelación y encadenamiento padre/hijo de ejecuciones probados con tests
+  unitarios (mocks), no en vivo contra una instancia real de punta a punta.
+- No existe todavía ninguna configuración de despliegue de producción — el
+  compose de esta raíz es exclusivamente de desarrollo.
 
-## 🧪 Tests
+## Levantar cada proyecto por separado (sin Docker)
 
-- **Unitarios / integración:** `npm test` (Jest + Testing Library)
-- **E2E:** `npx playwright test` (requiere que la app esté corriendo)
+Ver el `README.md` de cada subcarpeta — cada una documenta su propio
+`npm install` / variables de entorno / comando de arranque.
+
+## Comando único (Makefile)
+
+```bash
+make up      # docker compose up
+make down    # docker compose down
+make dev     # levanta postgres+rabbitmq en Docker y el resto con npm run dev
+make recorder # grabador en el host (necesario para grabar con make up)
+make test    # tests de ambos proyectos
+make lint    # lint de ambos proyectos
+make logs    # logs del compose
+```
 
 ---
 
