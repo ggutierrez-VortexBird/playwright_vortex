@@ -10,12 +10,6 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = Boolean(session.userId);
   const isLoginPage = pathname === "/login";
 
-  // /api/internal/* lo llama el motor (sin cookie de sesión); cada handler se
-  // protege con X-Internal-Secret. Debe salir ANTES del redirect a /login.
-  if (pathname.startsWith("/api/internal/")) {
-    return res;
-  }
-
   // SEG-10: /api/* sin sesión → 401 JSON
   if (!isAuthenticated && pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -35,5 +29,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|logo.png).*)"],
+  // api/internal fuera del matcher: al pasar por acá Next corta el cuerpo en 10 MB y los videos grandes llegaban rotos (400).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|logo.png|api/internal).*)"],
 };

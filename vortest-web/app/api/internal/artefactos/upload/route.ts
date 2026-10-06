@@ -27,7 +27,8 @@ import * as fs from 'fs'
 // __tests__/app/api/internal/artefactos/upload/route.test.ts).
 import fsPromises from 'fs/promises'
 import * as path from 'path'
-import { Readable } from 'stream'
+import { createHash } from 'crypto'
+import { Readable, Transform } from 'stream'
 import { pipeline } from 'stream/promises'
 import type { ReadableStream as WebReadableStream } from 'stream/web'
 import { ensureArtefacto } from '@/lib/worker/artifacts'
@@ -117,8 +118,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // destino que antes (storage/artefactos/<ejecucionId>/<fileName>), solo
   // que ahora llega por HTTP en vez de fs.renameSync local.
   const sanitizedFileName = path.basename(fileName)
+  if (!/^[0-9a-f]{64}$/i.test(sha256)) {
+    return NextResponse.json({ error: 'validation', message: 'sha256 inválido' }, { status: 400 })
+  }
   const storageDir = path.resolve(process.cwd(), 'storage', 'artefactos', ejecucionId)
-  const destPath = path.join(storageDir, sanitizedFileName)
+  // Prefijo con el hash: los tests de un mismo spec generan `video.webm` iguales y se pisaban; `nombre` conserva el original para vincularlo a los pasos.
+  const destPath = path.join(storageDir, `${sha256.slice(0, 12).toLowerCase()}-${sanitizedFileName}`)
+  const hash = createHash('sha256')
+  let bytesEscritos = 0
+  const verificador = new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      hash.update(chunk)
+      bytesEscritos += chunk.length
+      callback(null, chunk)
+    },
+  })
 
   try {
     await fsPromises.mkdir(storageDir, { recursive: true })
@@ -137,10 +151,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // hoy una API de multipart verdaderamente streaming de punta a punta.
     const webStream = file.stream() as unknown as WebReadableStream<Uint8Array>
     const nodeStream = Readable.fromWeb(webStream)
-    await pipeline(nodeStream, fs.createWriteStream(destPath))
+    await pipeline(nodeStream, verificador, fs.createWriteStream(destPath))
   } catch (err) {
     console.error('[upload] Error escribiendo artefacto a disco:', err)
     return NextResponse.json({ error: 'write_failed' }, { status: 500 })
+  }
+
+  if (hash.digest('hex') !== sha256.toLowerCase() || bytesEscritos !== bytes) {
+    await fsPromises.rm(destPath, { force: true })
+    console.error(`[upload] ${sanitizedFileName}: hash o tamaño no coinciden (${bytesEscritos} de ${bytes} bytes)`)
+    return NextResponse.json({ error: 'validation', message: 'El archivo recibido no coincide con su hash o tamaño' }, { status: 400 })
   }
 
   try {

@@ -39,6 +39,30 @@ export class ActiveJobsRegistry implements OnApplicationShutdown {
     return this.jobs.size
   }
 
+  // Jobs recibidos que esperan turno por el límite de concurrencia; se pueden cancelar antes de arrancar.
+  private readonly enEspera = new Set<string>()
+  private readonly canceladosEnEspera = new Set<string>()
+
+  entrarEnEspera(jobId: string): void {
+    this.enEspera.add(jobId)
+  }
+
+  estaEnEspera(jobId: string): boolean {
+    return this.enEspera.has(jobId)
+  }
+
+  /** Devuelve true si el job fue cancelado mientras esperaba turno. */
+  salirDeEspera(jobId: string): boolean {
+    this.enEspera.delete(jobId)
+    return this.canceladosEnEspera.delete(jobId)
+  }
+
+  cancelarEnEspera(jobId: string): boolean {
+    if (!this.enEspera.has(jobId)) return false
+    this.canceladosEnEspera.add(jobId)
+    return true
+  }
+
   /**
    * FIA-08: apagado ordenado — cancela y mata todos los procesos activos
    * antes de que NestJS cierre conexiones. Promise.allSettled garantiza que

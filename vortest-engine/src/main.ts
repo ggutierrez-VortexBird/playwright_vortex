@@ -37,8 +37,7 @@ async function bootstrap(): Promise<void> {
           'x-dead-letter-exchange': 'engine.dlx',
         },
       },
-      // FIA-02: prefetchCount limita la concurrencia de jobs activos.
-      // ENGINE_MAX_CONCURRENT_JOBS default=3; Joi valida min=1 en app.module.
+      // Acota cuántos jobs esperan turno sin confirmar; la concurrencia real la limita el semáforo de ExecutionService.
       prefetchCount: config.get<number>('ENGINE_MAX_CONCURRENT_JOBS', 3),
       // noAck:false — ack manual. ExecuteJobConsumer solo ackea una vez que
       // ExecutionService terminó de "arrancar" el job (registrado en

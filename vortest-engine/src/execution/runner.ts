@@ -419,6 +419,18 @@ export interface RunPlaywrightResult {
   artifactUploadFailed: boolean
 }
 
+// El script del caso lo escribe un usuario: sólo recibe lo que Playwright y el sistema necesitan, nunca RABBITMQ_URL ni ENGINE_INTERNAL_SECRET.
+const VARIABLES_DEL_SCRIPT = new Set([
+  'PATH', 'PATHEXT', 'HOME', 'USERPROFILE', 'TMPDIR', 'TEMP', 'TMP', 'LANG', 'LC_ALL', 'TZ', 'NODE_ENV',
+  'SystemRoot', 'SYSTEMROOT', 'ComSpec', 'COMSPEC', 'APPDATA', 'LOCALAPPDATA', 'DISPLAY', 'XDG_RUNTIME_DIR',
+])
+
+export function entornoDelScript(origen: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(
+    Object.entries(origen).filter(([clave]) => VARIABLES_DEL_SCRIPT.has(clave) || clave.startsWith('PLAYWRIGHT_') || clave.startsWith('PW_')),
+  )
+}
+
 export async function runPlaywrightTest(
   scriptPath: string,
   jobId: string,
@@ -450,7 +462,7 @@ export async function runPlaywrightTest(
     const cliPath = path.resolve(process.cwd(), 'node_modules', '@playwright', 'test', 'cli.js')
 
     const env: NodeJS.ProcessEnv = {
-      ...process.env,
+      ...entornoDelScript(process.env),
       FORCE_COLOR: '0',
       VORTEST_RUNNER: '1',
       VORTEST_OUTPUT_DIR: outputDir,

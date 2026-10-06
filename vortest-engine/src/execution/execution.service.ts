@@ -5,6 +5,7 @@
 // templado por vortest-web, escribe el script a disco, corre el runner
 // portado, sube artefactos, y emite el evento `end` final.
 import { Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { ArtifactsService } from '../artifacts/artifacts.service'
 import type { CollectedArtifactRef } from '../queue/events.publisher'
 import { EventsPublisherService } from '../queue/events.publisher'
@@ -23,7 +24,29 @@ export class ExecutionService {
     private readonly eventsPublisher: EventsPublisherService,
     private readonly artifactsService: ArtifactsService,
     private readonly registry: ActiveJobsRegistry,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.maxConcurrentes = config.get<number>('ENGINE_MAX_CONCURRENT_JOBS', 3)
+  }
+
+  // El job se confirma a RabbitMQ al arrancar, así que el prefetch no limita cuántos navegadores corren a la vez: lo limita este semáforo.
+  private readonly maxConcurrentes: number
+  private enCurso = 0
+  private readonly turnos: Array<() => void> = []
+
+  private async tomarTurno(): Promise<void> {
+    if (this.enCurso < this.maxConcurrentes) {
+      this.enCurso++
+      return
+    }
+    await new Promise<void>((resolve) => this.turnos.push(resolve))
+  }
+
+  private liberarTurno(): void {
+    const siguiente = this.turnos.shift()
+    if (siguiente) siguiente()
+    else this.enCurso--
+  }
 
   /**
    * Resuelve tan pronto el job queda REGISTRADO en ActiveJobsRegistry — es
@@ -39,8 +62,16 @@ export class ExecutionService {
    * resuelve — no se espera desde acá.
    */
   async runJob(job: ExecuteJobMessage): Promise<void> {
-    if (this.registry.has(job.jobId)) {
+    if (this.registry.has(job.jobId) || this.registry.estaEnEspera(job.jobId)) {
       this.logger.warn(`Job ${job.jobId} ya está activo en esta instancia — ignorando entrega duplicada`)
+      return
+    }
+
+    this.registry.entrarEnEspera(job.jobId)
+    await this.tomarTurno()
+    if (this.registry.salirDeEspera(job.jobId)) {
+      this.liberarTurno()
+      this.logger.log(`Job ${job.jobId} cancelado mientras esperaba turno — no se ejecuta`)
       return
     }
 
@@ -49,7 +80,7 @@ export class ExecutionService {
       this.executeInternal(job, () => {
         registered = true
         resolveRegistered()
-      }).catch((err: unknown) => {
+      }).finally(() => this.liberarTurno()).catch((err: unknown) => {
         if (!registered) {
           rejectRegistered(err instanceof Error ? err : new Error(String(err)))
         }

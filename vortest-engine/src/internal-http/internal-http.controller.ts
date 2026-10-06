@@ -21,6 +21,10 @@ export class InternalHttpController {
   @HttpCode(HttpStatus.OK)
   async cancel(@Param('jobId') jobId: string, @Res({ passthrough: true }) res: Response): Promise<{ cancelled: boolean }> {
     const entry = this.registry.get(jobId)
+    if (!entry && this.registry.cancelarEnEspera(jobId)) {
+      this.logger.log(`Job ${jobId} cancelado antes de arrancar (esperaba turno)`)
+      return { cancelled: true }
+    }
     if (!entry) {
       // 404 benigno: con múltiples réplicas compitiendo por trabajos
       // (competing consumers), es normal y esperado que otra instancia sea
