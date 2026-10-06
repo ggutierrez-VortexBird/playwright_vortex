@@ -15,15 +15,7 @@ dist/
 # Prisma (vortest-web) — patrones con "/" en medio quedan anclados al
 # directorio del .gitignore (repo root), así que deben incluir el prefijo
 # vortest-web/ explícitamente para seguir matcheando tras la reorganización.
-vortest-web/prisma/migrations/*/
-!vortest-web/prisma/migrations/migration_lock.toml
-!vortest-web/prisma/migrations/20260907212500_pivot_pw_codegen_spec_text/
-!vortest-web/prisma/migrations/20260911190000_rbac_roles/
-!vortest-web/prisma/migrations/20260911214445_add_proyecto_color/
-!vortest-web/prisma/migrations/20260914163736_add_parent_case_and_storage_state/
-!vortest-web/prisma/migrations/20260915185138_usuario_perfil_fields/
-!vortest-web/prisma/migrations/20260917120000_add_ejecucion_composite_index/
-!vortest-web/prisma/migrations/20260922120000_add_ejecucion_pending_child/
+# Las migraciones de Prisma se versionan todas: sin ellas un clon limpio no puede crear la base.
 
 # Docker
 postgres-data/
