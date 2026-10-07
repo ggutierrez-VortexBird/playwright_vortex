@@ -1,64 +1,92 @@
-# VorTest
+# vorTest
 
-Plataforma de automatización de pruebas con Playwright.
+Plataforma para automatizar pruebas web con Playwright y dejar evidencia verificable de cada ejecución.
 
-Este repositorio contiene **dos proyectos Node independientes** (sin workspaces —
-cada uno tiene su propio `node_modules`/lockfile y se instala/builda por separado):
+Con vorTest un equipo de QA:
+
+- **graba** un caso de prueba navegando el sitio (Playwright Codegen) o **sube** un script `.spec.ts` existente;
+- lo **ejecuta** en Chromium, Firefox o WebKit y sigue el progreso en vivo, paso a paso;
+- revisa la **evidencia**: video con capítulos por paso, capturas, traza de Playwright;
+- genera el **Acta de evidencia** (PDF con consecutivo anual) para dejar constancia del resultado: *Conforme* o *No conforme*.
+
+El acceso se organiza en **espacios** (clientes o áreas), que agrupan **proyectos**, que contienen **casos**. Hay tres roles: superadmin, admin de espacio y tester de proyecto.
+
+## Cómo está armado
+
+El repositorio tiene **dos proyectos Node independientes** (sin workspaces: cada uno con su `node_modules` y su lockfile):
 
 | Carpeta | Qué es |
 |---|---|
-| [`vortest-web/`](./vortest-web) | Dashboard Next.js (UI + API + Server Actions + base de datos). Ver [`vortest-web/README.md`](./vortest-web/README.md). |
-| [`vortest-engine/`](./vortest-engine) | Motor de ejecución de Playwright, servicio NestJS independiente que recibe trabajos por RabbitMQ y sube artefactos por HTTP interno a `vortest-web`. Sin acceso a base de datos. Ver [`vortest-engine/README.md`](./vortest-engine/README.md). |
+| [`vortest-web/`](./vortest-web) | Dashboard Next.js 16: interfaz, API, base de datos (Prisma + PostgreSQL), grabador y consumidor de eventos. |
+| [`vortest-engine/`](./vortest-engine) | Motor de ejecución NestJS: recibe trabajos por RabbitMQ, corre `playwright test` y sube los artefactos. No toca la base de datos. |
 
-## Levantar todo junto (Docker Compose)
+Arquitectura, modelo de datos, API, sistema de diseño y guía de contribución: [`docs/`](./docs).
 
-```bash
-cp .env.example .env
-docker compose -f docker-compose.dev.yml up
-```
+## Empezar en local
 
-Esto levanta PostgreSQL, RabbitMQ, `engine` (motor de ejecución),
-`execution-consumer` (consume eventos del motor y escribe en la base) y `web`
-(dashboard Next.js).
-
-**El grabador corre en tu máquina, no en Docker:** Playwright Codegen abre una
-ventana real del navegador en tu escritorio, que es donde hacés los clics que
-se graban, y un contenedor no tiene pantalla que mostrar. En otra terminal:
+Requisitos: Docker Desktop, Node.js 24 y (para grabar) los navegadores de Playwright en tu máquina.
 
 ```bash
-cd vortest-web
-npm run dev:recorder:host   # o `make recorder` si tenés make
+cp .env.example .env          # completa los secretos; el compose no arranca sin ellos
+make up                       # o: docker compose -f docker-compose.dev.yml up
 ```
 
-`web` lo encuentra en `host.docker.internal:3100`. Requiere `npm install` en
-`vortest-web/` y los navegadores de Playwright instalados en el host
-(`npx playwright install`).
+Abre <http://localhost:3000> e inicia sesión con `admin@admin.com` y la contraseña que pusiste en `SEED_ADMIN_PASSWORD`.
 
-Gaps conocidos, vigentes (no bloqueantes para correr en local):
-- Sin dead-letter queue de RabbitMQ configurada para `engine.execute`
-  (infraestructura, ver `docker-compose.dev.yml` y el motor).
-- Cancelación y encadenamiento padre/hijo de ejecuciones probados con tests
-  unitarios (mocks), no en vivo contra una instancia real de punta a punta.
-- No existe todavía ninguna configuración de despliegue de producción — el
-  compose de esta raíz es exclusivamente de desarrollo.
+Eso levanta PostgreSQL, RabbitMQ, `web`, `execution-consumer` y `engine`. Las migraciones se aplican solas al arrancar `web`.
 
-## Levantar cada proyecto por separado (sin Docker)
+### Grabar casos
 
-Ver el `README.md` de cada subcarpeta — cada una documenta su propio
-`npm install` / variables de entorno / comando de arranque.
-
-## Comando único (Makefile)
+El grabador corre **en tu máquina, no en Docker**: Playwright Codegen abre una ventana real del navegador y ahí se hacen los clics que se graban; un contenedor no tiene pantalla donde mostrarla. En otra terminal:
 
 ```bash
-make up      # docker compose up
-make down    # docker compose down
-make dev     # levanta postgres+rabbitmq en Docker y el resto con npm run dev
-make recorder # grabador en el host (necesario para grabar con make up)
-make test    # tests de ambos proyectos
-make lint    # lint de ambos proyectos
-make logs    # logs del compose
+cd vortest-web && npm install && npx playwright install
+make recorder                 # o: npm run dev:recorder:host
 ```
+
+`web` lo encuentra en `host.docker.internal:3100`.
+
+### Comandos
+
+```bash
+make up        # docker compose up (5 servicios)
+make down
+make dev       # PostgreSQL y RabbitMQ en Docker; web, consumidor y grabador con npm run dev
+make recorder  # grabador en el host
+make test      # tests de ambos proyectos
+make lint      # lint de ambos proyectos
+make logs
+```
+
+Cada proyecto también se puede levantar por separado: ver su `README.md`.
+
+## Variables de entorno
+
+| Archivo | Para qué |
+|---|---|
+| [`.env.example`](./.env.example) | Lo que interpola `docker-compose.dev.yml`. Copiar a `.env`. |
+| [`vortest-web/.env.example`](./vortest-web/.env.example) | `npm run dev` de la web, el consumidor y el grabador sin Docker. |
+| [`vortest-engine/.env.example`](./vortest-engine/.env.example) | El motor sin Docker. |
+
+En producción `CREDENCIALES_ENCRYPTION_KEY` es obligatoria (cifra las sesiones guardadas como credenciales).
+
+## Si algo no anda
+
+| Síntoma | Qué revisar |
+|---|---|
+| Una ejecución queda "En cola" o "Ejecutando" | En orden: `rabbitmq` sano, `engine` conectado, `execution-consumer` vivo (`make logs`). Casi nunca es la web. |
+| "No se pudo iniciar la grabación" | El grabador del host no está corriendo (`make recorder`). |
+| El compose no arranca | Falta `.env` o un secreto obligatorio dentro de él. |
+| Docker Desktop no arranca | El disco virtual se llenó con imágenes de rebuilds: `docker image prune -f && docker builder prune -f`. |
+
+Más trampas verificadas del entorno de desarrollo en [`docs/contribuir.md`](./docs/contribuir.md).
+
+## Estado
+
+- Sin despliegue de producción definido: el compose de la raíz es de desarrollo.
+- Sin cola de mensajes muertos en RabbitMQ: un trabajo que agota sus reintentos se descarta (ver [`docs/arquitectura.md`](./docs/arquitectura.md#límites-conocidos)).
+- Cambios: [`CHANGELOG.md`](./CHANGELOG.md). Auditoría de calidad y su seguimiento: [`AUDIT.md`](./AUDIT.md).
 
 ---
 
-> Proyecto desarrollado por Vortexbird SAS.
+Desarrollado por Vortexbird SAS.

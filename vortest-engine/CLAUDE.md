@@ -7,7 +7,7 @@ Jamas arregles test a menos de que te lo pida explícitamente.
 
 `vortest-engine` — el motor de ejecución de Playwright de vorTest, extraído como servicio NestJS independiente (`feature/separacion-monolito`). Es uno de dos proyectos independientes en este repo (ver `../README.md` y `../vortest-web/CLAUDE.md` para el otro, el dashboard Next.js).
 
-**Sin acceso a base de datos, por diseño.** Recibe trabajos ya preparados (script completo como texto, con hooks/auto-reparación ya inyectados por `vortest-web`), los ejecuta con `playwright test` como child process, y reporta todo hacia afuera — nunca escribe directamente en Postgres.
+**Sin acceso a base de datos, por diseño.** Recibe trabajos ya preparados (script completo como texto, con el hook de storageState ya inyectado por `vortest-web`), los ejecuta con `playwright test` como child process, y reporta todo hacia afuera — nunca escribe directamente en Postgres.
 
 ## Comunicación con `vortest-web`
 
@@ -32,5 +32,6 @@ Ver `docker-compose.dev.yml` en la raíz del repo para levantar esto junto con `
 
 ## Gaps conocidos (Fase 1)
 
-- Sin dead-letter queue configurada en RabbitMQ (config de infra, no de aplicación).
-- Cancelación y encadenamiento padre/hijo no probados en vivo contra una instancia real (solo unit tests con mocks) más allá de un smoke test manual de ejecución simple.
+- Sin dead-letter queue efectiva: `engine.execute` apunta a `engine.dlx`, que no existe en el broker (ver `../docs/arquitectura.md#límites-conocidos`).
+- `/health/ready` es estático.
+- Cancelación (también de trabajos en espera de turno) y encadenamiento padre/hijo están verificados en vivo; el script corre con una lista blanca de variables de entorno (`execution/runner.ts::entornoDelScript`) y como mucho `ENGINE_MAX_CONCURRENT_JOBS` a la vez.
