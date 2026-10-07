@@ -7,7 +7,7 @@
 // carpeta es un proyecto Node independiente, sin workspaces), así que este
 // archivo es la única fuente de verdad del lado de vortest-web.
 //
-// [FIA-09] Los eventos se validan en el borde (consumeEngineEvents) con zod:
+// Los eventos se validan en el borde (consumeEngineEvents) con zod:
 // no elimina la deriva entre proyectos, pero la convierte de corrupción
 // silenciosa en un error explícito y con detalle en el momento exacto.
 // Los esquemas son PERMISIVOS a propósito (`looseObject`, `nullish`): un campo
@@ -110,7 +110,7 @@ export const CapturaTestEventPayloadSchema = z.looseObject({
   parentTestId: z.number(),
   capturaActualToken: z.string().nullish(),
   capturaReferenciaToken: z.string().nullish(),
-  /** [FIA-11] Referencia directa al subpaso (opcional: motores viejos no la envían). */
+  /** Referencia directa al subpaso (opcional: motores viejos no la envían). */
   substepNumero: z.number().nullish(),
 })
 export type CapturaTestEventPayload = z.infer<typeof CapturaTestEventPayloadSchema>

@@ -165,7 +165,7 @@ export async function linkCapturaTestToLastSubaccion(
     return
   }
 
-  // [FIA-11] Si el motor envía `substepNumero`, la referencia es directa e
+  // Si el motor envía `substepNumero`, la referencia es directa e
   // idempotente (una reentrega reescribe el MISMO subpaso). Si no viene
   // (motor viejo), se mantiene la heurística posicional: el último subpaso
   // sin captura — que NO es idempotente ante reentregas.

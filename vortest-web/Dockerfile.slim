@@ -1,6 +1,6 @@
 # Dockerfile.slim — imagen liviana para los servicios de este proyecto que
 # NO lanzan navegadores: `web` (Next.js) y `execution-consumer` (consumidor
-# de eventos, solo escribe en Postgres). Ver [C-04] en mejoras-opus5.md.
+# de eventos, solo escribe en Postgres).
 #
 # NO usar para `recorder` — lanza `playwright codegen` y necesita
 # Chromium + las dependencias de sistema que esta imagen no trae. Ese
@@ -57,7 +57,7 @@ RUN npx playwright install --with-deps chromium-headless-shell \
     && chmod -R a+rX /ms-playwright \
     && rm -rf /var/lib/apt/lists/*
 
-# [C-08] node:24-slim sí trae el usuario `node` (uid 1000) de fábrica. Igual
+# node:24-slim sí trae el usuario `node` (uid 1000) de fábrica. Igual
 # que en el Dockerfile de `recorder`: el chown es SOLO sobre las carpetas
 # que este servicio escribe, no sobre /app entero (evita duplicar el peso
 # de node_modules en esta capa — ver nota en el Dockerfile de al lado).

@@ -79,7 +79,7 @@ export async function dispararEjecucion(casoPruebaId: string) {
     // HU-PARENT: publicar el job del PADRE ahora; el hijo (ejecucion.id, ya
     // 'corriendo' desde el punto de vista del usuario) espera a que
     // execution-consumer.ts vea el `end` del padre.
-    // [FIA-01] Declarado fuera del try para que el catch pueda marcar la fila
+    // Declarado fuera del try para que el catch pueda marcar la fila
     // del padre si llegó a crearse (si no, quedaría 'corriendo' para siempre
     // y bloquearía el caso padre por el guard anti-concurrencia).
     let parentEjecucion: { id: string } | null = null
@@ -239,7 +239,7 @@ export async function detenerEjecucion(ejecucionId: string) {
   return { id: ejecucionId, estado: 'cancelado' as const }
 }
 
-// [FIA-07] Mitigación: si el motor responde 404 puede ser que el job todavía
+// Mitigación: si el motor responde 404 puede ser que el job todavía
 // esté en la cola o entre "recibido" y "registrado". Se reintenta la
 // cancelación con backoff corto (0s, 1s, 2s: 3 intentos). Nunca lanza: el
 // estado 'cancelado' en DB ya es definitivo y optimista.

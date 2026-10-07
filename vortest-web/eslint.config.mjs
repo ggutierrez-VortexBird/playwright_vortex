@@ -29,7 +29,6 @@ export default defineConfig([
     "runtime/**",
     "test-results/**",
     "playwright-report/**",
-    "openspec/**",
     "sdd/**",
     "next-env.d.ts",
   ]),

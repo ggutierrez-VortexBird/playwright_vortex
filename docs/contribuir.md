@@ -21,10 +21,10 @@ Otros comandos útiles de `vortest-web`:
 ```bash
 npm run db:studio          # Prisma Studio para inspeccionar la base
 npm run cleanup:sesiones   # borra sesiones de grabación viejas en estado terminal
-npx playwright test e2e/   # pruebas e2e (con la app corriendo)
+npm run test:e2e           # pruebas e2e (con la app corriendo en localhost:3000)
 ```
 
-Las e2e se invocan apuntando a `e2e/`: `playwright.config.ts` tiene `testDir: './runtime/ejecuciones'`, así que `npx playwright test` sin argumentos no las encuentra.
+Las e2e usan su propia configuración (`playwright.e2e.config.ts`); `BASE_URL` cambia la dirección de la app.
 
 ## Antes de abrir un PR
 

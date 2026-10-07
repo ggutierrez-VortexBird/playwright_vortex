@@ -9,9 +9,9 @@ updates:
         update-types:
           - minor
           - patch
-    # [C-06] Next/Prisma/Tailwind/TypeScript mayores están explícitamente
+    # Next/Prisma/Tailwind/TypeScript mayores están explícitamente
     # fuera de alcance de actualizaciones automáticas — requieren un spike
-    # dedicado por paquete, uno a la vez (ver mejoras-opus5.md).
+    # dedicado por paquete, uno a la vez.
     ignore:
       - dependency-name: "next"
         update-types: ["version-update:semver-major"]
@@ -23,7 +23,7 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
-      # [C-01] La versión de @playwright/test está pinneada exacta y
+      # La versión de @playwright/test está pinneada exacta y
       # acoplada al tag del Dockerfile — no debe actualizarse sola.
       - dependency-name: "@playwright/test"
 

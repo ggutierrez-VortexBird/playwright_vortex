@@ -34,7 +34,7 @@ export const EXECUTE_QUEUE = 'engine.execute'
 export const EVENTS_QUEUE = 'engine.events'
 
 /**
- * [FIA-10] Argumentos de la cola `engine.execute`: quorum + límite de
+ * Argumentos de la cola `engine.execute`: quorum + límite de
  * entregas + dead-letter exchange, para que un mensaje "veneno" termine en la
  * DLQ en vez de reencolarse para siempre. vortest-engine declara la cola con
  * EXACTAMENTE los mismos argumentos.
@@ -64,7 +64,7 @@ function wrapNestEvent<T>(pattern: string, data: T): NestEventEnvelope<T> {
   return { pattern, data }
 }
 
-// [FIA-04] amqp-connection-manager: reconecta solo con backoff y vuelve a
+// amqp-connection-manager: reconecta solo con backoff y vuelve a
 // ejecutar el `setup` de cada canal (re-asegura colas y re-registra el
 // consumidor) tras cada reconexión. Cacheado en globalThis (mismo patrón que
 // lib/db.ts) para sobrevivir al hot-reload de `next dev`.

@@ -2,7 +2,7 @@
  * GET /api/proyectos/[id]/credenciales
  *
  * Lista las credenciales de un proyecto sin exponer el `valor` cifrado.
- * Auth: superadmin (política declarada en CLAUDE.md).
+ * Auth: superadmin.
  *
  * Response 200: [{id, nombre, tipo, vence}, ...]
  * Response 401: {error:'No autenticado'}

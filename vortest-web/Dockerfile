@@ -2,9 +2,9 @@
 # HOY SOLO para el servicio `recorder` — es el único de los tres servicios de
 # este proyecto que sigue lanzando navegadores (`playwright codegen`). `web`
 # y `execution-consumer` usan `Dockerfile.slim` (node:24-slim, sin
-# Playwright) — ver [C-04] en mejoras-opus5.md.
+# Playwright).
 #
-# Multi-stage ([C-07]): "deps" instala dependencias y genera el cliente de
+# Multi-stage: "deps" instala dependencias y genera el cliente de
 # Prisma; "runner" copia ese resultado y corre como usuario no-root.
 #
 # DESVIACIÓN DOCUMENTADA respecto al "Cómo se hace" del plan: el patrón
@@ -13,12 +13,12 @@
 # en `docker-compose.dev.yml`, y `recorder` ejecuta un comando de DESARROLLO
 # (`node --import tsx scripts/recorder-worker.ts`) que necesita `tsx` —
 # devDependency — en runtime. Omitir devDependencies rompería el servicio.
-# Cuando exista una config de producción real ([C-05], fuera de alcance acá),
+# Cuando exista una config de producción real,
 # ESE Dockerfile sí debe hacer build real + `npm ci --omit=dev`.
 #
 # La versión del tag DEBE coincidir con la de `@playwright/test` en
 # package.json (hoy 1.62.1) — verificado automáticamente por
-# `npm run verify:playwright` (ver [C-01]).
+# `npm run verify:playwright`.
 FROM mcr.microsoft.com/playwright:v1.62.1-noble AS deps
 
 WORKDIR /app
@@ -50,7 +50,7 @@ WORKDIR /app
 
 COPY --from=deps /app ./
 
-# [C-08] La imagen base de Playwright NO trae un usuario `node` (a diferencia
+# La imagen base de Playwright NO trae un usuario `node` (a diferencia
 # de las imágenes oficiales `node:*`) — trae `pwuser` (uid 1001), pensado
 # para correr navegadores sin privilegios. Se crean acá los directorios que
 # este servicio escribe (volumen de scripts de Playwright, storage local) y

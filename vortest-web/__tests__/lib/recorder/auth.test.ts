@@ -19,7 +19,7 @@ import { createHmac } from "node:crypto";
 
 const ORIGINAL_SECRET = process.env.SESSION_SECRET;
 
-// [T-03] Secreto fijo, SIN fallback `||`: `next/jest` carga `.env`/`.env.local`
+// Secreto fijo, SIN fallback `||`: `next/jest` carga `.env`/`.env.local`
 // antes de correr los tests, así que en una máquina con `.env` el fallback
 // nunca se aplicaba y el test corría contra el secreto real (no hermético).
 beforeAll(() => {
@@ -120,7 +120,7 @@ describe("recorder/auth — HMAC token", () => {
     const t = issueToken("ses-1", "user-1", 600);
 
     // Manually forge a token with different secret.
-    // [T-03] try/finally: si alguna aserción de adentro falla, la excepción
+    // try/finally: si alguna aserción de adentro falla, la excepción
     // se propagaba antes de restaurar SESSION_SECRET, contaminando el resto
     // de los tests de este archivo Y de cualquier otro que corra después en
     // el mismo worker de Jest (los workers reutilizan el proceso).

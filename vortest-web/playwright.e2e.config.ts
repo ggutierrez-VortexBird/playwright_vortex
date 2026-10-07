@@ -1,11 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// [T-02] Config dedicada para los specs de e2e/ — el `playwright.config.ts`
+// Config dedicada para los specs de e2e/ — el `playwright.config.ts`
 // original (borrado en esta misma corrección) apuntaba a
 // `./runtime/ejecuciones`, un directorio que ya no existe (era scratch del
 // viejo worker in-process, movido a vortest-engine/). Con eso, ningún
 // comando documentado (`npx playwright test`) descubría los 5 specs reales
-// de e2e/ — cobertura fantasma. Ver mejoras-opus5.md [T-02].
+// de e2e/ — cobertura fantasma.
 //
 // Requiere que la app esté corriendo en BASE_URL (por defecto localhost:3000,
 // ver README).

@@ -20,8 +20,7 @@ iron-session) y `vortest-engine` (NestJS 12, Playwright 1.62, RabbitMQ).
 | Build | OK; 1 advertencia: `middleware` deprecado en favor de `proxy` | OK |
 | `npm run lint` | **roto**: Next 16 eliminó `next lint` | OK |
 
-Restricción del proyecto: los tests no se modifican (`CLAUDE.md`: "Jamás arregles
-test a menos de que te lo pida explícitamente"). Sus errores de lint/typecheck se
+Restricción del proyecto: los tests no se modifican salvo pedido explícito. Sus errores de lint/typecheck se
 reportan aparte.
 
 Severidades: **C** crítica · **A** alta · **M** media · **B** baja.
@@ -140,7 +139,7 @@ Estado: ⏳ pendiente · ✅ resuelto · 🟡 parcial (con lo que falta) · ➖ 
 |---|---|---|---|---|---|
 | DOC-01 | A | La documentación de `documentacion/` es anterior al split y describe el monolito. No hay `docs/` en el repo del código. | `documentacion/*.md` (2026-09-14) | `docs/` con arquitectura, modelo de datos, API, sistema de diseño y contribución. | ✅ `docs/` (componentes y tecnologías, arquitectura, modelo de datos, API, sistema de diseño, contribución). |
 | DOC-02 | M | `.env.example` incompletos: faltan `CREDENCIALES_ENCRYPTION_KEY`, `PLAYWRIGHT_LOCALE`, `PLAYWRIGHT_TIMEZONE`; sobran variables que nadie lee. | `.env.example` | Alinear con el código. | ✅ `.env.example` alineados con el código. |
-| DOC-03 | M | `vortest-web/CLAUDE.md` afirma cosas falsas (archivos "borrados" que existen, auto-reparación inyectada). | `vortest-web/CLAUDE.md` | Corregir. | ✅ Corregidos los `CLAUDE.md` de web y motor. |
+| DOC-03 | M | Las instrucciones internas de desarrollo afirman cosas falsas (archivos "borrados" que existen, auto-reparación inyectada). | instrucciones internas de `vortest-web` | Corregir. | ✅ Retiradas del repositorio; las convenciones vigentes están en `docs/contribuir.md`. |
 | DOC-04 | B | Sin `CHANGELOG.md` en el repo del código. | — | Crearlo. | ✅ `CHANGELOG.md`. |
 
 ---

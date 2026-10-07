@@ -4,20 +4,20 @@
 # y sus dependencias de sistema preinstaladas) porque este es el único servicio
 # del repo que realmente lanza navegadores en producción.
 #
-# Multi-stage ([C-07]): "builder" instala TODAS las dependencias (incluye
+# Multi-stage: "builder" instala TODAS las dependencias (incluye
 # @nestjs/cli, ts-node, jest, typescript) y compila a dist/; "runner" solo
 # trae dependencias de producción (`npm ci --omit=dev`) + dist/ — a
 # diferencia de vortest-web, acá SÍ aplica el patrón completo porque este
 # Dockerfile corre `node dist/main.js` (build real), sin override de
 # `command:` en el compose.
 #
-# tini como ENTRYPOINT ([F-15]): Node como PID 1 no reapea procesos zombie
+# tini como ENTRYPOINT: Node como PID 1 no reapea procesos zombie
 # ni propaga señales a sus hijos correctamente — este proceso hace `spawn()`
 # de `playwright test` como child process, así que necesita un init real.
 #
 # La versión del tag DEBE coincidir con la de `@playwright/test` en
 # package.json (hoy 1.62.1) — verificado automáticamente por
-# `npm run verify:playwright` (ver [C-01]). Debe coincidir además con
+# `npm run verify:playwright`. Debe coincidir además con
 # vortest-web/Dockerfile mientras ambos compartan versión de Playwright.
 
 FROM mcr.microsoft.com/playwright:v1.62.1-noble AS builder
@@ -50,7 +50,7 @@ COPY --from=builder /app/dist ./dist
 COPY playwright.config.ts ./playwright.config.ts
 COPY scripts ./scripts
 
-# [C-08] La imagen base de Playwright NO trae un usuario `node` (a diferencia
+# La imagen base de Playwright NO trae un usuario `node` (a diferencia
 # de las imágenes oficiales `node:*`) — trae `pwuser` (uid 1001), pensado
 # para correr navegadores sin privilegios. `runtime/` es scratch del motor
 # (runner.ts/script-writer.ts/storage-state.ts crean subdirectorios ahí en

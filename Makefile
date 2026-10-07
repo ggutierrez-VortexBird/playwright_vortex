@@ -1,7 +1,6 @@
 # Makefile — comando único para levantar/operar todo el stack de VorTest.
 # No requiere workspaces de npm, solo invoca los comandos de shell que ya
 # existían dispersos entre los dos proyectos y docker-compose.dev.yml.
-# Ver [D-07] en mejoras-opus5.md.
 
 COMPOSE = docker compose -f docker-compose.dev.yml
 
@@ -35,8 +34,7 @@ test:
 	cd vortest-web && npm test
 	cd vortest-engine && npm test
 
-## Corre el lint de ambos proyectos (ver [C-03] — todavía puede reportar
-## violaciones existentes, no bloquea).
+## Corre el lint de ambos proyectos.
 lint:
 	cd vortest-web && npm run lint
 	cd vortest-engine && npm run lint

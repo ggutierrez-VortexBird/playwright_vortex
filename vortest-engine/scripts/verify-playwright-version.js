@@ -1,8 +1,7 @@
 // Verifica que la versión de @playwright/test instalada coincida con el tag
 // de la imagen base pinneada en el Dockerfile de este proyecto. Ambos deben
 // coincidir siempre: Playwright exige coincidencia estricta entre la
-// librería npm y los binarios de navegador de la imagen. Ver [C-01] en
-// mejoras-opus5.md.
+// librería npm y los binarios de navegador de la imagen.
 const fs = require('fs')
 const path = require('path')
 

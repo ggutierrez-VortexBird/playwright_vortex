@@ -14,7 +14,7 @@ services:
   web:
     build:
       context: ./vortest-web
-      # [C-04] Imagen liviana (node:24-slim, sin Playwright) — `web` es
+      # Imagen liviana (node:24-slim, sin Playwright) — `web` es
       # Next.js puro, no lanza navegadores.
       dockerfile: Dockerfile.slim
     container_name: vortest-dev
@@ -37,13 +37,13 @@ services:
       # Apunta al servicio `recorder` del compose (HTTP interno, no el WS público).
       # El grabador abre una ventana real del navegador en el escritorio del usuario, así que corre en el host (`npm run dev:recorder`), no en Docker.
       - RECORDER_INTERNAL_URL=${RECORDER_INTERNAL_URL:-http://host.docker.internal:3100}
-      # [S-09] Unificado con el resto de los secretos: falla duro si falta,
+      # Unificado con el resto de los secretos: falla duro si falta,
       # en vez de caer en un default público conocido.
       - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:?RECORDER_INTERNAL_SECRET required}
       # Motor Fase 1 (RabbitMQ + vortest-engine) — dispatch/cancelación desde
       # lib/ejecuciones/actions.ts. `web` es también quien corre
       # scripts/execution-consumer.ts (consume engine.events) — ver `command`.
-      # [S-12] Credenciales explícitas en vez de guest/guest.
+      # Credenciales explícitas en vez de guest/guest.
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:?RABBITMQ_USER required}:${RABBITMQ_PASS:?RABBITMQ_PASS required}@rabbitmq:5672
       - ENGINE_INTERNAL_SECRET=${ENGINE_INTERNAL_SECRET:?ENGINE_INTERNAL_SECRET required}
       - ENGINE_INTERNAL_URL=http://engine:3001
@@ -58,7 +58,7 @@ services:
       # app/api/internal/artefactos/upload/route.ts).
       - artefactos:/app/storage/artefactos
     restart: "no"
-    # [C-09] refleja "servicio funcional" (responde HTTP), no solo "proceso arriba".
+    # refleja "servicio funcional" (responde HTTP), no solo "proceso arriba".
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
@@ -80,7 +80,7 @@ services:
   execution-consumer:
     build:
       context: ./vortest-web
-      # [C-04] Tampoco lanza navegadores — solo consume eventos y escribe en Postgres.
+      # Tampoco lanza navegadores — solo consume eventos y escribe en Postgres.
       dockerfile: Dockerfile.slim
     container_name: vortest-execution-consumer
     command: ["node", "--import", "tsx", "scripts/execution-consumer.ts"]
@@ -112,7 +112,7 @@ services:
     ports:
       - "3001:3001"
     restart: "no"
-    # [C-09] `engine` ya expone /health.
+    # `engine` ya expone /health.
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
@@ -137,7 +137,7 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: vortest-rabbitmq
     environment:
-      # [S-12] Credenciales explícitas en vez de guest/guest (default de la
+      # Credenciales explícitas en vez de guest/guest (default de la
       # imagen oficial). Actualizar RABBITMQ_URL de `web`/`execution-consumer`/
       # `engine` en consecuencia (ya hecho arriba).
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?RABBITMQ_USER required}
@@ -158,7 +158,7 @@ services:
   recorder:
     # El recorder-worker comparte imagen con web pero ejecuta el proceso Node
     # dedicado. Aísla memoria/CPU del Chromium y permite escalado independiente.
-    # [C-04] Este SÍ necesita la imagen con navegadores (lanza `playwright codegen`).
+    # Este SÍ necesita la imagen con navegadores (lanza `playwright codegen`).
     build:
       context: ./vortest-web
       dockerfile: Dockerfile
@@ -173,14 +173,14 @@ services:
       # Apunta al app para HTTP /internal/start (mismo docker network)
       - RECORDER_PUBLIC_URL=ws://localhost:3100
       - RECORDER_WS_PORT=3100
-      # [S-09] Unificado con el resto de los secretos.
+      # Unificado con el resto de los secretos.
       - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:?RECORDER_INTERNAL_SECRET required}
       - RECORDER_MAX_SESSIONS=${RECORDER_MAX_SESSIONS:-3}
       - RECORDER_HEARTBEAT_TIMEOUT_MS=${RECORDER_HEARTBEAT_TIMEOUT_MS:-600000}
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
       - CREDENCIALES_ENCRYPTION_KEY=${CREDENCIALES_ENCRYPTION_KEY:-}
     restart: "no"
-    # [C-09] El recorder expone HTTP interno + WS en el mismo puerto.
+    # El recorder expone HTTP interno + WS en el mismo puerto.
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
