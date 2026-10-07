@@ -16,6 +16,16 @@ cd vortest-web    && npm install && npm run typecheck && npm run lint && npm tes
 cd vortest-engine && npm install && npm run typecheck && npm run lint && npm test
 ```
 
+Otros comandos útiles de `vortest-web`:
+
+```bash
+npm run db:studio          # Prisma Studio para inspeccionar la base
+npm run cleanup:sesiones   # borra sesiones de grabación viejas en estado terminal
+npx playwright test e2e/   # pruebas e2e (con la app corriendo)
+```
+
+Las e2e se invocan apuntando a `e2e/`: `playwright.config.ts` tiene `testDir: './runtime/ejecuciones'`, así que `npx playwright test` sin argumentos no las encuentra.
+
 ## Antes de abrir un PR
 
 - `npm run typecheck` y `npm run lint` sin errores en el proyecto que tocaste (las advertencias se pueden quedar, los errores no).

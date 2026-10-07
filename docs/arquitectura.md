@@ -2,7 +2,7 @@
 
 vorTest separa **quién decide** (la web, con la base de datos) de **quién ejecuta** (el motor, sin base de datos). Se comunican sólo por cuatro canales, todos explícitos.
 
-> Tabla de componentes con tecnología, versión e imagen Docker: [componentes.md](./componentes.md).
+> Tecnologías, versiones e imágenes: [componentes](./componentes.md). Detalle de cómo corre una ejecución: [motor de ejecución](./motor-de-ejecucion.md).
 
 ## Servicios
 
@@ -72,14 +72,14 @@ sequenceDiagram
   alt ya hay una en curso
     W-->>QA: 409 + enlace a la ejecución en curso
   else libre
-    W->>DB: Ejecucion(estado = pendiente)
+    W->>DB: Ejecucion(estado = corriendo)
     W->>Q: engine.execute
     W-->>QA: 201 → /ejecuciones/:id
   end
   Q->>E: trabajo (semáforo: ENGINE_MAX_CONCURRENT_JOBS)
   E->>Q: env, step, substep…
   Q->>C: eventos
-  C->>DB: corriendo, pasos, subacciones
+  C->>DB: entorno, pasos, subacciones
   E->>W: artefactos (video, capturas, traza)
   E->>Q: end
   Q->>C: end
@@ -140,15 +140,9 @@ Toda la autorización pasa por `vortest-web/lib/auth.ts`:
 ## Seguridad de la plataforma
 
 - Sesión con `iron-session` (cookie `vortest_session`, `SameSite=Strict`).
-- Límite de intentos de login por email normalizado (no por IP del cliente, que es falsificable).
+- Límite de intentos de login por email normalizado: 5 intentos fallidos bloquean ese email 15 minutos.
 - `from` del login sólo acepta rutas internas.
 - CSP aplicada; orígenes externos permitidos: Monaco (jsDelivr) y la fuente de íconos (Google Fonts). Sin `X-Powered-By`; HSTS en producción.
 - Credenciales (`storageState`) cifradas con AES-256-GCM y una clave propia (`CREDENCIALES_ENCRYPTION_KEY`).
 - El visor de trazas se sirve desde la propia app: la evidencia no sale a un sitio externo.
 
-## Límites conocidos
-
-- **Sin cola de mensajes muertos.** El motor declara `engine.execute` con `x-dead-letter-exchange: engine.dlx`, pero ese exchange no existe en el broker: la carga de `rabbitmq/definitions.json` está desactivada porque, al importarla, RabbitMQ no crea el usuario de `RABBITMQ_DEFAULT_USER`. Un trabajo que agota `x-delivery-limit: 5` se pierde y su ejecución queda en `pendiente`.
-- `/health/ready` del motor es estático y `execution-consumer` no tiene healthcheck en el compose.
-- La serialización de "Generar acta" es por proceso: con varias réplicas de `web` el respaldo es la restricción única de `Acta.ejecucionId`.
-- No hay configuración de despliegue de producción; los artefactos viven en un volumen local (S3 es la "Fase 2").

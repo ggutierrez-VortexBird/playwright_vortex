@@ -1,6 +1,6 @@
 # Componentes y tecnologías
 
-Vista rápida de qué piezas forman vorTest, con qué se construyen y cómo se ejecutan. Las versiones son las instaladas hoy (`package.json` / `package-lock.json`); la fuente de verdad de los contenedores es [`docker-compose.dev.yml`](../docker-compose.dev.yml) (proyecto Compose `vortest`).
+Qué piezas forman vorTest, con qué se construyen y cómo se ejecutan. Las versiones salen de los `package.json` y lockfiles; los contenedores, de [`docker-compose.dev.yml`](../docker-compose.dev.yml) (proyecto Compose `vortest`).
 
 ## Servicios en ejecución
 
@@ -11,7 +11,7 @@ Vista rápida de qué piezas forman vorTest, con qué se construyen y cómo se e
 | **engine** | Recibe trabajos, escribe el script a disco y lanza `playwright test` con un reporter propio; publica eventos y sube evidencias. **Sin acceso a la base de datos.** | NestJS 12.1 · TypeScript 6.0 · Playwright 1.62.1 · Node.js 24 | `mcr.microsoft.com/playwright:v1.62.1-noble` (+ `tini` como PID 1) | `vortest-engine` / `vortest-engine` | 3001 | — (efímero) |
 | **rabbitmq** | Broker de mensajes: colas `engine.execute` (trabajos) y `engine.events` (progreso). | RabbitMQ 3 (management) | `rabbitmq:3-management-alpine` | `rabbitmq:3-management-alpine` / `vortest-rabbitmq` | 5672 · consola 15672 | volumen `rabbitmq-data` |
 | **postgres** | Única base de datos relacional. | PostgreSQL 16 | `postgres:16-alpine` | `postgres:16-alpine` / `vortest-postgres` | 5432 | volumen `postgres-data` |
-| **grabador** | Abre Playwright Codegen en el escritorio del usuario, emite los pasos en vivo (HTTP + WebSocket) y guarda la sesión. | Node.js 24 · Playwright 1.62.1 · `ws` 8 · `scripts/recorder-worker.ts` | **Corre en el host**, no en Docker (`make recorder`). Existe un servicio `recorder` opcional (`--profile recorder-docker`) con `mcr.microsoft.com/playwright:v1.62.1-noble`, inservible para grabar por no tener pantalla. | `vortest-recorder` (sólo con el perfil) | 3100 | usa Postgres |
+| **grabador** | Abre Playwright Codegen en el escritorio del usuario, emite los pasos en vivo (HTTP + WebSocket) y guarda la sesión. | Node.js 24 · Playwright 1.62.1 · `ws` 8 · `scripts/recorder-worker.ts` | **Corre en el host** (`make recorder`): Codegen abre una ventana en el escritorio del usuario. | — | 3100 | usa Postgres |
 
 ## Proyectos del repositorio
 
@@ -19,18 +19,17 @@ Vista rápida de qué piezas forman vorTest, con qué se construyen y cómo se e
 |---|---|---|---|
 | [`vortest-web/`](../vortest-web) | `vortest` 0.1.0 | Interfaz, API, esquema Prisma y migraciones, consumidor de eventos, grabador, plantilla del Acta | `web`, `execution-consumer` y el grabador |
 | [`vortest-engine/`](../vortest-engine) | `vortest-engine` 0.1.0 | Motor de ejecución, reporter de Playwright, cliente de subida de artefactos | `engine` |
-| [`docs/`](.) | — | Esta documentación | — |
+| [`docs/`](./indice.md) | — | Esta documentación (índice en `indice.md`) | — |
 | raíz | — | `docker-compose.dev.yml`, `Makefile`, `.env.example`, `AUDIT.md`, `CHANGELOG.md` | Orquestación local |
 
 Cada subproyecto es independiente: su propio `node_modules` y lockfile; no hay workspace.
 
-## Dos imágenes distintas a propósito
+## Imágenes
 
 | Dockerfile | Base | La usan | Por qué |
 |---|---|---|---|
 | `vortest-web/Dockerfile.slim` | `node:24-slim` | `web`, `execution-consumer` | No ejecutan pruebas, así que no necesitan los navegadores de Playwright (sólo Chromium headless para renderizar el PDF del Acta). |
 | `vortest-engine/Dockerfile` | `mcr.microsoft.com/playwright:v1.62.1-noble` | `engine` | Trae Chromium, Firefox, WebKit y sus dependencias del sistema. La versión de la imagen debe coincidir con la de `@playwright/test`. |
-| `vortest-web/Dockerfile` | `mcr.microsoft.com/playwright:v1.62.1-noble` | `recorder` (opcional) | Sólo para el perfil `recorder-docker`. |
 
 ## Bibliotecas principales
 

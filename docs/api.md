@@ -78,7 +78,7 @@ Del lado del motor (`vortest-engine`):
 | Método | Ruta | Qué hace |
 |---|---|---|
 | POST | `/internal/cancel/:jobId` | `X-Internal-Secret`. `200 { cancelled: true }` si esta réplica tenía el trabajo (también si estaba esperando turno); `404 { cancelled: false }` si no. |
-| GET | `/health` · `/health/ready` | Salud del proceso (`ready` es estático). |
+| GET | `/health` · `/health/ready` | Salud del proceso. |
 
 ## Mensajes por RabbitMQ
 
