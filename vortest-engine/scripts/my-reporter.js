@@ -23,6 +23,16 @@
 // y deja solo lo que un QA reconoce como paso: pw:api (click, fill, goto...)
 // y expect (aserciones), estén o no agrupados dentro de un test.step().
 
+// El valor tecleado en campos de clave termina en la UI y en el Acta: se enmascara antes de emitirlo.
+const CAMPO_SENSIBLE = /pass|contrase|clave|secret|token|\bpin|\botp|cvv/i
+const ACCION_CON_VALOR = /^(Fill|Type|Press sequentially) "(.*)" ((?:locator|getBy\w+|frameLocator)\(.*)$/s
+
+function enmascararValorSensible(titulo) {
+  const m = ACCION_CON_VALOR.exec(titulo || "")
+  if (!m || !CAMPO_SENSIBLE.test(m[3])) return titulo
+  return `${m[1]} "******" ${m[3]}`
+}
+
 class JsonReporter {
   constructor() {
     this.testCounter = 0
@@ -76,7 +86,7 @@ class JsonReporter {
       const assertionEvent = {
         type: 'assertion',
         parentTestId: this.testCounter,
-        descripcion: step.title,
+        descripcion: enmascararValorSensible(step.title),
         ok,
       }
       this._emit(assertionEvent)
@@ -118,7 +128,7 @@ class JsonReporter {
       parentTestId,
       numero,
       tipo: this._classifyStepType(step.category, step.title),
-      descripcion: step.title,
+      descripcion: enmascararValorSensible(step.title),
       estado,
       duracionMs: step.duration,
       errorMsg: step.error ? this._extractErrorMsg(step.error) : null,
@@ -309,3 +319,4 @@ class JsonReporter {
 }
 
 module.exports = JsonReporter
+module.exports.enmascararValorSensible = enmascararValorSensible

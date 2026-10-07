@@ -185,6 +185,16 @@ export async function updateUsuarioRolEstado(
     if (input.rol && input.rol !== "tester") {
       throw { status: 403, body: { error: "forbidden", message: "un admin no puede cambiar roles" } };
     }
+    // Mismo alcance que listUsuarios: sólo testers asignados a proyectos de los espacios del admin; antes podía suspender a cualquiera.
+    const enSuAlcance = await prisma.usuario.count({
+      where: {
+        id: usuarioId,
+        proyectos: { some: { proyecto: { espacio: { miembros: { some: { usuarioId: actor.id } } } } } },
+      },
+    });
+    if (enSuAlcance === 0) {
+      throw { status: 403, body: { error: "forbidden", message: "Ese tester no pertenece a tus espacios" } };
+    }
     const usuario = await prisma.usuario.update({
       where: { id: usuarioId },
       data: { activo: input.activo },

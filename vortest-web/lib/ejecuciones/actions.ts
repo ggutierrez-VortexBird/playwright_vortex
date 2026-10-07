@@ -37,14 +37,12 @@ export async function dispararEjecucion(casoPruebaId: string) {
   let ejecucion: { id: string; estado: string }
   try {
     ejecucion = await prisma.$transaction(async (tx) => {
-      // Use $queryRaw with FOR UPDATE NOWAIT to get an exclusive lock
-      // If another transaction holds the lock, this throws P2024 immediately
-      await tx.$executeRaw`
-        SELECT 1 FROM "Ejecucion"
-        WHERE "casoPruebaId" = ${casoPruebaId}
-        AND "estado" IN ('pendiente', 'corriendo')
-        FOR UPDATE NOWAIT
-      `
+      // Lock por caso + conteo en la misma transacción: el FOR UPDATE anterior ignoraba sus filas y dejaba ejecutar el mismo caso dos veces.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${casoPruebaId}))`
+      const enCurso = await tx.ejecucion.count({
+        where: { casoPruebaId, estado: { in: ['pendiente', 'corriendo'] } },
+      })
+      if (enCurso > 0) throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR
 
       // No lock held — create the execution
       return tx.ejecucion.create({

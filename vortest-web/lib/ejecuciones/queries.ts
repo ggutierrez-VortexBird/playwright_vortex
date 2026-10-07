@@ -66,12 +66,21 @@ export async function listEjecuciones(
 
   const [ejecuciones, total] = await Promise.all([prisma.ejecucion.findMany({
     where,
-    include: {
+    // `select` explícito: estas filas llegan a componentes de cliente y no deben llevar storageState (cookies del sitio bajo prueba) ni el script.
+    select: {
+      id: true,
+      estado: true,
+      createdAt: true,
+      inicioAt: true,
+      finAt: true,
+      duracionMs: true,
       casoPrueba: {
-        include: {
-          proyecto: {
-            include: { espacio: true },
-          },
+        select: {
+          id: true,
+          codigo: true,
+          nombre: true,
+          proyectoId: true,
+          proyecto: { select: { id: true, nombre: true, espacio: { select: { id: true, nombre: true, color: true } } } },
         },
       },
     },
