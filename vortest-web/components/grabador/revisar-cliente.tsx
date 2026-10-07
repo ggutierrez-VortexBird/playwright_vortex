@@ -81,12 +81,12 @@ const KIND_COLOR: Record<SpecLineKind, string> = {
   import: "bg-m3-surface-container-high text-m3-on-surface-variant",
   "test-header": "bg-m3-surface-container-high text-m3-on-surface-variant",
   goto: "bg-m3-info-container text-m3-info",
-  click: "bg-m3-secondary-container text-m3-secondary",
-  fill: "bg-m3-secondary-container text-m3-secondary",
-  press: "bg-m3-secondary-container text-m3-secondary",
-  check: "bg-m3-secondary-container text-m3-secondary",
-  select: "bg-m3-secondary-container text-m3-secondary",
-  hover: "bg-m3-secondary-container text-m3-secondary",
+  click: "bg-m3-secondary-container text-m3-on-secondary-container",
+  fill: "bg-m3-secondary-container text-m3-on-secondary-container",
+  press: "bg-m3-secondary-container text-m3-on-secondary-container",
+  check: "bg-m3-secondary-container text-m3-on-secondary-container",
+  select: "bg-m3-secondary-container text-m3-on-secondary-container",
+  hover: "bg-m3-secondary-container text-m3-on-secondary-container",
   assertion: "bg-m3-success-container text-m3-success",
   navigate: "bg-m3-info-container text-m3-info",
   comment: "bg-m3-surface-container-high text-m3-on-surface-variant",
@@ -345,7 +345,7 @@ export function RevisarCliente({
               <span
                 className={`rounded-md border px-2 py-1 font-label text-label-sm font-medium ${
                   fragileSelectors.length > 0
-                    ? "border-m3-secondary bg-m3-secondary-container text-m3-secondary"
+                    ? "border-m3-secondary bg-m3-secondary-container text-m3-on-secondary-container"
                     : "border-m3-outline-variant bg-m3-surface-container text-m3-on-surface-variant"
                 }`}
               >
@@ -416,7 +416,7 @@ export function RevisarCliente({
               <span className="font-medium" data-testid="filename-hint">
                 {suggestedFileName}
               </span>
-              <span className="ml-1 text-label-xs text-slate-500">{formatBytes(code.length)}</span>
+              <span className="ml-1 text-label-xs text-slate-400">{formatBytes(code.length)}</span>
             </div>
             <button
               type="button"
@@ -470,7 +470,7 @@ export function RevisarCliente({
               )}
               <span>{lineCount} líneas</span>
             </div>
-            <span className="text-slate-500">Playwright Test Runner</span>
+            <span className="text-slate-400">Playwright Test Runner</span>
           </div>
         </div>
 

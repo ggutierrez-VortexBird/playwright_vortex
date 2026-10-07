@@ -168,7 +168,7 @@ function connStateLabel(
 ): string {
   switch (state) {
     case "live":
-      return "Grabando";
+      return "Live";
     case "connecting":
       return "Conectando";
     case "reconnecting":

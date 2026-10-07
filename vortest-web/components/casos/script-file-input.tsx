@@ -46,22 +46,22 @@ export function ScriptFileInput({ fileName, onChange, disabled }: ScriptFileInpu
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <label
-          htmlFor="scriptFile-input"
-          className={`inline-flex cursor-pointer items-center rounded-lg bg-m3-secondary-container px-4 py-2 font-label text-label-md font-semibold text-m3-on-surface transition-opacity hover:opacity-90 ${
-            disabled ? "pointer-events-none opacity-50" : ""
-          }`}
-        >
-          Seleccionar archivo
-        </label>
         <input
           id="scriptFile-input"
           ref={inputRef}
           type="file"
           onChange={handleFileChange}
           disabled={disabled}
-          className="sr-only"
+          className="peer sr-only"
         />
+        <label
+          htmlFor="scriptFile-input"
+          className={`inline-flex cursor-pointer items-center rounded-md bg-m3-secondary-container px-4 py-2 font-label text-label-md font-semibold text-m3-on-secondary-container transition-opacity hover:opacity-90 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-m3-secondary ${
+            disabled ? "pointer-events-none opacity-50" : ""
+          }`}
+        >
+          Seleccionar archivo
+        </label>
         {currentName && (
           <span className="font-body text-body-sm text-m3-on-surface-variant">{currentName}</span>
         )}

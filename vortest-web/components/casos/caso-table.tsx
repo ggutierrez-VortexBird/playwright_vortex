@@ -186,6 +186,22 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false, mostrarPro
   );
 }
 
+/** La fila entera abre la última ejecución con el mouse; este enlace es el mismo camino para teclado y lectores de pantalla. */
+function UltimaEjecucion({ caso }: { caso: CasoPruebaListItem }) {
+  const fecha = formatFecha(caso.fechaUltimaEjecucion, { dia: "numeric" });
+  if (!caso.ultimaEjecucionId) return <span>{fecha}</span>;
+  return (
+    <Link
+      href={`/ejecuciones/${caso.ultimaEjecucionId}`}
+      onClick={(e) => e.stopPropagation()}
+      aria-label={`Ver la última ejecución de ${caso.codigo}, ${fecha}`}
+      className="rounded-sm hover:text-m3-primary hover:underline"
+    >
+      {fecha}
+    </Link>
+  );
+}
+
 interface CasoRowProps {
   caso: CasoPruebaListItem;
   mostrarProyecto?: boolean;
@@ -252,7 +268,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
             onEdit(caso);
           }}
           aria-label="Editar"
-          title="Editar"
+          title={`Editar caso ${caso.codigo}`}
         >
           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">edit</span>
         </Button>
@@ -266,7 +282,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
             onDelete(caso);
           }}
           aria-label="Eliminar"
-          title="Eliminar"
+          title={`Eliminar caso ${caso.codigo}`}
         >
           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">delete</span>
         </Button>
@@ -332,7 +348,7 @@ function CasoRow({ caso, mostrarProyecto, canEdit, onEdit, onDelete }: CasoRowPr
         <EstadoBadge estado={caso.estado} primerPasoFallido={caso.primerPasoFallidoNumero} />
       </td>
       <td className="px-5 py-3 font-body text-body-sm text-m3-on-surface-variant">
-        {formatFecha(caso.fechaUltimaEjecucion, { dia: "numeric" })}
+        <UltimaEjecucion caso={caso} />
       </td>
       <td className="px-5 py-3">
         <AccionesCaso
@@ -397,7 +413,7 @@ function CasoCard({ caso, canEdit, onEdit, onDelete }: CasoRowProps) {
         <span>·</span>
         <span>{ORIGEN_LABEL[caso.origen]}</span>
         <span>·</span>
-        <span>{formatFecha(caso.fechaUltimaEjecucion, { dia: "numeric" })}</span>
+        <UltimaEjecucion caso={caso} />
       </div>
 
       <div className="mt-1 flex items-center justify-between border-t border-m3-outline-variant pt-2.5">

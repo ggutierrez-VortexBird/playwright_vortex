@@ -33,8 +33,8 @@ const STEPS = [
 
 const SERVICE_LABEL: Record<RecordingGuideProps["connState"], { label: string; dot: string; text: string }> = {
   live: { label: "Activo", dot: "bg-m3-success", text: "text-m3-success bg-m3-success-container" },
-  connecting: { label: "Conectando", dot: "bg-amber-500", text: "text-m3-secondary bg-m3-secondary-container" },
-  reconnecting: { label: "Reconectando", dot: "bg-amber-500", text: "text-m3-secondary bg-m3-secondary-container" },
+  connecting: { label: "Conectando", dot: "bg-amber-500", text: "text-m3-on-secondary-container bg-m3-secondary-container" },
+  reconnecting: { label: "Reconectando", dot: "bg-amber-500", text: "text-m3-on-secondary-container bg-m3-secondary-container" },
   error: { label: "Con errores", dot: "bg-m3-error", text: "text-m3-error bg-m3-error-container" },
   closed: { label: "Desconectado", dot: "bg-m3-on-surface-variant", text: "text-m3-on-surface-variant bg-m3-surface-container-high" },
 };

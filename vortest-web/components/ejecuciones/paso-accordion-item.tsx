@@ -80,7 +80,7 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <EstadoBadge estado={paso.estado} contexto="paso" />
-          <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(paso.duracionMs, { soloSegundos: true })}</span>
+          <span className="text-xs text-m3-on-surface-variant mono">{formatDuration(paso.duracionMs, { soloSegundos: true })}</span>
         </div>
       </button>
 
@@ -122,7 +122,7 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
                     ))}
                   </pre>
                 ) : (
-                  <p className="text-sm text-m3-on-surface-variant/70 italic">Sin logs registrados.</p>
+                  <p className="text-sm text-m3-on-surface-variant italic">Sin logs registrados.</p>
                 )}
               </div>
             </div>

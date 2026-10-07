@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSelectedLayoutSegments } from 'next/navigation';
 import type { Espacio } from '@/types/espacio';
+import { useEscape } from "@/components/ui/use-escape";
 
 interface EspacioSwitcherProps {
   espacios: Espacio[];
@@ -10,6 +11,8 @@ interface EspacioSwitcherProps {
 
 export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const cerrarSwitcher = useCallback(() => setIsOpen(false), []);
+  useEscape(isOpen, cerrarSwitcher);
   const router = useRouter();
   const segments = useSelectedLayoutSegments();
 

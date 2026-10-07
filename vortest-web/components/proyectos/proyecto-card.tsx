@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
+import { capaParaBlanco, colorLegibleConBlanco } from "@/lib/color";
 
 interface ProyectoCardProps {
   proyecto: ProyectoWithMetrics;
@@ -81,9 +82,10 @@ export function ProyectoCard({
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-shadow hover:shadow-card-hover">
       {/* Cabecera coloreada */}
-      <div className="flex flex-col p-4 pb-5 text-white" style={{ backgroundColor: color }}>
+      <div className="relative isolate flex flex-col p-4 pb-5 text-white" style={{ backgroundColor: color }}>
+        {capaParaBlanco(color) && <span aria-hidden="true" className="absolute inset-0 -z-10" style={capaParaBlanco(color)!} />}
         <div className="mb-2.5 flex items-center justify-between text-xs">
-          <span className="rounded-md bg-black/20 px-2.5 py-0.5 font-mono-code text-label-xs font-semibold tracking-wider text-white/90">
+          <span className="rounded-md bg-black/20 px-2.5 py-0.5 font-mono-code text-label-xs font-semibold tracking-wider text-white">
             {codigoProyecto(proyecto.id)}
           </span>
           {canEdit && (onManageTesters || onEdit || onDelete) && (
@@ -91,9 +93,9 @@ export function ProyectoCard({
               {onManageTesters && (
                 <button
                   onClick={() => onManageTesters(proyecto)}
-                  className="rounded-md p-1 text-white/90 transition hover:bg-black/20 hover:text-white"
+                  className="rounded-md p-1 text-white transition hover:bg-black/20 hover:text-white"
                   title="Testers"
-                  aria-label="Testers del proyecto"
+                  aria-label={`Testers del proyecto ${proyecto.nombre}`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[16px]">group</span>
                 </button>
@@ -101,9 +103,9 @@ export function ProyectoCard({
               {onEdit && (
                 <button
                   onClick={() => onEdit(proyecto)}
-                  className="rounded-md p-1 text-white/90 transition hover:bg-black/20 hover:text-white"
+                  className="rounded-md p-1 text-white transition hover:bg-black/20 hover:text-white"
                   title="Editar"
-                  aria-label="Editar proyecto"
+                  aria-label={`Editar proyecto ${proyecto.nombre}`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[16px]">edit</span>
                 </button>
@@ -111,9 +113,9 @@ export function ProyectoCard({
               {onDelete && (
                 <button
                   onClick={() => onDelete(proyecto)}
-                  className="rounded-md p-1 text-white/90 transition hover:bg-rose-950/40 hover:text-white"
+                  className="rounded-md p-1 text-white transition hover:bg-rose-950/40 hover:text-white"
                   title="Eliminar"
-                  aria-label="Eliminar proyecto"
+                  aria-label={`Eliminar proyecto ${proyecto.nombre}`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
                 </button>
@@ -122,11 +124,11 @@ export function ProyectoCard({
           )}
         </div>
         {espacioNombre && (
-          <p className="truncate text-label-xs font-semibold uppercase tracking-wider text-white/80">{espacioNombre}</p>
+          <p className="truncate text-label-xs font-semibold uppercase tracking-wider text-white">{espacioNombre}</p>
         )}
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <h3 className="truncate text-xl font-bold tracking-tight text-white">{proyecto.nombre}</h3>
-          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+          <span className="shrink-0 rounded-full bg-black/25 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
             {proyecto.ambiente}
           </span>
         </div>
@@ -174,7 +176,7 @@ export function ProyectoCard({
           </div>
           <Link
             href={`/proyectos/${proyecto.id}/casos`}
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: colorLegibleConBlanco(color) }}
             className="inline-flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white no-underline shadow-sm transition duration-200 hover:opacity-90"
           >
             Ver

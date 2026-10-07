@@ -147,6 +147,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
 
             <div className="flex gap-2">
               <select
+                aria-label="Administrador a agregar"
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
                 className="flex-1 rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 text-sm text-m3-on-surface"

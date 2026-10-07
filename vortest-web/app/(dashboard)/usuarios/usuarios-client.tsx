@@ -414,7 +414,7 @@ function RolBadge({ rol }: { rol: RolUsuario }) {
   // (m3-success/m3-error/m3-info) para no confundirse con Pasó/Falló/Conforme.
   const classes =
     rol === "superadmin"
-      ? "bg-m3-secondary-container text-m3-secondary"
+      ? "bg-m3-secondary-container text-m3-on-secondary-container"
       : rol === "admin"
         ? "bg-m3-primary-fixed text-m3-on-primary-fixed"
         : "bg-pink-100 text-pink-700";

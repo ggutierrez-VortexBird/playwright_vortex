@@ -57,7 +57,7 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
           className="w-full text-left px-4 py-3 flex items-center gap-3 bg-m3-surface-container-lowest hover:bg-m3-surface-container-high transition-colors"
         >
           <Camera className="w-4 h-4 text-m3-info flex-shrink-0" />
-          <span className="text-xs font-medium text-m3-on-surface-variant/70 mono w-5">
+          <span className="text-xs font-medium text-m3-on-surface-variant mono w-5">
             {subaccion.numero}
           </span>
           <span className="text-sm text-m3-on-surface-variant flex-1 truncate">
@@ -66,11 +66,11 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
           {subaccion.errorMsg && (
             <span className="text-xs text-m3-error truncate max-w-[200px]">{subaccion.errorMsg}</span>
           )}
-          <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
+          <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant border border-m3-outline-variant px-1.5 py-0.5 rounded">
             {subaccion.tipo}
           </span>
           <EstadoBadge estado={subaccion.estado} contexto="paso" className="text-label-xs" />
-          <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
+          <span className="text-xs text-m3-on-surface-variant mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
         </button>
 
         {expanded && (
@@ -116,7 +116,7 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
       data-testid="subaccion-item"
       className={`border border-m3-outline-variant rounded-md px-4 py-3 flex items-center gap-3 bg-m3-surface-container opacity-60 ${isNew ? 'new' : ''}`}
     >
-      <span className="text-xs font-medium text-m3-on-surface-variant/70 mono w-5">
+      <span className="text-xs font-medium text-m3-on-surface-variant mono w-5">
         {subaccion.numero}
       </span>
       <span className="text-sm text-m3-on-surface-variant flex-1 truncate">
@@ -125,11 +125,11 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
       {subaccion.errorMsg && (
         <span className="text-xs text-m3-error truncate max-w-[200px]">{subaccion.errorMsg}</span>
       )}
-      <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
+      <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant border border-m3-outline-variant px-1.5 py-0.5 rounded">
         {subaccion.tipo}
       </span>
       <EstadoBadge estado={subaccion.estado} contexto="paso" className="text-label-xs" />
-      <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
+      <span className="text-xs text-m3-on-surface-variant mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
     </div>
   )
 }

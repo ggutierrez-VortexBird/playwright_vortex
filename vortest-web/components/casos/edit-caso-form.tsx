@@ -90,14 +90,14 @@ export function EditCasoForm({ caso, onSuccess, onCancel, onCambiosChange }: Edi
       </Field>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="edit-scriptFile" className="font-label text-label-md text-m3-on-surface">
+        <label htmlFor="scriptFile-input" className="font-label text-label-md text-m3-on-surface">
           Script de Playwright
         </label>
         <ScriptFileInput fileName={caso.scriptFileName} onChange={setScriptFile} />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="edit-responsable" className="font-label text-label-md text-m3-on-surface">
+        <label htmlFor="responsable" className="font-label text-label-md text-m3-on-surface">
           Responsable
         </label>
         <ResponsableSelect value={responsableId} onChange={setResponsableId} />

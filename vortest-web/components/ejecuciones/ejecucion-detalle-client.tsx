@@ -485,9 +485,9 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
                 nodoEjecucion={ejecucion.nodoEjecucion}
               />
               <div className="mt-6 pt-6 border-t border-m3-outline-variant">
-                <dt className="font-label text-label-xs font-semibold text-m3-on-surface-variant uppercase mb-3">
+                <h4 className="font-label text-label-xs font-semibold text-m3-on-surface-variant uppercase mb-3">
                   Resumen de Aserciones
-                </dt>
+                </h4>
                 <AsercionesResumen
                   total={ejecucion.asercionesTotal}
                   ok={ejecucion.asercionesOk}

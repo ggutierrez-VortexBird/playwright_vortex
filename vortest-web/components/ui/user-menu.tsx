@@ -23,7 +23,9 @@ export function UserMenu({ email, rol }: UserMenuProps) {
       }
     }
     function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape" || !ref.current?.contains(document.activeElement)) return;
+      setOpen(false);
+      ref.current.querySelector<HTMLButtonElement>("button")?.focus();
     }
     document.addEventListener("mousedown", onClickOutside);
     document.addEventListener("keydown", onEscape);
@@ -39,14 +41,14 @@ export function UserMenu({ email, rol }: UserMenuProps) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Menú de usuario"
-        aria-haspopup="true"
+        aria-controls="menu-usuario"
         aria-expanded={open}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-m3-primary font-label text-label-sm font-bold text-m3-on-primary transition-opacity duration-fast hover:opacity-90"
       >
         {initials}
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-dropdown w-64 animate-in fade-in-0 zoom-in-95 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-2 shadow-card">
+        <div id="menu-usuario" role="region" aria-label="Menú de usuario" className="absolute right-0 top-11 z-dropdown w-64 animate-in fade-in-0 zoom-in-95 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-2 shadow-card">
           <div className="px-3 py-2">
             <div className="truncate font-body text-body-md font-medium text-m3-on-surface">
               {email}

@@ -150,11 +150,12 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
               ))}
             </ul>
 
-            <label className="mb-1 block font-label text-label-sm font-semibold text-m3-on-surface">
+            <label htmlFor="agregar-tester" className="mb-1 block font-label text-label-sm font-semibold text-m3-on-surface">
               Agregar tester existente
             </label>
             <div className="flex gap-2">
               <select
+                id="agregar-tester"
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
                 className="flex-1 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-sm text-m3-on-surface"

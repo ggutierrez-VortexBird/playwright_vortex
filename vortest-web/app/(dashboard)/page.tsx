@@ -16,14 +16,14 @@ import { formatFecha } from "@/lib/format";
 
 
 export const metadata: Metadata = { title: "Inicio" };
-// M3 semantic tokens for execution states — resolved from tokens via CSS vars
+// Un color distinto por estado; el significado también va en la leyenda con texto.
 const ESTADO_TOKEN: Record<string, string> = {
   paso: "m3-tertiary",
   fallo: "m3-error",
   corriendo: "m3-info",
   errorMotor: "m3-warning",
-  pendiente: "m3-outline-variant",
-  cancelado: "m3-outline-variant",
+  pendiente: "m3-primary-fixed-dim",
+  cancelado: "m3-outline",
 };
 
 export default async function DashboardHomePage() {
@@ -106,9 +106,16 @@ export default async function DashboardHomePage() {
           <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
             <h3 className="font-headline text-headline-sm text-m3-on-surface">Ejecuciones por espacio</h3>
             <p className="font-body text-body-sm text-m3-on-surface-variant">Total general</p>
-            <div className="mt-2">
+            <div className="mt-2" aria-hidden="true" inert>
               <EjecucionesPorEspacioChartLazy data={espaciosOrdenados} />
             </div>
+            <ul className="sr-only">
+              {espaciosOrdenados.map((e) => (
+                <li key={e.nombre}>
+                  {e.nombre}: {e.total} {e.total === 1 ? "ejecución" : "ejecuciones"}
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Results distribution — Issue #21: use M3 tokens */}
@@ -117,7 +124,7 @@ export default async function DashboardHomePage() {
             <p className="font-body text-body-sm text-m3-on-surface-variant">
               {totalEjecuciones} ejecuciones · todos los espacios
             </p>
-            <div className="mt-6 overflow-hidden rounded-full bg-m3-surface-container">
+            <div className="mt-6 overflow-hidden rounded-full bg-m3-surface-container" aria-hidden="true" inert>
               <DistribucionResultadosChartLazy
                 data={estadosOrdenados.map(([estado, count]) => ({
                   estado,

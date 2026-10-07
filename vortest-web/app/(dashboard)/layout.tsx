@@ -62,6 +62,12 @@ export default async function DashboardLayout({
     <ProjectProvider>
       <BreadcrumbProvider>
         <MobileNavProvider>
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-md focus:bg-m3-primary focus:px-4 focus:py-2 focus:font-label focus:text-label-lg focus:text-m3-on-primary"
+        >
+          Saltar al contenido
+        </a>
         <div className="flex min-h-screen bg-m3-background">
           {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html).
               lg: completo (sin cambios) · md: riel de solo iconos · <md: cajón. */}
@@ -114,7 +120,7 @@ export default async function DashboardLayout({
                 <UserMenu email={usuario.email} rol={usuario.rol} />
               </div>
             </header>
-            <main className="flex-1 p-4 lg:p-6">
+            <main id="contenido" tabIndex={-1} className="flex-1 p-4 focus:outline-none lg:p-6">
               <div className="mx-auto w-full max-w-[1680px]">{children}</div>
             </main>
           </div>

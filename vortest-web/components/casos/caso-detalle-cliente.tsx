@@ -271,7 +271,7 @@ export function CasoDetalleCliente({
                   TS
                 </span>
                 <span className="font-medium">{caso.scriptFileName ?? `${caso.codigo}.spec.ts`}</span>
-                <span className="ml-1 text-label-xs text-slate-500">
+                <span className="ml-1 text-label-xs text-slate-400">
                   {formatBytes((editingScript ? scriptDraft : script).length)}
                 </span>
               </div>
@@ -302,7 +302,7 @@ export function CasoDetalleCliente({
                 <span className={`h-2 w-2 rounded-full ${editingScript ? "bg-amber-400" : "bg-emerald-400"}`} />
                 {editingScript ? "Editando" : "Solo lectura"}
               </span>
-              <span className="text-slate-500">Playwright Test Runner</span>
+              <span className="text-slate-400">Playwright Test Runner</span>
             </div>
           </div>
         </div>

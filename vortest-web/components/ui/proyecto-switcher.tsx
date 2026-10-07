@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSelectedLayoutSegments } from 'next/navigation';
 import type { ProyectoWithEspacio } from '@/types/proyecto';
 import { useProject } from '@/components/project-context';
+import { useEscape } from "@/components/ui/use-escape";
 
 interface ProyectoSwitcherProps {
   proyectos: ProyectoWithEspacio[];
@@ -11,6 +12,8 @@ interface ProyectoSwitcherProps {
 
 export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const cerrarSwitcher = useCallback(() => setIsOpen(false), []);
+  useEscape(isOpen, cerrarSwitcher);
   const router = useRouter();
   const segments = useSelectedLayoutSegments();
   const { activeProject, setActiveProject } = useProject();

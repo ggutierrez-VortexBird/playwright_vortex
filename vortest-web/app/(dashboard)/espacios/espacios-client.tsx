@@ -13,6 +13,7 @@ import { SectionSearch } from "@/components/ui/section-search";
 import type { Espacio, EspacioConMetrics } from "@/types/espacio";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
 import { useToast } from "@/components/ui/toast";
+import { capaParaBlanco, colorLegibleConBlanco } from "@/lib/color";
 
 const AVATAR_COLORS = [
   "bg-blue-500",
@@ -75,41 +76,42 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
   return (
     <article className="group flex w-full max-w-sm flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5 hover:scale-[1.01]">
       {/* Cabecera coloreada */}
-      <div className="flex flex-col justify-between px-5 pb-5 pt-4 text-white" style={{ backgroundColor: espacio.color }}>
-        <div className="flex items-center justify-between gap-2 text-xs text-white/90">
+      <div className="relative isolate flex flex-col justify-between px-5 pb-5 pt-4 text-white" style={{ backgroundColor: espacio.color }}>
+        {capaParaBlanco(espacio.color) && <span aria-hidden="true" className="absolute inset-0 -z-10" style={capaParaBlanco(espacio.color)!} />}
+        <div className="flex items-center justify-between gap-2 text-xs text-white">
           <div className="flex items-center gap-2">
-            <span className="rounded-md bg-white/15 px-2 py-0.5 font-mono-code text-label-xs font-medium tracking-wider">
+            <span className="rounded-md bg-black/25 px-2 py-0.5 font-mono-code text-label-xs font-medium tracking-wider">
               {codigoEspacio(espacio.id)}
             </span>
             <span className="text-label-xs">{formatRelativo(espacio.createdAt)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-label-xs font-semibold text-white">
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2.5 py-0.5 text-label-xs font-semibold text-white">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Activo
             </span>
             {canEdit && (
               <div className="ml-1 flex items-center gap-0.5">
                 <button
                   onClick={() => onManageAdmins(espacio)}
-                  className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="rounded-lg p-1 text-white transition hover:bg-white/10 hover:text-white"
                   title={`${espacio.miembros.length} administrador${espacio.miembros.length !== 1 ? "es" : ""}`}
-                  aria-label="Administradores del espacio"
+                  aria-label={`Administradores del espacio ${espacio.nombre}`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[16px]">group</span>
                 </button>
                 <button
                   onClick={() => onEdit(espacio)}
-                  className="rounded-lg p-1 text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="rounded-lg p-1 text-white transition hover:bg-white/10 hover:text-white"
                   title="Editar"
-                  aria-label="Editar espacio"
+                  aria-label={`Editar espacio ${espacio.nombre}`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[16px]">edit</span>
                 </button>
                 <button
                   onClick={() => onDelete(espacio)}
-                  className="rounded-lg p-1 text-white/80 transition hover:bg-rose-950/40 hover:text-white"
+                  className="rounded-lg p-1 text-white transition hover:bg-rose-950/40 hover:text-white"
                   title="Eliminar"
-                  aria-label="Eliminar espacio"
+                  aria-label={`Eliminar espacio ${espacio.nombre}`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
                 </button>
@@ -118,7 +120,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
           </div>
         </div>
         <div className="mt-3">
-          <span className="block text-label-xs font-medium uppercase tracking-wider text-white/80">Espacio de trabajo</span>
+          <span className="block text-label-xs font-medium uppercase tracking-wider text-white">Espacio de trabajo</span>
           <h3 className="mt-0.5 truncate text-lg font-bold leading-snug tracking-tight text-white">{espacio.nombre}</h3>
         </div>
       </div>
@@ -191,7 +193,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
           </div>
           <button
             onClick={() => onEnter(espacio.id)}
-            style={{ backgroundColor: espacio.color }}
+            style={{ backgroundColor: colorLegibleConBlanco(espacio.color) }}
             className="inline-flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition duration-200 hover:opacity-90"
           >
             Entrar
@@ -236,7 +238,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
             className="bg-m3-surface-container hover:text-m3-primary"
             onClick={() => onManageAdmins(espacio)}
             title="Administradores del espacio"
-            aria-label="Administradores del espacio"
+            aria-label={`Administradores del espacio ${espacio.nombre}`}
           >
             <span aria-hidden="true" className="material-symbols-outlined text-[16px]">group</span>
           </Button>
@@ -246,7 +248,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
             className="bg-m3-surface-container hover:text-m3-primary"
             onClick={() => onEdit(espacio)}
             title="Editar"
-            aria-label="Editar espacio"
+            aria-label={`Editar espacio ${espacio.nombre}`}
           >
             <span aria-hidden="true" className="material-symbols-outlined text-[16px]">edit</span>
           </Button>
@@ -256,7 +258,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
             className="bg-m3-surface-container hover:bg-m3-danger-container hover:text-m3-error"
             onClick={() => onDelete(espacio)}
             title="Eliminar"
-            aria-label="Eliminar espacio"
+            aria-label={`Eliminar espacio ${espacio.nombre}`}
           >
             <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
           </Button>

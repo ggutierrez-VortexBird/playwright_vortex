@@ -376,7 +376,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
                     disabled={!enabled}
                   />
                   <div
-                    className={`p-4 rounded-lg border transition-all flex flex-col items-center gap-2 ${
+                    className={`p-4 rounded-lg border transition-all flex flex-col items-center gap-2 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-m3-secondary ${
                       checked
                         ? "border-m3-secondary bg-m3-secondary-fixed/20"
                         : "border-m3-outline-variant hover:bg-m3-surface-container"

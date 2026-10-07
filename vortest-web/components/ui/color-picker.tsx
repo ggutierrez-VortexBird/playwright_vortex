@@ -40,8 +40,8 @@ export function ColorPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-m3-on-surface">Color</label>
-      <div className="flex flex-wrap items-center gap-2">
+      <span id={`${name}-etiqueta`} className="font-label text-label-md text-m3-on-surface">Color</span>
+      <div role="group" aria-labelledby={`${name}-etiqueta`} className="flex flex-wrap items-center gap-2">
         {colors.map((color) => {
           const isSelected = value === color;
           return (
