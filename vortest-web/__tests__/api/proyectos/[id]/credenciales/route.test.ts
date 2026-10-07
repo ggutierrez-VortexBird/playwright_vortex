@@ -33,14 +33,14 @@ jest.mock("@/lib/db", () => ({
       findMany: (...args: unknown[]) => mockFindMany(...args),
     },
     usuario: {
-      findUnique: (...args: unknown[]) => mockUsuarioFindUnique(...args),
+      findFirst: (...args: unknown[]) => mockUsuarioFindUnique(...args),
     },
   },
 }));
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // requireSuperadmin calls usuario.findUnique
+  // requireSuperadmin calls usuario.findFirst
   mockUsuarioFindUnique.mockResolvedValue({ id: "user-1", rol: "superadmin" });
 });
 

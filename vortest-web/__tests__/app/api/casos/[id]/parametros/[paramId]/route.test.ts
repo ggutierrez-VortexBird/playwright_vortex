@@ -90,9 +90,10 @@ describe("PATCH /api/casos/[id]/parametros/[paramId]", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ valorDefecto: "nuevo-valor" }),
     });
-    await expect(PATCH(req, {
+    const res = await PATCH(req, {
       params: Promise.resolve({ id: "caso-1", paramId: "param-1" }),
-    })).rejects.toThrow("FORBIDDEN");
+    });
+    expect(res.status).toBe(403);
   });
 
   it("retorna 200 cuando la actualizacion es exitosa", async () => {

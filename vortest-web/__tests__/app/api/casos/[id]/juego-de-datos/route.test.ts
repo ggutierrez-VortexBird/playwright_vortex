@@ -42,8 +42,8 @@ describe("GET /api/casos/[id]/juego-de-datos", () => {
     });
     (requireProyectoAccess as jest.Mock).mockRejectedValue(new Error("FORBIDDEN"));
 
-    await expect(GET({} as Request, { params: Promise.resolve({ id: "caso-1" }) }))
-      .rejects.toThrow("FORBIDDEN");
+    const res = await GET({} as Request, { params: Promise.resolve({ id: "caso-1" }) });
+    expect(res.status).toBe(403);
   });
 
   it("retorna 200 con la lista de juegos de datos", async () => {

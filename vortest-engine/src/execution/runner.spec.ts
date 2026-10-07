@@ -17,11 +17,21 @@ import * as path from 'path'
 import {
   EjecucionCanceladaError,
   parseReporterEvent,
+  REPORTER_LINE_PREFIX,
   runPlaywrightTest,
   type RunnerDeps,
 } from './runner'
 
 jest.mock('child_process')
+// @nestjs/common 12 es ESM y este Jest corre en CommonJS: el runner sólo usa Logger.
+jest.mock('@nestjs/common', () => ({
+  Logger: class {
+    log() {}
+    warn() {}
+    error() {}
+    debug() {}
+  },
+}))
 
 const killProcessTreeMock = jest.fn().mockResolvedValue(undefined)
 jest.mock('./kill-tree', () => ({
@@ -82,7 +92,7 @@ function makeDeps(): RunnerDeps & {
 describe('parseReporterEvent — 6 event types (HU-4.5)', () => {
   it('parsea evento env', () => {
     const event = parseReporterEvent(
-      JSON.stringify({ type: 'env', navegador: 'chromium', sistemaOperativo: 'Linux', nodoEjecucion: 'host' }),
+      REPORTER_LINE_PREFIX + JSON.stringify({ type: 'env', navegador: 'chromium', sistemaOperativo: 'Linux', nodoEjecucion: 'host' }),
     )
     expect(event).toEqual({
       type: 'env',
@@ -94,13 +104,12 @@ describe('parseReporterEvent — 6 event types (HU-4.5)', () => {
 
   it('parsea evento step con nuevos campos', () => {
     const event = parseReporterEvent(
-      JSON.stringify({
+      REPORTER_LINE_PREFIX + JSON.stringify({
         type: 'step',
         numero: 1,
         descripcion: 'Test',
         estado: 'paso',
         duracionMs: 100,
-        selfHealed: false,
         errorMsg: null,
         resultadoEsperado: 'Debe cargar',
         resultadoObtenido: null,
@@ -112,7 +121,7 @@ describe('parseReporterEvent — 6 event types (HU-4.5)', () => {
 
   it('parsea evento substep', () => {
     const event = parseReporterEvent(
-      JSON.stringify({
+      REPORTER_LINE_PREFIX + JSON.stringify({
         type: 'substep',
         parentTestId: 1,
         numero: 1,
@@ -128,7 +137,7 @@ describe('parseReporterEvent — 6 event types (HU-4.5)', () => {
 
   it('parsea evento log', () => {
     const event = parseReporterEvent(
-      JSON.stringify({
+      REPORTER_LINE_PREFIX + JSON.stringify({
         type: 'log',
         parentTestId: 1,
         parentSubstepId: null,
@@ -143,14 +152,14 @@ describe('parseReporterEvent — 6 event types (HU-4.5)', () => {
 
   it('parsea evento assertion', () => {
     const event = parseReporterEvent(
-      JSON.stringify({ type: 'assertion', parentTestId: 1, descripcion: 'is visible', ok: true }),
+      REPORTER_LINE_PREFIX + JSON.stringify({ type: 'assertion', parentTestId: 1, descripcion: 'is visible', ok: true }),
     )
     expect(event).toMatchObject({ type: 'assertion', ok: true })
   })
 
   it('parsea evento end con aserciones', () => {
     const event = parseReporterEvent(
-      JSON.stringify({
+      REPORTER_LINE_PREFIX + JSON.stringify({
         type: 'end',
         estado: 'paso',
         duracionMs: 5000,
@@ -186,15 +195,14 @@ describe('runPlaywrightTest — state mapping', () => {
     const deps = makeDeps()
     mockProcess({
       stdoutData:
-        '{"type":"step","numero":1,"descripcion":"Navegar a /login","estado":"paso","duracionMs":1234,"selfHealed":false,"errorMsg":null}\n' +
-        '{"type":"step","numero":2,"descripcion":"Llenar formulario","estado":"paso","duracionMs":567,"selfHealed":false,"errorMsg":null}\n',
+        '__VORTEST__{"type":"step","numero":1,"descripcion":"Navegar a /login","estado":"paso","duracionMs":1234,"errorMsg":null}\n' +
+        '__VORTEST__{"type":"step","numero":2,"descripcion":"Llenar formulario","estado":"paso","duracionMs":567,"errorMsg":null}\n',
       exitCode: 0,
     })
 
     const result = await runPlaywrightTest('/tmp/test.spec.ts', 'job-1', deps, { timeoutMs: 60_000 })
 
     expect(result.passed).toBe(true)
-    expect(result.hasUnhealedFailure).toBe(false)
     expect(result.pasoNumero).toBe(2)
     expect(deps.eventsPublisher.emitStep).toHaveBeenCalledTimes(2)
   })
@@ -218,34 +226,21 @@ describe('runPlaywrightTest — state mapping', () => {
     expect(env.VORTEST_OUTPUT_DIR).toContain('job-1')
   })
 
-  it('marca hasUnhealedFailure=true cuando un paso falla sin selfHeal', async () => {
+  it('marca passed=false cuando un paso falla', async () => {
     const deps = makeDeps()
     mockProcess({
       stdoutData:
-        '{"type":"step","numero":1,"descripcion":"Click en boton","estado":"fallo","duracionMs":1000,"errorMsg":"Timeout 30000ms"}\n',
+        '__VORTEST__{"type":"step","numero":1,"descripcion":"Click en boton","estado":"fallo","duracionMs":1000,"errorMsg":"Timeout 30000ms"}\n',
       exitCode: 1,
     })
 
     const result = await runPlaywrightTest('/tmp/test.spec.ts', 'job-1', deps, { timeoutMs: 60_000 })
 
     expect(result.passed).toBe(false)
-    expect(result.hasUnhealedFailure).toBe(true)
     expect(deps.eventsPublisher.emitStep).toHaveBeenCalledWith(
       'job-1',
       expect.objectContaining({ estado: 'fallo', errorMsg: 'Timeout 30000ms' }),
     )
-  })
-
-  it('no marca hasUnhealedFailure cuando el paso fallido tiene selfHealed=true', async () => {
-    const deps = makeDeps()
-    mockProcess({
-      stdoutData:
-        '{"type":"step","numero":1,"descripcion":"Click en boton","estado":"fallo","duracionMs":1000,"selfHealed":true}\n',
-      exitCode: 0,
-    })
-
-    const result = await runPlaywrightTest('/tmp/test.spec.ts', 'job-1', deps, { timeoutMs: 60_000 })
-    expect(result.hasUnhealedFailure).toBe(false)
   })
 
   it('ignora líneas que no son JSON válido', async () => {
@@ -253,27 +248,13 @@ describe('runPlaywrightTest — state mapping', () => {
     mockProcess({
       stdoutData:
         'Some warning log\n' +
-        '{"type":"step","numero":1,"descripcion":"Test step","estado":"paso","duracionMs":500}\n' +
+        '__VORTEST__{"type":"step","numero":1,"descripcion":"Test step","estado":"paso","duracionMs":500}\n' +
         'Another non-JSON line\n',
       exitCode: 0,
     })
 
     await runPlaywrightTest('/tmp/test.spec.ts', 'job-1', deps, { timeoutMs: 60_000 })
     expect(deps.eventsPublisher.emitStep).toHaveBeenCalledTimes(1)
-  })
-
-  it('preserva selfHealed=true en el evento emitido', async () => {
-    const deps = makeDeps()
-    mockProcess({
-      stdoutData: '{"type":"step","numero":1,"descripcion":"Test paso","estado":"paso","duracionMs":800,"selfHealed":true}\n',
-      exitCode: 0,
-    })
-
-    await runPlaywrightTest('/tmp/test.spec.ts', 'job-1', deps, { timeoutMs: 60_000 })
-    expect(deps.eventsPublisher.emitStep).toHaveBeenCalledWith(
-      'job-1',
-      expect.objectContaining({ selfHealed: true }),
-    )
   })
 
   it('rechaza con error cuando Playwright sale con código no esperado', async () => {
@@ -298,7 +279,7 @@ describe('runPlaywrightTest — state mapping', () => {
       const deps = makeDeps()
       mockProcess({
         stdoutData:
-          '{"type":"step","numero":1,"descripcion":"Login","estado":"paso","duracionMs":2000,"videoInicioMs":500,"videoFinMs":2500}\n',
+          '__VORTEST__{"type":"step","numero":1,"descripcion":"Login","estado":"paso","duracionMs":2000,"videoInicioMs":500,"videoFinMs":2500}\n',
         exitCode: 0,
       })
 
@@ -312,7 +293,7 @@ describe('runPlaywrightTest — state mapping', () => {
     it('reenvía null cuando el reporter no emite timestamps (backwards compat)', async () => {
       const deps = makeDeps()
       mockProcess({
-        stdoutData: '{"type":"step","numero":1,"descripcion":"Legacy","estado":"paso","duracionMs":2000}\n',
+        stdoutData: '__VORTEST__{"type":"step","numero":1,"descripcion":"Legacy","estado":"paso","duracionMs":2000}\n',
         exitCode: 0,
       })
 
@@ -331,8 +312,8 @@ describe('runPlaywrightTest — state mapping', () => {
 
     mockProcess({
       stdoutData:
-        '{"type":"step","numero":1,"descripcion":"Test","estado":"paso","duracionMs":100}\n' +
-        `{"type":"substep","parentTestId":1,"numero":1,"tipo":"assertion","descripcion":"toHaveScreenshot","estado":"paso","duracionMs":50,"capturaActualPath":${JSON.stringify(capturaPath)}}\n`,
+        '__VORTEST__{"type":"step","numero":1,"descripcion":"Test","estado":"paso","duracionMs":100}\n' +
+        `__VORTEST__{"type":"substep","parentTestId":1,"numero":1,"tipo":"assertion","descripcion":"toHaveScreenshot","estado":"paso","duracionMs":50,"capturaActualPath":${JSON.stringify(capturaPath)}}\n`,
       exitCode: 0,
     })
 
@@ -359,8 +340,8 @@ describe('runPlaywrightTest — state mapping', () => {
 
     mockProcess({
       stdoutData:
-        '{"type":"step","numero":1,"descripcion":"Test","estado":"paso","duracionMs":100}\n' +
-        `{"type":"substep","parentTestId":1,"numero":1,"tipo":"action","descripcion":"click","estado":"paso","duracionMs":50,"capturaActualPath":${JSON.stringify(capturaPath)}}\n`,
+        '__VORTEST__{"type":"step","numero":1,"descripcion":"Test","estado":"paso","duracionMs":100}\n' +
+        `__VORTEST__{"type":"substep","parentTestId":1,"numero":1,"tipo":"action","descripcion":"click","estado":"paso","duracionMs":50,"capturaActualPath":${JSON.stringify(capturaPath)}}\n`,
       exitCode: 0,
     })
 

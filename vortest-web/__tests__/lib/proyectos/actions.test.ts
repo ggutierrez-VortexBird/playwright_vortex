@@ -30,7 +30,7 @@ jest.mock("@/lib/db", () => ({
       findMany: jest.fn(),
     },
     usuario: {
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -51,7 +51,7 @@ describe("requireSuperadmin", () => {
   });
 
   it("should throw 403 when user.rol !== 'superadmin'", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
     // `requireSuperadmin` lanza un marker error con message "FORBIDDEN"; los
     // route handlers lo mapean a HTTP 403. Verificamos el marker.
@@ -59,7 +59,7 @@ describe("requireSuperadmin", () => {
   });
 
   it("should not throw when user.rol === 'superadmin'", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(requireSuperadmin(mockSession)).resolves.toBeUndefined();
   });
@@ -72,7 +72,7 @@ describe("createProyecto", () => {
   });
 
   it("should throw 400 when nombre is missing/empty", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(
       createProyecto({ ambiente: "QA", espacioId: "espacio-1" } as any, mockSession)
@@ -83,7 +83,7 @@ describe("createProyecto", () => {
   });
 
   it("should throw 400 when ambiente is missing/empty", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(
       createProyecto({ nombre: "Proyecto Test", espacioId: "espacio-1" } as any, mockSession)
@@ -94,7 +94,7 @@ describe("createProyecto", () => {
   });
 
   it("should throw 400 when espacioId is missing", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(
       createProyecto({ nombre: "Proyecto Test", ambiente: "QA" } as any, mockSession)
@@ -105,7 +105,7 @@ describe("createProyecto", () => {
   });
 
   it("should throw FORBIDDEN when user is a tester (cannot manage proyectos)", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
 
     await expect(
       createProyecto({ nombre: "Proyecto Test", ambiente: "QA", espacioId: "espacio-1" }, mockSession)
@@ -113,7 +113,7 @@ describe("createProyecto", () => {
   });
 
   it("should throw 404 when espacio does not exist", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(
@@ -135,7 +135,7 @@ describe("createProyecto", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "espacio-1", nombre: "Espacio Test" });
     (prisma.proyecto.create as jest.Mock).mockResolvedValue(mockCreated);
 
@@ -269,7 +269,7 @@ describe("updateProyecto", () => {
   });
 
   it("should throw FORBIDDEN when user is a tester (cannot manage proyectos)", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
     (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({ id: "proyecto-1", espacioId: "espacio-1" });
 
     await expect(
@@ -278,7 +278,7 @@ describe("updateProyecto", () => {
   });
 
   it("should throw 404 when proyecto not found", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(
@@ -300,7 +300,7 @@ describe("updateProyecto", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({
       id: "proyecto-1",
       espacioId: "espacio-1",
@@ -327,14 +327,14 @@ describe("deleteProyecto", () => {
   });
 
   it("should throw FORBIDDEN when user is a tester (cannot manage proyectos)", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
     (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({ id: "proyecto-1", espacioId: "espacio-1" });
 
     await expect(deleteProyecto("proyecto-1", mockSession)).rejects.toBe(FORBIDDEN_ERROR);
   });
 
   it("should throw 404 when proyecto not found", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(deleteProyecto("nonexistent", mockSession)).rejects.toEqual({
@@ -344,7 +344,7 @@ describe("deleteProyecto", () => {
   });
 
   it("should set activo: false (soft delete)", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({ id: "proyecto-1", activo: true });
     (prisma.proyecto.update as jest.Mock).mockResolvedValue({ id: "proyecto-1", activo: false });
 

@@ -39,16 +39,16 @@ describe("DashboardLayout", () => {
   it("redirects to /login when no session", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: undefined });
 
-    await expect(DashboardLayout({ children: <div>Content</div>, params: Promise.resolve({}) })).rejects.toThrow("NEXT_REDIRECT");
+    await expect(DashboardLayout({ children: <div>Content</div> })).rejects.toThrow("NEXT_REDIRECT");
     expect(redirect).toHaveBeenCalledWith("/login");
   });
 
-  it("redirects to /login when user not found in DB", async () => {
+  it("redirects to /api/logout (clears the cookie) when user not found in DB", async () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: "user-1" });
     (getUsuarioActual as jest.Mock).mockResolvedValue(null);
 
-    await expect(DashboardLayout({ children: <div>Content</div>, params: Promise.resolve({}) })).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirect).toHaveBeenCalledWith("/login");
+    await expect(DashboardLayout({ children: <div>Content</div> })).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/api/logout");
   });
 
   it("renders layout with all nav items when session and user are superadmin", async () => {
@@ -64,7 +64,7 @@ describe("DashboardLayout", () => {
     (getEspacioById as jest.Mock).mockResolvedValue(null);
     (listProyectosActivos as jest.Mock).mockResolvedValue([]);
 
-    const jsx = await DashboardLayout({ children: <div data-testid="content">Content</div>, params: Promise.resolve({}) });
+    const jsx = await DashboardLayout({ children: <div data-testid="content">Content</div> });
     render(jsx);
 
     fireEvent.click(screen.getByLabelText("Menú de usuario"));
@@ -88,7 +88,7 @@ describe("DashboardLayout", () => {
     (getEspacioById as jest.Mock).mockResolvedValue(null);
     (listProyectosActivos as jest.Mock).mockResolvedValue([]);
 
-    const jsx = await DashboardLayout({ children: <div data-testid="content">Content</div>, params: Promise.resolve({}) });
+    const jsx = await DashboardLayout({ children: <div data-testid="content">Content</div> });
     render(jsx);
 
     expect(screen.queryByText("Espacios")).not.toBeInTheDocument();

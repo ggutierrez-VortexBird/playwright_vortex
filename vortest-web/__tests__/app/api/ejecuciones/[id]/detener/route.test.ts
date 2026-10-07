@@ -27,6 +27,7 @@ jest.mock("@/lib/auth", () => {
   return {
     ...actual,
     getSession: jest.fn().mockResolvedValue({ userId: "user-1" }),
+    getUsuarioActual: jest.fn().mockResolvedValue({ id: "user-1", email: "qa@example.com", rol: "superadmin", nombre: null }),
   };
 });
 

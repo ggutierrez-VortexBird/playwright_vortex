@@ -22,6 +22,7 @@ jest.mock("@/lib/db", () => ({
   prisma: {
     usuario: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
     },
   },
@@ -55,6 +56,7 @@ describe("GET /api/usuarios", () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
     // `serializeUsuario` necesita `createdAt` (Date) para hacer `toISOString()`;
     // el mock debe incluir todos los campos que la action espera serializar.
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", email: "admin@example.com", rol: "tester", nombre: null });
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({
       id: "user-123",
       email: "admin@example.com",
@@ -87,7 +89,7 @@ describe("GET /api/usuarios", () => {
 
   it("should return 200 with user list for superadmin", async () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     // Mocks con todos los campos requeridos por `serializeUsuario` (incluido
     // `createdAt` para que `toISOString()` no falle).
     (prisma.usuario.findMany as jest.Mock).mockResolvedValue([

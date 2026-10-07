@@ -6,11 +6,11 @@
 // - `dispararEjecucion(casoPruebaId)` recibe 1 solo argumento (no session)
 // - Obtiene la sesión internamente vía `getSession()` y llama `requireProyectoAccess(session, proyectoId)`
 // - Verifica que el caso existe con `prisma.casoPrueba.findUnique` (con `include: { parentCase: true }`)
-// - Dentro de `prisma.$transaction` ejecuta `tx.$executeRaw` con FOR UPDATE NOWAIT (SIN CAMBIOS)
+// - Dentro de `prisma.$transaction` toma un lock por caso (`pg_advisory_xact_lock`) y cuenta las ejecuciones en curso
 // - Si la transacción tiene éxito: crea Ejecucion(estado=pendiente), la pasa a
 //   'corriendo' (mismo punto donde antes el worker viejo la "tomaba"), y
 //   publica su job a RabbitMQ (o el del caso padre, si hay encadenamiento)
-// - Si Postgres retorna P2024 → throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR (Error instance)
+// - Si ya hay una ejecución pendiente o corriendo del caso → throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR (Error instance)
 // - Si el caso no existe → throw NOT_FOUND_ERROR (Error instance)
 // - requireProyectoAccess tira FORBIDDEN_ERROR si el usuario no tiene acceso
 //
@@ -33,9 +33,13 @@ jest.mock("@/lib/db", () => ({
     },
     ejecucion: {
       create: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
       findUnique: jest.fn(),
+    },
+    sesionGrabacion: {
+      findFirst: jest.fn().mockResolvedValue(null),
     },
     $transaction: jest.fn(),
     $executeRaw: jest.fn(),
@@ -51,18 +55,19 @@ jest.mock("@/lib/auth", () => ({
 
 jest.mock("@/lib/queue/rabbitmq", () => {
   return {
-    publishExecuteJob: jest.fn<() => Promise<void>>(),
+    publishExecuteJob: jest.fn(),
   };
 });
 
 const mockSession = { userId: "user-123", email: "admin@example.com" };
 
 function mockTransaction() {
+  (prisma.ejecucion.count as jest.Mock).mockResolvedValue(0);
   (prisma.$transaction as jest.Mock).mockImplementation(
     async (cb: (tx: unknown) => Promise<unknown>) => {
       const tx = {
         $executeRaw: prisma.$executeRaw,
-        ejecucion: { create: prisma.ejecucion.create },
+        ejecucion: { create: prisma.ejecucion.create, count: prisma.ejecucion.count },
       };
       return cb(tx);
     }
@@ -88,7 +93,7 @@ describe("dispararEjecucion — happy path (AC-1), sin encadenamiento padre/hijo
       scriptFileName: "test.spec.ts",
       sesiones: [],
     });
-    (prisma.$executeRaw as jest.Mock).mockResolvedValue(undefined); // FOR UPDATE NOWAIT: no rows
+    (prisma.$executeRaw as jest.Mock).mockResolvedValue(undefined); // pg_advisory_xact_lock
     const createdEjecucion = { id: "ejec-1", casoPruebaId: "caso-1", estado: "pendiente" };
     (prisma.ejecucion.create as jest.Mock).mockResolvedValue(createdEjecucion);
     mockTransaction();
@@ -126,7 +131,7 @@ describe("dispararEjecucion — happy path (AC-1), sin encadenamiento padre/hijo
     expect(publishedJob.scriptText).toContain("PLAYWRIGHT_STORAGE_STATE_OUTPUT");
   });
 
-  it("ejecuta SELECT FOR UPDATE NOWAIT dentro de la transacción", async () => {
+  it("toma un lock por caso y cuenta las ejecuciones en curso dentro de la transacción", async () => {
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({
       id: "caso-1",
       proyectoId: "proyecto-1",
@@ -146,6 +151,9 @@ describe("dispararEjecucion — happy path (AC-1), sin encadenamiento padre/hijo
     await dispararEjecucion("caso-1");
 
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.ejecucion.count).toHaveBeenCalledWith({
+      where: { casoPruebaId: "caso-1", estado: { in: ["pendiente", "corriendo"] } },
+    });
   });
 
   it("si publicar el job falla, marca la Ejecucion como errorMotor sin lanzar", async () => {
@@ -237,7 +245,7 @@ describe("dispararEjecucion — AC-5 concurrencia", () => {
     (requireProyectoAccess as jest.Mock).mockResolvedValue(undefined);
   });
 
-  it("rechaza segunda ejecución concurrente con YA_EXISTE_EJECUCION_EN_CURSO_ERROR (P2024)", async () => {
+  it("rechaza una ejecución si el caso ya tiene una en curso (YA_EXISTE_EJECUCION_EN_CURSO_ERROR)", async () => {
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({
       id: "caso-1",
       proyectoId: "proyecto-1",
@@ -247,10 +255,9 @@ describe("dispararEjecucion — AC-5 concurrencia", () => {
       scriptFileName: "test.spec.ts",
     });
 
-    const pgError = new Error("could not obtain lock on row in relation") as any;
-    pgError.code = "P2024";
-    (prisma.$executeRaw as jest.Mock).mockRejectedValue(pgError);
+    (prisma.$executeRaw as jest.Mock).mockResolvedValue(undefined);
     mockTransaction();
+    (prisma.ejecucion.count as jest.Mock).mockResolvedValue(1);
 
     await expect(dispararEjecucion("caso-1")).rejects.toBe(YA_EXISTE_EJECUCION_EN_CURSO_ERROR);
     expect(prisma.ejecucion.create).not.toHaveBeenCalled();

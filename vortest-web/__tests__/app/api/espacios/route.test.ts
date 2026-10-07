@@ -11,7 +11,7 @@ jest.mock("@/lib/db", () => ({
       update: jest.fn(),
     },
     usuario: {
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     proyecto: {
       count: jest.fn(),
@@ -64,7 +64,7 @@ describe("createEspacio", () => {
   });
 
   it("should throw 403 when user is not superadmin", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
     // `requireSuperadmin` lanza marker error con message "FORBIDDEN"; los
     // route handlers lo mapean a HTTP 403. Verificamos el marker.
@@ -82,7 +82,7 @@ describe("createEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.create as jest.Mock).mockResolvedValue(mockCreated);
 
     const result = await createEspacio({ nombre: "Acme Corp", color: "#C9822F" }, mockSession);
@@ -93,7 +93,7 @@ describe("createEspacio", () => {
   });
 
   it("should throw 400 when nombre is missing", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(createEspacio({ color: "#C9822F" } as any, mockSession)).rejects.toEqual({
       status: 400,
@@ -102,7 +102,7 @@ describe("createEspacio", () => {
   });
 
   it("should throw 400 when color is missing", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(createEspacio({ nombre: "Acme Corp" } as any, mockSession)).rejects.toEqual({
       status: 400,
@@ -111,7 +111,7 @@ describe("createEspacio", () => {
   });
 
   it("should throw 400 when nombre is empty string", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(createEspacio({ nombre: "", color: "#C9822F" }, mockSession)).rejects.toEqual({
       status: 400,
@@ -128,7 +128,7 @@ describe("createEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.create as jest.Mock).mockResolvedValue(mockCreated);
 
     await createEspacio({ nombre: "  Acme Corp  ", color: "  #C9822F  " }, mockSession);
@@ -171,7 +171,7 @@ describe("updateEspacio", () => {
   });
 
   it("should throw 403 when user is not superadmin", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
     // Verificamos el marker error "FORBIDDEN" que produce requireSuperadmin.
     await expect(updateEspacio("abc123", { nombre: "New Name" }, mockSession)).rejects.toThrow("FORBIDDEN");
@@ -186,7 +186,7 @@ describe("updateEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "abc123", activo: true });
     (prisma.espacio.update as jest.Mock).mockResolvedValue(mockUpdated);
 
@@ -204,7 +204,7 @@ describe("updateEspacio", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "abc123", activo: true });
     (prisma.espacio.update as jest.Mock).mockResolvedValue(mockUpdated);
 
@@ -214,7 +214,7 @@ describe("updateEspacio", () => {
   });
 
   it("should throw 404 when espacio not found", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(updateEspacio("nonexistent", { nombre: "New Name" }, mockSession)).rejects.toEqual({
@@ -230,14 +230,14 @@ describe("deleteEspacio", () => {
   });
 
   it("should throw 403 when user is not superadmin", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
     // Verificamos el marker error "FORBIDDEN" que produce requireSuperadmin.
     await expect(deleteEspacio("abc123", mockSession)).rejects.toThrow("FORBIDDEN");
   });
 
   it("should soft delete espacio successfully", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue({ id: "abc123", activo: true });
     (prisma.proyecto.count as jest.Mock).mockResolvedValue(0);
     (prisma.espacio.update as jest.Mock).mockResolvedValue({ id: "abc123", activo: false });
@@ -252,7 +252,7 @@ describe("deleteEspacio", () => {
   });
 
   it("should throw 404 when espacio not found", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.espacio.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(deleteEspacio("nonexistent", mockSession)).rejects.toEqual({

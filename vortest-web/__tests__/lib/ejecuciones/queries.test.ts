@@ -5,7 +5,7 @@
 // - `getEjecucionConPasos(id)` retorna la Ejecucion con:
 //     casoPrueba: { include: { proyecto: { include: { espacio: true } } } }
 //     pasos: orderBy numero asc
-// - `listEjecuciones(proyectoId?)` retorna un array de ejecuciones (orden createdAt desc)
+// - `listEjecuciones(proyectoId?)` retorna { ejecuciones, hasNextPage, total } (orden createdAt desc)
 //     con casoPrueba → proyecto → espacio (nested include)
 // - `listEjecucionesPorProyecto()` retorna `Record<string, Ejecucion[]>` agrupado por proyectoId
 
@@ -17,6 +17,7 @@ jest.mock("@/lib/db", () => ({
     ejecucion: {
       findUnique: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
     },
   },
 }));
@@ -372,7 +373,7 @@ describe("listEjecuciones (AC-4)", () => {
 
     const result = await listEjecuciones();
 
-    expect(result).toEqual({ ejecuciones: [], hasNextPage: false });
+    expect(result).toEqual({ ejecuciones: [], hasNextPage: false, total: 0 });
   });
 });
 
@@ -421,7 +422,7 @@ describe("listEjecucionesPorProyecto (AC-4)", () => {
     // Assert: es un objeto con porProyecto y hasNextPage
     expect(typeof result).toBe("object");
     expect(Array.isArray(result)).toBe(false);
-    expect(Object.keys(result).sort()).toEqual(["hasNextPage", "porProyecto"]);
+    expect(Object.keys(result).sort()).toEqual(["hasNextPage", "porProyecto", "total"]);
     expect(Object.keys(result.porProyecto).sort()).toEqual(["proy-1", "proy-2"]);
     expect(result.porProyecto["proy-1"]).toHaveLength(2);
     expect(result.porProyecto["proy-2"]).toHaveLength(1);
@@ -434,6 +435,6 @@ describe("listEjecucionesPorProyecto (AC-4)", () => {
 
     const result = await listEjecucionesPorProyecto();
 
-    expect(result).toEqual({ porProyecto: {}, hasNextPage: false });
+    expect(result).toEqual({ porProyecto: {}, hasNextPage: false, total: 0 });
   });
 });

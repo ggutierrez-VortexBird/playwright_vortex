@@ -55,6 +55,7 @@ describe("POST /api/casos", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
+    (getUsuarioActual as jest.Mock).mockResolvedValue({ id: "user-123", email: "admin@example.com", rol: "superadmin", nombre: null });
   });
 
   it("should return 201 with created caso on valid input", async () => {
@@ -82,7 +83,7 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
     });
 
-    const response = await POST(request);
+    const response = await POST(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(201);
@@ -98,7 +99,7 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
     });
 
-    const response = await POST(request);
+    const response = await POST(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -116,7 +117,7 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
     });
 
-    const response = await POST(request);
+    const response = await POST(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -139,7 +140,7 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
     });
 
-    const response = await POST(request);
+    const response = await POST(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -161,7 +162,7 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
     });
 
-    const response = await POST(request);
+    const response = await POST(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(409);
@@ -180,7 +181,7 @@ describe("POST /api/casos", () => {
       proyectoId: "proyecto-1",
     });
 
-    const response = await POST(request);
+    const response = await POST(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -218,7 +219,7 @@ describe("GET /api/casos", () => {
       method: "GET",
     });
 
-    const response = await GET(request);
+    const response = await GET(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -250,7 +251,7 @@ describe("GET /api/casos", () => {
       method: "GET",
     });
 
-    const response = await GET(request);
+    const response = await GET(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -266,7 +267,7 @@ describe("GET /api/casos", () => {
       method: "GET",
     });
 
-    const response = await GET(request);
+    const response = await GET(request, {});
     const data = await response.json();
 
     expect(response.status).toBe(401);

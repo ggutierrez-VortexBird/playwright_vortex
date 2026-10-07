@@ -90,8 +90,8 @@ describe("CasoTable", () => {
   it("renders estado pills with correct labels", () => {
     render(<CasoTable casos={mockCasos} />);
     // Cada estado aparece tanto en la fila de tabla como en la card móvil.
-    expect(screen.getAllByText("Pasó").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Falló en el paso 2").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Conforme").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("No conforme · paso 2").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Sin ejecutar").length).toBeGreaterThanOrEqual(1);
   });
 

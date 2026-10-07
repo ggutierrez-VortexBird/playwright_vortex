@@ -22,7 +22,7 @@ jest.mock("next/headers", () => ({
 jest.mock("@/lib/db", () => ({
   prisma: {
     usuario: {
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -102,13 +102,13 @@ describe("auth", () => {
     });
 
     it("should throw 403 when user.rol !== 'superadmin'", async () => {
-      (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
+      (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "usuario" });
 
       await expect(requireSuperadmin(mockSuperadminSession)).rejects.toThrow("FORBIDDEN");
     });
 
     it("should not throw when user.rol === 'superadmin'", async () => {
-      (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+      (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
       await expect(requireSuperadmin(mockSuperadminSession)).resolves.toBeUndefined();
     });

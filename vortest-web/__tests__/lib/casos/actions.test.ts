@@ -21,7 +21,7 @@ jest.mock("@/lib/db", () => ({
       findMany: jest.fn(),
     },
     usuario: {
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     proyecto: {
       findUnique: jest.fn(),
@@ -61,7 +61,7 @@ describe("createCaso", () => {
   });
 
   it("should throw FORBIDDEN when tester has no access to the proyecto", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
 
     await expect(
       createCaso(
@@ -78,7 +78,7 @@ describe("createCaso", () => {
   });
 
   it("should throw 400 when script is empty", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(
       createCaso(
@@ -98,7 +98,7 @@ describe("createCaso", () => {
   });
 
   it("should throw 409 when codigo is duplicate in proyecto (P2002)", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.create as jest.Mock).mockRejectedValue({ code: "P2002" });
 
     await expect(
@@ -131,7 +131,7 @@ describe("createCaso", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.create as jest.Mock).mockResolvedValue(mockCreated);
 
     const result = await createCaso(
@@ -165,7 +165,7 @@ describe("createCaso", () => {
   });
 
   it("should throw 400 when codigo is missing", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(
       createCaso(
@@ -184,7 +184,7 @@ describe("createCaso", () => {
   });
 
   it("should throw 400 when nombre is missing", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
 
     await expect(
       createCaso(
@@ -216,7 +216,7 @@ describe("createCaso", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", proyectoId: "proyecto-1", parentCaseId: null });
     (prisma.casoPrueba.create as jest.Mock).mockResolvedValue(mockCreated);
 
@@ -240,7 +240,7 @@ describe("createCaso", () => {
   });
 
   it("should throw 400 when parentCaseId belongs to a different proyecto", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", proyectoId: "proyecto-2", parentCaseId: null });
 
     await expect(
@@ -406,14 +406,14 @@ describe("updateCaso", () => {
   });
 
   it("should throw FORBIDDEN when tester has no access to the proyecto", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", proyectoId: "proyecto-1", activo: true });
 
     await expect(updateCaso("caso-1", { nombre: "New Name" }, mockSession)).rejects.toBe(FORBIDDEN_ERROR);
   });
 
   it("should throw 400 when script is empty on update", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
 
     await expect(
@@ -425,7 +425,7 @@ describe("updateCaso", () => {
   });
 
   it("should throw 409 when codigo duplicate on update (P2002)", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
     (prisma.casoPrueba.update as jest.Mock).mockRejectedValue({ code: "P2002" });
 
@@ -450,7 +450,7 @@ describe("updateCaso", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
     (prisma.casoPrueba.update as jest.Mock).mockResolvedValue(mockUpdated);
 
@@ -461,12 +461,12 @@ describe("updateCaso", () => {
     expect(result.scriptFileName).toBe("new.spec.ts");
     expect(prisma.casoPrueba.update).toHaveBeenCalledWith({
       where: { id: "caso-1" },
-      data: { nombre: "New Name", script: "test('new', ...)", scriptFileName: "new.spec.ts", parentCaseId: null },
+      data: { nombre: "New Name", script: "test('new', ...)", scriptFileName: "new.spec.ts" },
     });
   });
 
   it("should throw 404 when caso not found", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(updateCaso("nonexistent", { nombre: "New Name" }, mockSession)).rejects.toEqual({
@@ -482,14 +482,14 @@ describe("deleteCaso", () => {
   });
 
   it("should throw FORBIDDEN when tester has no access to the proyecto", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "tester" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", proyectoId: "proyecto-1", activo: true });
 
     await expect(deleteCaso("caso-1", mockSession)).rejects.toBe(FORBIDDEN_ERROR);
   });
 
   it("should soft delete caso successfully", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue({ id: "caso-1", activo: true });
     (prisma.casoPrueba.update as jest.Mock).mockResolvedValue({ id: "caso-1", activo: false });
 
@@ -503,7 +503,7 @@ describe("deleteCaso", () => {
   });
 
   it("should throw 404 when caso not found", async () => {
-    (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
+    (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
     (prisma.casoPrueba.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(deleteCaso("nonexistent", mockSession)).rejects.toEqual({

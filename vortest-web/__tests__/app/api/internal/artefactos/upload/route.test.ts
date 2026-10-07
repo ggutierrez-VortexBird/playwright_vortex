@@ -72,6 +72,8 @@ jest.mock("stream", () => {
 });
 
 const ENGINE_SECRET = "test-engine-secret-32-characters!!";
+// El stream mockeado está vacío: el hash y el tamaño verificados por la ruta son los de un archivo de 0 bytes.
+const SHA_VACIO = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 // jsdom's global File no implementa `.stream()` (a diferencia del File
 // nativo de Node en runtime real). Como Readable.fromWeb está mockeado
@@ -172,8 +174,8 @@ describe("POST /api/internal/artefactos/upload", () => {
         ejecucionId: "550e8400-e29b-41d4-a716-446655440001",
         fileName: "video.webm",
         tipo: "video",
-        sha256: "abc123",
-        bytes: "9",
+        sha256: SHA_VACIO,
+        bytes: "0",
         metadata: JSON.stringify({ stepNum: 2 }),
         file,
       }
@@ -186,15 +188,15 @@ describe("POST /api/internal/artefactos/upload", () => {
 
     expect(fsPromisesDefault.mkdir).toHaveBeenCalled();
     expect(fs.createWriteStream).toHaveBeenCalledWith(
-      expect.stringContaining(require("path").join("storage", "artefactos", "550e8400-e29b-41d4-a716-446655440001", "video.webm"))
+      expect.stringContaining(require("path").join("storage", "artefactos", "550e8400-e29b-41d4-a716-446655440001", "e3b0c44298fc-video.webm"))
     );
     expect(ensureArtefacto).toHaveBeenCalledWith(
       expect.objectContaining({
         ejecucionId: "550e8400-e29b-41d4-a716-446655440001",
         tipo: "video",
         nombre: "video.webm",
-        sha256: "abc123",
-        bytes: 9,
+        sha256: SHA_VACIO,
+        bytes: 0,
         metadata: { stepNum: 2 },
       })
     );
@@ -210,8 +212,8 @@ describe("POST /api/internal/artefactos/upload", () => {
         ejecucionId: "550e8400-e29b-41d4-a716-446655440002",
         fileName: "../../etc/evil.png",
         tipo: "captura",
-        sha256: "def456",
-        bytes: "1",
+        sha256: SHA_VACIO,
+        bytes: "0",
         file,
       }
     );
@@ -235,13 +237,54 @@ describe("POST /api/internal/artefactos/upload", () => {
         ejecucionId: "550e8400-e29b-41d4-a716-446655440003",
         fileName: "video.webm",
         tipo: "video",
-        sha256: "abc",
-        bytes: "1",
+        sha256: SHA_VACIO,
+        bytes: "0",
         file,
       }
     );
 
     const res = await POST(request as any);
     expect(res.status).toBe(500);
+  });
+
+  it("rechaza con 400 y borra el archivo si el hash o el tamaño no coinciden", async () => {
+    const rm = jest.spyOn(fsPromisesDefault as unknown as { rm: () => Promise<void> }, "rm").mockResolvedValue(undefined);
+    const file = new File(["contenido"], "video.webm");
+
+    const request = createMockRequest(
+      { "x-internal-secret": ENGINE_SECRET },
+      {
+        ejecucionId: "550e8400-e29b-41d4-a716-446655440004",
+        fileName: "video.webm",
+        tipo: "video",
+        sha256: "a".repeat(64),
+        bytes: "9",
+        file,
+      }
+    );
+
+    const res = await POST(request as any);
+    expect(res.status).toBe(400);
+    expect(rm).toHaveBeenCalled();
+    expect(ensureArtefacto).not.toHaveBeenCalled();
+  });
+
+  it("rechaza con 400 un sha256 con formato inválido", async () => {
+    const file = new File(["x"], "video.webm");
+    const request = createMockRequest(
+      { "x-internal-secret": ENGINE_SECRET },
+      {
+        ejecucionId: "550e8400-e29b-41d4-a716-446655440005",
+        fileName: "video.webm",
+        tipo: "video",
+        sha256: "abc123",
+        bytes: "1",
+        file,
+      }
+    );
+
+    const res = await POST(request as any);
+    expect(res.status).toBe(400);
+    expect(ensureArtefacto).not.toHaveBeenCalled();
   });
 });

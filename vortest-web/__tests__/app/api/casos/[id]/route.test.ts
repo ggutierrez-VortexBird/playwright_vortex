@@ -20,6 +20,7 @@ jest.mock("next/server", () => ({
 
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),
+  getUsuarioActual: jest.fn().mockResolvedValue({ id: "user-1", email: "qa@example.com", rol: "superadmin", nombre: null }),
   getSession: jest.fn(),
   requireProyectoAccess: jest.fn(),
 }));

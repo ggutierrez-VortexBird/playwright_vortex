@@ -30,6 +30,7 @@ jest.mock("next/server", () => ({
 
 jest.mock("@/lib/auth", () => ({
   ...jest.requireActual("@/lib/auth"),
+  getUsuarioActual: jest.fn().mockResolvedValue({ id: "user-1", email: "qa@example.com", rol: "superadmin", nombre: null }),
   getSession: jest.fn(),
   requireProyectoAccess: jest.fn(),
 }));
@@ -39,11 +40,15 @@ jest.mock("@/lib/ejecuciones/actions", () => ({
 }));
 
 const mockFindUnique = jest.fn();
+const mockEjecucionFindFirst = jest.fn();
 
 jest.mock("@/lib/db", () => ({
   prisma: {
     casoPrueba: {
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
+    },
+    ejecucion: {
+      findFirst: (...args: unknown[]) => mockEjecucionFindFirst(...args),
     },
   },
 }));
@@ -97,6 +102,7 @@ describe("POST /api/casos/[id]/ejecutar", () => {
     (getSession as jest.Mock).mockResolvedValue({ userId: "user-1" });
     mockFindUnique.mockResolvedValueOnce({ id: "caso-1", activo: true, proyectoId: "proyecto-1" });
     (dispararEjecucion as jest.Mock).mockRejectedValue(YA_EXISTE_EJECUCION_EN_CURSO_ERROR);
+    mockEjecucionFindFirst.mockResolvedValueOnce({ id: "ej-en-curso" });
 
     const req = new Request("http://localhost/...", { method: "POST" });
     const res = await POST(req, { params: Promise.resolve({ id: "caso-1" }) });
@@ -104,5 +110,6 @@ describe("POST /api/casos/[id]/ejecutar", () => {
     expect(res.status).toBe(409);
     const data = await res.json();
     expect(data.error).toBe("ejecucion_en_curso");
+    expect(data.ejecucionId).toBe("ej-en-curso");
   });
 });
