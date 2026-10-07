@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { PasoAccordionItem } from './paso-accordion-item'
 
 interface Subaccion {
@@ -55,15 +55,12 @@ export function PasoAccordionList({ pasos, defaultExpandedId, onExpandedChange }
     if (defaultExpandedId != null) setExpandedPasoId(defaultExpandedId)
   }
 
+  // Avisar al padre fuera del updater: un setState del padre dentro de él corre durante el render de este componente.
   const handleTogglePaso = useCallback((pasoId: string) => {
-    setExpandedPasoId((prev) => {
-      const next = prev === pasoId ? null : pasoId
-      onExpandedChange?.(next)
-      return next
-    })
-    // No resetear expandedSubaccionId: el estado del sub-paso se preserva
-    // entre toggle del paso padre.
-  }, [onExpandedChange])
+    const next = expandedPasoId === pasoId ? null : pasoId
+    setExpandedPasoId(next)
+    onExpandedChange?.(next)
+  }, [expandedPasoId, onExpandedChange])
 
   const handleToggleSubaccion = useCallback((subId: string) => {
     setExpandedSubaccionId((prev) => (prev === subId ? null : subId))
