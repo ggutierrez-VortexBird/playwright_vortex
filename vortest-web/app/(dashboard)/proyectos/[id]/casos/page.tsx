@@ -1,3 +1,6 @@
+import { tituloConAcceso } from "@/lib/metadata";
+import { prisma } from "@/lib/db";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getSession, getUsuarioActual, requireProyectoAccess, FORBIDDEN_ERROR, NOT_FOUND_ERROR } from "@/lib/auth";
@@ -7,6 +10,12 @@ import { CasosClient } from "@/app/(dashboard)/casos/casos-client";
 import { Skeleton, TableSkeleton } from "@/components/ui/skeleton";
 import type { CasoPruebaListItem } from "@/types/caso";
 
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const proyecto = await prisma.proyecto.findUnique({ where: { id }, select: { nombre: true } });
+  return { title: await tituloConAcceso(proyecto ? id : undefined, proyecto ? `Casos · ${proyecto.nombre}` : undefined, "Casos del proyecto") };
+}
 interface PageProps {
   params: Promise<{ id: string }>;
 }

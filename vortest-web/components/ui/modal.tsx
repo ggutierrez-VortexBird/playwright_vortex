@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "./use-focus-trap";
+import { Icon } from "@/components/ui/icon";
 
 interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   open: boolean;
@@ -10,28 +11,32 @@ interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   labelledBy?: string;
+  /** Con cambios sin guardar, Escape o un clic afuera piden confirmación en vez de cerrar y perder lo escrito. */
+  hayCambios?: boolean;
 }
 
 /**
- * Overlay de modal compartido: mismo blur/oscurecido de fondo, cierre con
- * Escape y click fuera, para que todas las pantallas de crear/editar se
- * vean y se comporten igual. `className` afecta el panel interno (por
- * ejemplo para variar el ancho máximo); se mergea con `cn()` (twMerge) para
- * que valores conflictivos (p.ej. `max-h-*`) los resuelva el último en vez
- * de quedar ambos aplicados de forma ambigua. Cualquier otro prop nativo
- * (p.ej. `data-testid`) se reenvía al div exterior del backdrop.
+ * Overlay de modal compartido: Escape, clic afuera y foco atrapado.
+ * `className` afecta el panel interno (p. ej. el ancho máximo) y se mergea con twMerge.
  */
-export function Modal({ open, onClose, children, className, labelledBy, ...rest }: ModalProps) {
+export function Modal({ open, onClose, children, className, labelledBy, hayCambios = false, ...rest }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [confirmando, setConfirmando] = useState(false);
+
+  useEffect(() => {
+    if (!open) setConfirmando(false);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (hayCambios) setConfirmando(true);
+      else onClose();
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  }, [open, onClose, hayCambios]);
 
   useFocusTrap(panelRef, open);
 
@@ -43,9 +48,11 @@ export function Modal({ open, onClose, children, className, labelledBy, ...rest 
       role="dialog"
       aria-modal="true"
       aria-labelledby={labelledBy}
-      className="fixed inset-0 z-modal flex items-center justify-center bg-m3-scrim/55 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-m3-scrim/55 p-4 backdrop-blur-sm animate-in fade-in-0 duration-base motion-reduce:animate-none"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target !== e.currentTarget) return;
+        if (hayCambios) setConfirmando(true);
+        else onClose();
       }}
     >
       <div
@@ -53,10 +60,22 @@ export function Modal({ open, onClose, children, className, labelledBy, ...rest 
         tabIndex={-1}
         className={cn(
           "focus:outline-none",
-          "w-full max-h-[85vh] overflow-y-auto rounded-lg bg-m3-surface-container-lowest shadow-modal",
+          "w-full max-h-[85vh] overflow-y-auto rounded-lg bg-m3-surface-container-lowest shadow-modal animate-in fade-in-0 zoom-in-95 duration-base motion-reduce:animate-none",
           className ?? "max-w-md"
         )}
       >
+        {confirmando && (
+          <div role="alert" className="sticky top-0 z-sticky flex flex-wrap items-center gap-3 border-b border-m3-warning/30 bg-m3-warning-container px-4 py-3 font-body text-body-sm text-m3-on-warning-container">
+            <Icon name="warning" size={18} filled />
+            <span className="flex-1">Tienes cambios sin guardar.</span>
+            <button type="button" onClick={() => setConfirmando(false)} className="rounded-sm px-2 py-1 font-label text-label-md font-semibold hover:underline" autoFocus>
+              Seguir editando
+            </button>
+            <button type="button" onClick={onClose} className="rounded-sm px-2 py-1 font-label text-label-md font-semibold text-m3-error hover:underline">
+              Descartar
+            </button>
+          </div>
+        )}
         {children}
       </div>
     </div>

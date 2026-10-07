@@ -85,13 +85,11 @@ export function Field({ label, children, hint, error, required, className, id }:
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={controlId} className="font-label text-label-md text-m3-on-surface">
+      <label
+        htmlFor={controlId}
+        className={cn("font-label text-label-md text-m3-on-surface", required && "after:ml-0.5 after:text-m3-error after:content-['*']")}
+      >
         {label}
-        {required && (
-          <span className="ml-0.5 text-m3-error" aria-hidden="true">
-            *
-          </span>
-        )}
       </label>
       {control}
       {hint && !error && (

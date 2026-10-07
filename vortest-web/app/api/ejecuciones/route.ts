@@ -32,7 +32,7 @@ export const POST = withAuth(async (request) => {
     }
     if (isForbiddenError(error)) {
       return NextResponse.json(
-        { error: 'forbidden', message: 'No tenés acceso a este proyecto' },
+        { error: 'forbidden', message: 'No tienes acceso a este proyecto' },
         { status: 403 }
       )
     }

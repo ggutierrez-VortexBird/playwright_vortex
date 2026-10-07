@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listProyectosActivos } from "@/lib/proyectos/actions";
@@ -13,6 +14,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { estadoLabel } from "@/lib/ejecuciones/estado";
 import { formatFecha } from "@/lib/format";
 
+
+export const metadata: Metadata = { title: "Inicio" };
 // M3 semantic tokens for execution states — resolved from tokens via CSS vars
 const ESTADO_TOKEN: Record<string, string> = {
   paso: "m3-tertiary",

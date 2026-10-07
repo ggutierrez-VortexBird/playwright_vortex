@@ -1,53 +1,32 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { getSession, getUsuarioActual } from "@/lib/auth";
-import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
+import { listarCredenciales } from "@/lib/credenciales/gestion";
+import { CredencialesClient } from "./credenciales-client";
+
+export const metadata: Metadata = { title: "Credenciales" };
 
 export default async function CredencialesPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
+  if (!usuario) redirect("/api/logout");
+  // Exclusivo del superadmin: los demás roles nunca ven ni usan credenciales.
+  if (usuario.rol !== "superadmin") redirect("/proyectos");
 
-  // Credenciales es 100% exclusivo del superadmin — admin y tester no la
-  // ven ni la usan.
-  if (usuario?.rol !== "superadmin") {
-    redirect("/proyectos");
-  }
+  const [credenciales, proyectos] = await Promise.all([
+    listarCredenciales(session),
+    prisma.proyecto.findMany({
+      where: { activo: true },
+      orderBy: [{ espacio: { nombre: "asc" } }, { nombre: "asc" }],
+      select: { id: true, nombre: true, espacio: { select: { nombre: true } } },
+    }),
+  ]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Credenciales"
-        subtitle="Gestión de credenciales cifradas"
-        badge={{ value: "PRÓXIMAMENTE", label: "placeholder" }}
-        actions={
-          <button
-            disabled
-            title="Próximamente"
-            className="rounded-lg bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary opacity-50 cursor-not-allowed"
-          >
-            Agregar credencial
-          </button>
-        }
-      />
-
-      <EmptyState
-        icon="vpn_key"
-        title="No hay credenciales configuradas"
-        description="Las credenciales se almacenan cifradas y solo el superadmin puede gestionarlas."
-        action={
-          <button
-            disabled
-            className="inline-flex items-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary opacity-50 cursor-not-allowed"
-          >
-            Solicitar acceso
-          </button>
-        }
-        onboarding={
-          <p className="text-sm text-m3-on-surface-variant">
-            Contacta al superadmin para configurar credenciales de proyectos.
-          </p>
-        }
-      />
-    </div>
+    <CredencialesClient
+      credenciales={credenciales}
+      proyectos={proyectos.map((p) => ({ id: p.id, nombre: p.nombre, espacio: p.espacio.nombre }))}
+    />
   );
 }

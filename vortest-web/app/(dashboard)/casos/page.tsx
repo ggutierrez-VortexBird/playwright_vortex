@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getSession, getUsuarioActual, scopeProyectoWhere } from "@/lib/auth";
 import { listCasos } from "@/lib/casos/actions";
 import { CasosClient } from "./casos-client";
 import type { CasoPruebaListItem } from "@/types/caso";
 
+
+export const metadata: Metadata = { title: "Casos de prueba" };
 interface ProyectoOption {
   id: string;
   nombre: string;

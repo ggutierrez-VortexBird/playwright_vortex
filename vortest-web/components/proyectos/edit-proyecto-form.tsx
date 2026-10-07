@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Field, Input, Textarea } from "@/components/ui/field";
+import { Icon } from "@/components/ui/icon";
+import { useToast } from "@/components/ui/toast";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
 interface EditProyectoFormProps {
@@ -13,147 +17,115 @@ interface EditProyectoFormProps {
   onCancel?: () => void;
 }
 
+type Errores = Partial<Record<"nombre" | "ambiente", string>>;
+
 export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyectoFormProps) {
-  const [nombre, setNombre] = useState(proyecto.nombre);
-  const [ambiente, setAmbiente] = useState(proyecto.ambiente);
-  const [versionSistema, setVersionSistema] = useState(proyecto.versionSistema ?? "");
-  const [descripcion, setDescripcion] = useState(proyecto.descripcion ?? "");
-  const [color, setColor] = useState(proyecto.color ?? "#C9822F");
-  const [activo, setActivo] = useState(proyecto.activo);
+  const toast = useToast();
+  const inicial = {
+    nombre: proyecto.nombre,
+    ambiente: proyecto.ambiente,
+    versionSistema: proyecto.versionSistema ?? "",
+    descripcion: proyecto.descripcion ?? "",
+    color: proyecto.color ?? "#C9822F",
+    activo: proyecto.activo,
+  };
+  const [form, setForm] = useState(inicial);
   const [loading, setLoading] = useState(false);
+  const [errores, setErrores] = useState<Errores>({});
   const [error, setError] = useState<string | null>(null);
+  const refs = { nombre: useRef<HTMLInputElement>(null), ambiente: useRef<HTMLInputElement>(null) };
+  const hayCambios = JSON.stringify(form) !== JSON.stringify(inicial);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(ev: React.FormEvent) {
+    ev.preventDefault();
     setError(null);
-    setLoading(true);
+    const e: Errores = {};
+    if (!form.nombre.trim()) e.nombre = "Escribe el nombre del proyecto";
+    if (!form.ambiente.trim()) e.ambiente = "Indica el ambiente, p. ej. QA";
+    setErrores(e);
+    const primero = (["nombre", "ambiente"] as const).find((k) => e[k]);
+    if (primero) {
+      refs[primero].current?.focus();
+      return;
+    }
 
+    setLoading(true);
     try {
       const res = await fetch(`/api/proyectos/${proyecto.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, ambiente, versionSistema, descripcion, color, activo }),
+        body: JSON.stringify(form),
       });
 
       if (res.ok) {
-        if (onSuccess) {
-          onSuccess();
-        }
+        toast({ tone: "success", title: "Cambios guardados", description: form.nombre });
+        onSuccess?.();
       } else if (res.status === 400) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setError(data.message || "Datos inválidos");
       } else if (res.status === 403) {
         setError("No tienes permisos para editar proyectos");
       } else {
-        setError("Error al actualizar el proyecto");
+        setError(`No se pudo guardar (el servidor respondió ${res.status}). Intenta de nuevo.`);
       }
     } catch {
-      setError("Error de conexión");
+      setError("Sin conexión con el servidor. Tus cambios siguen en el formulario.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Modal open onClose={() => onCancel?.()} labelledBy="edit-proyecto-title" className="max-w-md">
+    <Modal open onClose={() => onCancel?.()} labelledBy="edit-proyecto-title" className="max-w-md" hayCambios={hayCambios}>
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="edit-proyecto-title" className="font-headline text-headline-md text-m3-on-surface">
             Editar proyecto
           </h2>
           {onCancel && (
-            <Button variant="ghost" size="sm" type="button" onClick={onCancel} aria-label="Cerrar">
-              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+            <Button variant="ghost" size="sm" onClick={onCancel} aria-label="Cerrar">
+              <Icon name="close" />
             </Button>
           )}
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="edit-nombre" className="font-label text-label-sm font-semibold text-m3-on-surface">
-              Nombre del proyecto
-            </label>
-            <input
-              id="edit-nombre"
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              maxLength={100}
-              className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
-            />
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+          <Field label="Nombre del proyecto" id="edit-nombre" required error={errores.nombre}>
+            <Input ref={refs.nombre} value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} maxLength={100} />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Ambiente" id="edit-ambiente" required error={errores.ambiente}>
+              <Input ref={refs.ambiente} value={form.ambiente} onChange={(e) => setForm({ ...form, ambiente: e.target.value })} maxLength={50} />
+            </Field>
+            <Field label="Versión de sistema" id="edit-version">
+              <Input value={form.versionSistema} onChange={(e) => setForm({ ...form, versionSistema: e.target.value })} maxLength={50} placeholder="Ej: v2.4.1" />
+            </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="edit-ambiente" className="font-label text-label-sm font-semibold text-m3-on-surface">
-                Ambiente
-              </label>
-              <input
-                id="edit-ambiente"
-                type="text"
-                value={ambiente}
-                onChange={(e) => setAmbiente(e.target.value)}
-                required
-                maxLength={50}
-                className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="edit-version" className="font-label text-label-sm font-semibold text-m3-on-surface">
-                Versión de sistema
-              </label>
-              <input
-                id="edit-version"
-                type="text"
-                value={versionSistema}
-                onChange={(e) => setVersionSistema(e.target.value)}
-                maxLength={50}
-                placeholder="Ej: v2.4.1"
-                className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
-              />
-            </div>
-          </div>
+          <Field label="Descripción" id="edit-descripcion">
+            <Textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} rows={3} maxLength={500} />
+          </Field>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="edit-descripcion" className="font-label text-label-sm font-semibold text-m3-on-surface">
-              Descripción
-            </label>
-            <textarea
-              id="edit-descripcion"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              rows={3}
-              maxLength={500}
-              className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-2 font-body text-body-md text-m3-on-surface focus:border-m3-secondary focus:outline-none focus:ring-1 focus:ring-m3-secondary"
-            />
-          </div>
+          <ColorPicker name="color" value={form.color} onChange={(color) => setForm({ ...form, color })} />
 
-          <ColorPicker name="color" value={color} onChange={setColor} />
-
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-m3-outline-variant px-3.5 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-md border border-m3-outline-variant px-3.5 py-3">
             <div>
               <div className="font-label text-label-md font-semibold text-m3-on-surface">Proyecto activo</div>
-              <p className="font-body text-body-sm text-m3-on-surface-variant">
-                Los testers pueden ejecutar casos y ver resultados.
-              </p>
+              <p className="font-body text-body-sm text-m3-on-surface-variant">Los testers pueden ejecutar casos y ver resultados.</p>
             </div>
-            <Switch checked={activo} onCheckedChange={setActivo} aria-label="Proyecto activo" />
+            <Switch checked={form.activo} onCheckedChange={(activo) => setForm({ ...form, activo })} aria-label="Proyecto activo" />
           </div>
 
-          {error && (
-            <div className="rounded-lg bg-m3-danger-container p-3 font-body text-body-sm text-m3-error">
-              {error}
-            </div>
-          )}
+          {error && <Alert tone="error">{error}</Alert>}
 
           <div className="mt-1 flex justify-end gap-3">
             {onCancel && (
-              <Button variant="secondary" type="button" onClick={onCancel}>
+              <Button variant="secondary" onClick={onCancel}>
                 Cancelar
               </Button>
             )}
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? "Guardando..." : "Guardar cambios"}
+            <Button type="submit" loading={loading} loadingText="Guardando…">
+              Guardar cambios
             </Button>
           </div>
         </form>

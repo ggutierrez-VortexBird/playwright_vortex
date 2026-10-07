@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { EspaciosForm } from "./espacios-form";
 import { AdminsDialog } from "@/components/espacios/admins-dialog";
@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionSearch } from "@/components/ui/section-search";
 import type { Espacio, EspacioConMetrics } from "@/types/espacio";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
+import { useToast } from "@/components/ui/toast";
 
 const AVATAR_COLORS = [
   "bg-blue-500",
@@ -452,7 +453,8 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
   const [espacios, setEspacios] = useState<EspacioConMetrics[]>(initialEspacios);
   const [editingEspacio, setEditingEspacio] = useState<EspacioConMetrics | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [formularioConCambios, setFormularioConCambios] = useState(false);
+  const toast = useToast();
   const [deletingEspacio, setDeletingEspacio] = useState<EspacioConMetrics | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -490,9 +492,17 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
 
       if (res.ok) {
         setEspacios((prev) => prev.filter((e) => e.id !== deletingEspacio.id));
+        toast({ tone: "neutral", title: "Espacio eliminado", description: deletingEspacio.nombre });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({
+          tone: "error",
+          title: "No se pudo eliminar el espacio",
+          description: data.message ?? (res.status === 409 ? "Todavía tiene proyectos o datos asociados." : `El servidor respondió ${res.status}.`),
+        });
       }
-    } catch (err) {
-      console.error("Error deleting espacio:", err);
+    } catch {
+      toast({ tone: "error", title: "Sin conexión con el servidor", description: "El espacio no se eliminó. Intenta de nuevo." });
     } finally {
       setIsDeleting(false);
       setDeletingEspacio(null);
@@ -506,7 +516,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
   const handleSuccess = useCallback((updated: Espacio, isEdit: boolean) => {
     if (isEdit) {
       setEspacios((prev) => prev.map((e) => (e.id === updated.id ? { ...e, ...updated } : e)));
-      setSuccessMessage(`"${updated.nombre}" actualizado exitosamente`);
+      toast({ tone: "success", title: "Espacio actualizado", description: updated.nombre });
     } else {
       setEspacios((prev) => [
         {
@@ -519,16 +529,10 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         },
         ...prev,
       ]);
-      setSuccessMessage(`"${updated.nombre}" creado exitosamente`);
+      toast({ tone: "success", title: "Espacio creado", description: updated.nombre });
     }
     closeModal();
-  }, []);
-
-  useEffect(() => {
-    if (!successMessage) return;
-    const timer = setTimeout(() => setSuccessMessage(null), 4000);
-    return () => clearTimeout(timer);
-  }, [successMessage]);
+  }, [toast]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -537,7 +541,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         description={
           canEdit
             ? "Organiza tu trabajo por cliente o área. Cada espacio tiene un color propio que se propaga a sus proyectos, casos y ejecuciones."
-            : "Espacios que administrás. Solo el superadmin puede crear, editar o eliminar un espacio."
+            : "Espacios que administras. Solo el superadmin puede crear, editar o eliminar un espacio."
         }
         badge={{ value: espacios.length, label: espacios.length === 1 ? "espacio" : "espacios" }}
         actions={
@@ -550,16 +554,6 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         }
       />
 
-      {/* Success notification */}
-      {successMessage && (
-        <div className="fixed right-4 top-4 z-toast animate-in slide-in-from-right-2 fade-in duration-300">
-          <div className="flex items-center gap-2 rounded-lg border border-m3-success/30 bg-m3-success-container px-4 py-3 text-sm text-m3-on-success-container shadow-lg">
-            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-success">check_circle</span>
-            {successMessage}
-          </div>
-        </div>
-      )}
-
       {/* Modal */}
       {canEdit && (
         <Modal
@@ -567,6 +561,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
           onClose={closeModal}
           labelledBy="espacios-dialog-title"
           className="max-w-md"
+          hayCambios={formularioConCambios}
         >
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -582,6 +577,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
               espacio={editingEspacio ?? undefined}
               onSuccess={handleSuccess}
               onCancel={closeModal}
+              onCambiosChange={setFormularioConCambios}
             />
           </div>
         </Modal>

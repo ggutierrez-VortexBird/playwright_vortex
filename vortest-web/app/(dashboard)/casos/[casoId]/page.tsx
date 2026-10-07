@@ -1,3 +1,6 @@
+import { migasDeProyecto } from "@/lib/migas";
+import { tituloConAcceso } from "@/lib/metadata";
+import type { Metadata } from "next";
 /**
  * /casos/[casoId] — vista del caso guardado (HU-G16 + HU-G12 + HU-G13).
  *
@@ -21,6 +24,12 @@ import { prisma } from "@/lib/db";
 import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";
 import { CasoDetalleCliente } from "@/components/casos/caso-detalle-cliente";
 
+
+export async function generateMetadata({ params }: { params: Promise<{ casoId: string }> }): Promise<Metadata> {
+  const { casoId } = await params;
+  const caso = await prisma.casoPrueba.findUnique({ where: { id: casoId }, select: { nombre: true, proyectoId: true } });
+  return { title: await tituloConAcceso(caso?.proyectoId, caso?.nombre, "Caso de prueba") };
+}
 interface PageProps {
   params: Promise<{ casoId: string }>;
   /** `editarScript=1` abre el editor de una — llega desde la acción
@@ -51,6 +60,7 @@ export default async function CasoDetallePage({ params, searchParams }: PageProp
       updatedAt: true,
       proyectoId: true,
       responsableId: true,
+      proyecto: { select: { id: true, nombre: true, espacio: { select: { id: true, nombre: true } } } },
       parametros: {
         orderBy: { nombre: "asc" },
         select: { id: true, nombre: true, valorDefecto: true, origen: true },
@@ -91,8 +101,11 @@ export default async function CasoDetallePage({ params, searchParams }: PageProp
     };
   });
 
+  const migas = [...(await migasDeProyecto(session, caso.proyecto)), { label: caso.nombre }];
+
   return (
     <CasoDetalleCliente
+      migas={migas}
       caso={{
         id: caso.id,
         codigo: caso.codigo,

@@ -1,36 +1,30 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { Logo } from "@/components/ui/logo";
+import { ButtonLink } from "@/components/ui/button";
+
+export const metadata: Metadata = { title: "Página no encontrada" };
 
 export default function NotFound() {
   return (
-    <main
-      className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 text-center"
-      style={{
-        background:
-          "radial-gradient(circle at 30% 20%, #1B2438 0%, #131B2E 55%, #0B0F1A 100%)",
-      }}
-    >
-      <p
-        className="font-headline font-extrabold leading-none"
-        style={{
-          fontSize: "88px",
-          letterSpacing: "-0.03em",
-          backgroundImage: "linear-gradient(180deg, #fff, #7C839B)",
-          WebkitBackgroundClip: "text",
-          backgroundClip: "text",
-          color: "transparent",
-        }}
-      >
-        404
-      </p>
-      <p className="font-body text-body-md text-[#B7BEDA]">
-        Esta pantalla no existe o fue movida.
-      </p>
-      <Link
-        href="/"
-        className="mt-2 rounded-lg bg-m3-secondary-container px-5 py-2.5 font-label text-label-md font-semibold text-m3-on-secondary-container transition-colors hover:bg-m3-secondary-fixed"
-      >
-        Volver al dashboard
-      </Link>
+    <main className="flex min-h-[100dvh] items-center justify-center bg-m3-background px-4 py-12">
+      <div className="w-full max-w-md text-center">
+        <Logo variant="light" className="mx-auto h-auto w-36" />
+        <p className="font-wide mt-10 font-headline text-[72px] font-bold leading-none tracking-tight text-m3-primary" aria-hidden="true">
+          404
+        </p>
+        <h1 className="mt-4 font-headline text-headline-lg text-m3-on-surface">No encontramos esta página</h1>
+        <p className="mt-2 font-body text-body-md text-m3-on-surface-variant">
+          El enlace puede estar mal escrito, o el caso, la ejecución o el proyecto ya no existen o no tienes acceso a ellos.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <ButtonLink href="/" icon="home">
+            Ir al inicio
+          </ButtonLink>
+          <ButtonLink href="/ejecuciones" variant="secondary" icon="play_circle">
+            Ver ejecuciones
+          </ButtonLink>
+        </div>
+      </div>
     </main>
   );
 }

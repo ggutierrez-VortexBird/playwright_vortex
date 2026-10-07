@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +14,9 @@ import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
 import type { UsuarioRow } from "@/types/usuario";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
 import { Alert } from "@/components/ui/alert";
+import { Field, Input, Select } from "@/components/ui/field";
+import { Icon } from "@/components/ui/icon";
+import { useToast } from "@/components/ui/toast";
 
 interface UsuariosClientProps {
   initialUsuarios: UsuarioRow[];
@@ -55,8 +58,11 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<"admin" | "tester">("tester");
   const [submitting, setSubmitting] = useState(false);
+  const [erroresCrear, setErroresCrear] = useState<{ email?: string; password?: string }>({});
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<UsuarioRow | null>(null);
   const [managingEspaciosFor, setManagingEspaciosFor] = useState<UsuarioRow | null>(null);
@@ -101,15 +107,36 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
     setPage(1);
   }
 
+  function cerrarCrear() {
+
+    setShowCreateModal(false);
+
+    setEmail("");
+
+    setPassword("");
+
+    setErroresCrear({});
+
+    setError(null);
+
+  }
+
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+    const errores: typeof erroresCrear = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errores.email = "Escribe un correo válido, p. ej. nombre@empresa.com";
+    if (password.length < 8) errores.password = "La contraseña debe tener al menos 8 caracteres";
+    setErroresCrear(errores);
+    if (errores.email) return emailRef.current?.focus();
+    if (errores.password) return passwordRef.current?.focus();
+    setSubmitting(true);
     try {
       const res = await fetch("/api/usuarios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rol: puedeElegirRol ? rol : "tester" }),
+        body: JSON.stringify({ email: email.trim(), password, rol: puedeElegirRol ? rol : "tester" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -130,8 +157,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
       setPassword("");
       setRol("tester");
       setShowCreateModal(false);
-      setSuccessMessage(`"${nuevo.email}" creado como ${ROL_LABEL[nuevo.rol]}`);
-      setTimeout(() => setSuccessMessage(null), 4000);
+      toast({ tone: "success", title: "Usuario creado", description: `${nuevo.email} · ${ROL_LABEL[nuevo.rol]}` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear usuario");
     } finally {
@@ -156,12 +182,6 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
 
   return (
     <div className="flex flex-col gap-6">
-      {successMessage && (
-        <div className="rounded-lg border border-m3-success/30 bg-m3-success-container px-4 py-3 text-sm text-m3-on-success-container">
-          {successMessage}
-        </div>
-      )}
-
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiTile
@@ -190,52 +210,30 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
         />
       </div>
 
-      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} labelledBy="create-usuario-title" className="max-w-md">
+      <Modal open={showCreateModal} onClose={cerrarCrear} labelledBy="create-usuario-title" className="max-w-md" hayCambios={Boolean(email || password)}>
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 id="create-usuario-title" className="font-headline text-headline-md text-m3-on-surface">
               Nuevo usuario
             </h2>
-            <Button variant="ghost" size="sm" type="button" onClick={() => setShowCreateModal(false)} aria-label="Cerrar">
-              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+            <Button variant="ghost" size="sm" onClick={cerrarCrear} aria-label="Cerrar">
+              <Icon name="close" />
             </Button>
           </div>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-                placeholder="nombre@empresa.com"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Contraseña</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-                placeholder="Mínimo 8 caracteres"
-              />
-            </div>
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <Field label="Correo electrónico" id="nuevo-usuario-email" required error={erroresCrear.email}>
+              <Input ref={emailRef} type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nombre@empresa.com" />
+            </Field>
+            <Field label="Contraseña inicial" id="nuevo-usuario-password" required error={erroresCrear.password} hint="Mínimo 8 caracteres. La persona puede cambiarla desde su perfil.">
+              <Input ref={passwordRef} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </Field>
             {puedeElegirRol && (
-              <div className="flex flex-col gap-1">
-                <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Rol</label>
-                <select
-                  value={rol}
-                  onChange={(e) => setRol(e.target.value as "admin" | "tester")}
-                  className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-                >
+              <Field label="Rol" id="nuevo-usuario-rol">
+                <Select value={rol} onChange={(e) => setRol(e.target.value as "admin" | "tester")}>
                   <option value="tester">Tester</option>
                   <option value="admin">Admin</option>
-                </select>
-              </div>
+                </Select>
+              </Field>
             )}
 
             {error && (
@@ -243,11 +241,11 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
             )}
 
             <div className="mt-1 flex justify-end gap-3">
-              <Button variant="secondary" type="button" onClick={() => setShowCreateModal(false)}>
+              <Button variant="secondary" onClick={cerrarCrear}>
                 Cancelar
               </Button>
-              <Button variant="primary" type="submit" disabled={submitting}>
-                {submitting ? "Creando…" : "Crear usuario"}
+              <Button type="submit" loading={submitting} loadingText="Creando…">
+                Crear usuario
               </Button>
             </div>
           </form>
@@ -634,6 +632,7 @@ function EditUsuarioDialog({
   const [rolSel, setRolSel] = useState<"admin" | "tester">(usuario.rol === "admin" ? "admin" : "tester");
   const [activo, setActivo] = useState(usuario.activo);
   const [saving, setSaving] = useState(false);
+  const toastEdicion = useToast();
   const [error, setError] = useState<string | null>(null);
 
   async function handleGuardar() {
@@ -651,40 +650,36 @@ function EditUsuarioDialog({
       if (!res.ok) {
         throw new Error(data.message || "No se pudo guardar");
       }
+      toastEdicion({ tone: "success", title: "Cambios guardados", description: usuario.email });
       onSaved(data.usuario);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      setError(err instanceof Error ? err.message : "No se pudo guardar. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal open onClose={onClose} labelledBy="edit-usuario-title" className="max-w-md">
+    <Modal open onClose={onClose} labelledBy="edit-usuario-title" className="max-w-md" hayCambios={activo !== usuario.activo || (puedeElegirRol && rolSel !== usuario.rol)}>
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="edit-usuario-title" className="font-headline text-headline-md text-m3-on-surface">
             Editar usuario
           </h2>
-          <Button variant="ghost" size="sm" type="button" onClick={onClose} aria-label="Cerrar">
-            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar">
+            <Icon name="close" />
           </Button>
         </div>
         <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">{usuario.email}</p>
 
         <div className="flex flex-col gap-4">
           {puedeElegirRol ? (
-            <div className="flex flex-col gap-1">
-              <label className="font-label text-label-sm font-semibold text-m3-on-surface-variant">Rol</label>
-              <select
-                value={rolSel}
-                onChange={(e) => setRolSel(e.target.value as "admin" | "tester")}
-                className="rounded-md border border-m3-outline-variant bg-m3-surface px-3 py-2 text-sm text-m3-on-surface"
-              >
+            <Field label="Rol" id="editar-usuario-rol">
+              <Select value={rolSel} onChange={(e) => setRolSel(e.target.value as "admin" | "tester")}>
                 <option value="tester">Tester</option>
                 <option value="admin">Admin</option>
-              </select>
-            </div>
+              </Select>
+            </Field>
           ) : (
             <p className="font-body text-body-sm text-m3-on-surface-variant">
               Rol actual: <span className="font-semibold text-m3-on-surface">{ROL_LABEL[usuario.rol]}</span>
@@ -706,11 +701,11 @@ function EditUsuarioDialog({
           )}
 
           <div className="mt-1 flex justify-end gap-3">
-            <Button variant="secondary" type="button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Cancelar
             </Button>
-            <Button variant="primary" type="button" onClick={handleGuardar} disabled={saving}>
-              {saving ? "Guardando…" : "Guardar cambios"}
+            <Button onClick={handleGuardar} loading={saving} loadingText="Guardando…">
+              Guardar cambios
             </Button>
           </div>
         </div>

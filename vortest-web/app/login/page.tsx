@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { iniciarSesion } from "./actions";
 import { LoginForm } from "./login-form";
 import { Logo } from "@/components/ui/logo";
 
+
+export const metadata: Metadata = { title: "Iniciar sesión" };
 interface LoginPageProps {
   searchParams: Promise<{ from?: string }>;
 }

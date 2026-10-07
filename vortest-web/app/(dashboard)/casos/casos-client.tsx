@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionSearch } from "@/components/ui/section-search";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 interface ProyectoOption {
   id: string;
@@ -30,8 +31,10 @@ interface CasosClientProps {
 export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, proyectoContext }: CasosClientProps) {
   const [casos, setCasos] = useState<CasoPruebaListItem[]>(casosIniciales);
   const [editingCaso, setEditingCaso] = useState<CasoPruebaListItem | null>(null);
+  const [edicionConCambios, setEdicionConCambios] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [deletingCaso, setDeletingCaso] = useState<CasoPruebaListItem | null>(null);
+  const toast = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -74,6 +77,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
       });
 
       if (res.ok || res.status === 204) {
+        toast({ tone: "neutral", title: "Caso eliminado", description: `${deletingCaso.codigo} · ${deletingCaso.nombre}` });
         await refreshCasos();
       } else {
         setDeleteError("Error al eliminar el caso");
@@ -151,7 +155,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
       />
 
       {/* Edit modal */}
-      <Modal open={!!editingCaso} onClose={handleCancel} labelledBy="editar-caso-title" className="max-w-lg">
+      <Modal open={!!editingCaso} onClose={handleCancel} labelledBy="editar-caso-title" className="max-w-lg" hayCambios={edicionConCambios}>
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 id="editar-caso-title" className="font-headline text-headline-md text-m3-on-surface">
@@ -167,6 +171,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
               caso={editingCaso}
               onSuccess={handleEditSuccess}
               onCancel={handleCancel}
+              onCambiosChange={setEdicionConCambios}
             />
           )}
         </div>
@@ -193,10 +198,20 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
           }
         />
       ) : casosFiltrados.length === 0 ? (
-        <EmptyState icon="search_off" title={`Sin resultados para "${busqueda}"`} />
+        <EmptyState
+          icon="search_off"
+          title={`Ningún caso coincide con “${busqueda}”`}
+          description="Busca por código o por nombre del caso."
+          action={
+            <Button variant="secondary" size="sm" icon="close" onClick={() => setBusqueda("")}>
+              Limpiar búsqueda
+            </Button>
+          }
+        />
       ) : (
         <CasoTable
           casos={casosFiltrados}
+          mostrarProyecto={!proyectoId}
           canEdit={canEdit}
           onEdit={canEdit ? handleEdit : undefined}
           onDelete={canEdit ? handleDelete : undefined}

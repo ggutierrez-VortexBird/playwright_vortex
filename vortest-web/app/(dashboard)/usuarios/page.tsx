@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listUsuarios } from "@/lib/usuarios/actions";
@@ -5,6 +6,8 @@ import { UsuariosClient } from "./usuarios-client";
 import { PageHeader } from "@/components/ui/page-header";
 import { NuevoUsuarioTrigger } from "@/components/usuarios/nuevo-usuario-trigger";
 
+
+export const metadata: Metadata = { title: "Usuarios" };
 export default async function UsuariosPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);

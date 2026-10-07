@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual, ROL_LABEL } from "@/lib/auth";
 import { PerfilClient } from "./perfil-client";
 import { PageHeader } from "@/components/ui/page-header";
 
+
+export const metadata: Metadata = { title: "Mi perfil" };
 export default async function PerfilPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);

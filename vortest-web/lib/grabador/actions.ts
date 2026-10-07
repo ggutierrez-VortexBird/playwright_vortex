@@ -89,7 +89,7 @@ async function runParentCaseAndGetStorageState(
         status: 400,
         body: {
           error: "parent_no_state",
-          message: "El caso padre no generó storageState. Asegurate de que el caso de login persista la sesión.",
+          message: "El caso padre terminó sin guardar la sesión. Revisa que el caso de login termine con la sesión iniciada.",
         },
       };
     }
@@ -112,7 +112,7 @@ function validate(input: NuevaGrabacionInput): void {
   if (!input.nombre || input.nombre.trim() === "") {
     throw {
       status: 400,
-      body: { error: "validation", message: "nombre es requerido" },
+      body: { error: "validation", message: "Escribe un nombre para la grabación" },
     };
   }
   // URL validation: debe ser http o https
@@ -124,25 +124,25 @@ function validate(input: NuevaGrabacionInput): void {
   } catch {
     throw {
       status: 400,
-      body: { error: "validation", message: "urlInicial debe ser http o https" },
+      body: { error: "validation", message: "La URL inicial debe empezar por http:// o https://" },
     };
   }
   if (!VALID_AMBIENTES.includes(input.ambiente as typeof VALID_AMBIENTES[number])) {
     throw {
       status: 400,
-      body: { error: "validation", message: `ambiente debe ser uno de: ${VALID_AMBIENTES.join(", ")}` },
+      body: { error: "validation", message: `Elige un ambiente: ${VALID_AMBIENTES.join(", ")}` },
     };
   }
   if (!VALID_NAVEGADORES.includes(input.navegador as typeof VALID_NAVEGADORES[number])) {
     throw {
       status: 400,
-      body: { error: "validation", message: `navegador debe ser uno de: ${VALID_NAVEGADORES.join(", ")}` },
+      body: { error: "validation", message: `Elige un navegador: ${VALID_NAVEGADORES.join(", ")}` },
     };
   }
   if (!input.proyectoId) {
     throw {
       status: 400,
-      body: { error: "validation", message: "proyectoId es requerido" },
+      body: { error: "validation", message: "Elige un proyecto" },
     };
   }
 }

@@ -8,7 +8,9 @@ import { configureVortestEditor, VORTEST_DARK_THEME } from "@/lib/recorder/monac
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { OrigenChip } from "@/components/ejecuciones/origen-chip";
-import { useBreadcrumbExtra } from "@/components/breadcrumb-context";
+import { useBreadcrumbExtra, type BreadcrumbSegment } from "@/components/breadcrumb-context";
+import { useLanzarEjecucion } from "@/lib/ejecuciones/use-lanzar-ejecucion";
+import { Alert } from "@/components/ui/alert";
 
 // Monaco toca `window`/`navigator` al cargar — se difiere al cliente para
 // no romper el render del servidor de esta pantalla.
@@ -62,6 +64,8 @@ export interface CasoDetalleItem {
 export interface CasoDetalleClienteProps {
   caso: CasoDetalleItem;
   backHref: string;
+  /** Ruta completa Espacio › Proyecto › Caso, armada en el servidor. */
+  migas?: BreadcrumbSegment[];
   /** Abre el editor de script ya desplegado al montar — llega desde la
    *  acción "Script" de la tabla de Casos (?editarScript=1). */
   autoAbrirEditorScript?: boolean;
@@ -70,19 +74,19 @@ export interface CasoDetalleClienteProps {
 export function CasoDetalleCliente({
   caso,
   backHref,
+  migas,
   autoAbrirEditorScript = false,
 }: CasoDetalleClienteProps) {
-  const [busy, setBusy] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { lanzar, lanzando, error: errorLanzar } = useLanzarEjecucion({ inline: true });
   const [parametros, setParametros] = useState<ParametroPanelItem[]>(
     caso.parametros,
   );
 
   const { setExtra } = useBreadcrumbExtra();
   useEffect(() => {
-    setExtra([{ label: "Script" }, { label: caso.nombre }]);
+    setExtra(migas ?? [{ label: caso.nombre }], { reemplazarBase: Boolean(migas) });
     return () => setExtra([]);
-  }, [caso.nombre, setExtra]);
+  }, [caso.nombre, setExtra, migas]);
 
   // Editor del script — separado del formulario "Editar" (nombre, código,
   // responsable) que vive en la tabla de Casos. Este edita el .spec.ts en
@@ -154,30 +158,6 @@ export function CasoDetalleCliente({
     }
   }, [caso.id]);
 
-  async function handleEjecutar() {
-    setBusy(true);
-    setErrorMsg(null);
-    try {
-      const res = await fetch(`/api/casos/${encodeURIComponent(caso.id)}/ejecutar`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as {
-          message?: string;
-          error?: string;
-        };
-        setErrorMsg(data.message ?? data.error ?? `Ejecutar falló (${res.status})`);
-        return;
-      }
-      const data = (await res.json()) as { ejecucionId: string };
-      window.location.href = `/ejecuciones/${data.ejecucionId}`;
-    } catch {
-      setErrorMsg("Error de red al ejecutar");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6" data-testid="caso-detalle-cliente">
       <PageHeader
@@ -197,32 +177,37 @@ export function CasoDetalleCliente({
         }
         actions={
           <Button
-            variant="primary"
-            onClick={handleEjecutar}
-            disabled={busy}
+            icon="play_arrow"
+            onClick={() => lanzar(caso.id)}
+            loading={lanzando}
+            loadingText="Encolando…"
             data-testid="ejecutar-button"
-            className="inline-flex items-center gap-1.5"
           >
-            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">play_arrow</span>
-            {busy ? "Encolando…" : "Ejecutar"}
+            Ejecutar
           </Button>
         }
       />
+      {errorLanzar && (
+        <Alert
+          tone={errorLanzar.ejecucionEnCursoId ? "warning" : "error"}
+          title="No se pudo ejecutar"
+          data-testid="caso-detalle-error"
+          action={
+            errorLanzar.ejecucionEnCursoId && (
+              <Link href={`/ejecuciones/${errorLanzar.ejecucionEnCursoId}`} className="font-label text-label-md font-semibold underline">
+                Ver ejecución en curso
+              </Link>
+            )
+          }
+        >
+          {errorLanzar.mensaje}
+        </Alert>
+      )}
       <Link href={backHref} className="sr-only" data-testid="back-link">
         ← Volver
       </Link>
 
       <div className="bg-m3-surface-container-lowest border border-m3-outline-variant rounded-lg shadow-sm">
-        {errorMsg && (
-          <div
-            role="alert"
-            data-testid="caso-detalle-error"
-            className="px-5 py-3 border-b border-m3-error/30 bg-m3-error-container/10 text-m3-error font-body text-body-sm"
-          >
-            {errorMsg}
-          </div>
-        )}
-
         <div className="p-5">
           <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
             <h3 className="font-headline text-headline-md text-m3-on-surface tracking-wide">

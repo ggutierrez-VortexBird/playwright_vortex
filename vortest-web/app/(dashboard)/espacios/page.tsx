@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession, getUsuarioActual, scopeEspacioWhere } from "@/lib/auth";
@@ -5,6 +6,8 @@ import { getEspaciosMetrics } from "@/lib/espacios/actions";
 import { EspaciosClient } from "./espacios-client";
 import type { EspacioConMetrics } from "@/types/espacio";
 
+
+export const metadata: Metadata = { title: "Espacios" };
 export default async function EspaciosPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);

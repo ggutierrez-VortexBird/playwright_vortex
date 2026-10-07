@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionSearch } from "@/components/ui/section-search";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 interface ProyectosClientProps {
   espacios: Espacio[];
@@ -24,6 +25,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingProyecto, setDeletingProyecto] = useState<ProyectoWithMetrics | null>(null);
+  const toast = useToast();
   const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
         method: "DELETE",
       });
       if (res.ok || res.status === 204) {
+        toast({ tone: "neutral", title: "Proyecto eliminado", description: deletingProyecto.nombre });
         await refreshProyectos();
       } else {
         setDeleteError("Error al eliminar el proyecto");

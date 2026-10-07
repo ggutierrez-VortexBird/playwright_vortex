@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 import { Alert } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/toast";
 
 interface ProyectoGridProps {
   espacioId: string;
@@ -26,6 +27,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
   const [editingProyecto, setEditingProyecto] = useState<ProyectoWithMetrics | null>(null);
   const [manageTestersFor, setManageTestersFor] = useState<ProyectoWithMetrics | null>(null);
   const [deletingProyecto, setDeletingProyecto] = useState<ProyectoWithMetrics | null>(null);
+  const toast = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -41,11 +43,11 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
     async function fetchProyectos() {
       try {
         const res = await fetch(`/api/proyectos/?espacioId=${espacioId}`);
-        if (!res.ok) throw new Error("Failed to fetch proyectos");
+        if (!res.ok) throw new Error(`No se pudieron cargar los proyectos (el servidor respondió ${res.status}).`);
         const data = await res.json();
         setProyectos(data.proyectos || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(err instanceof Error ? err.message : "Sin conexión con el servidor.");
       } finally {
         setLoading(false);
       }
@@ -69,13 +71,14 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
       if (res.ok) {
         setProyectos((prev) => prev.filter((p) => p.id !== deletingProyecto.id));
+        toast({ tone: "neutral", title: "Proyecto eliminado", description: deletingProyecto.nombre });
       } else if (res.status === 409) {
-        setDeleteError("No se puede eliminar: hay proyectos activos");
+        setDeleteError("No se puede eliminar: el proyecto tiene casos o ejecuciones asociados");
       } else {
         setDeleteError("Error al eliminar el proyecto");
       }
-    } catch (err) {
-      console.error("Error deleting proyecto:", err);
+    } catch {
+      setDeleteError("Sin conexión con el servidor. El proyecto no se eliminó.");
     } finally {
       setIsDeleting(false);
       setDeletingProyecto(null);
@@ -111,7 +114,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
         setLoading(false);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(err instanceof Error ? err.message : "Sin conexión con el servidor.");
         setLoading(false);
       });
   }

@@ -1,6 +1,8 @@
+import { prisma } from "@/lib/db";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getSession, getUsuarioActual, requireEspacioAdmin, FORBIDDEN_ERROR } from "@/lib/auth";
+import { getSession, getUsuarioActual, requireEspacioAdmin, FORBIDDEN_ERROR, scopeEspacioWhere } from "@/lib/auth";
 import { listProyectosByEspacio, getMetrics } from "@/lib/proyectos/actions";
 import { getEspacioById } from "@/lib/espacios/actions";
 import { PageHeader } from "@/components/ui/page-header";
@@ -9,6 +11,13 @@ import { ProyectoGrid } from "./proyecto-grid";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 import type { UsuarioActual } from "@/lib/auth";
 
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const usuario = await getUsuarioActual(await getSession());
+  const visible = usuario ? await prisma.espacio.findFirst({ where: { id, ...scopeEspacioWhere(usuario) }, select: { nombre: true } }) : null;
+  return { title: visible ? `Proyectos · ${visible.nombre}` : "Proyectos del espacio" };
+}
 interface PageProps {
   params: Promise<{ id: string }>;
 }

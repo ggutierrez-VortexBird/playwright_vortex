@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { SidebarNavItem } from '@/components/ui/sidebar-nav';
 import { useBreadcrumbExtra, type BreadcrumbSegment } from '@/components/breadcrumb-context';
@@ -18,7 +19,7 @@ interface ScopeBarWithContextProps {
  */
 export function ScopeBarWithContext({ items }: ScopeBarWithContextProps) {
   const pathname = usePathname();
-  const { extra } = useBreadcrumbExtra();
+  const { extra, reemplazaBase } = useBreadcrumbExtra();
   const itemByHref = new Map(items.map((item) => [item.href.replace(/^\//, ''), item]));
 
   const segments = pathname.split('/').filter(Boolean);
@@ -32,7 +33,7 @@ export function ScopeBarWithContext({ items }: ScopeBarWithContextProps) {
       ? matched
       : [{ label: segments.length > 0 ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : 'Inicio' }];
 
-  const crumbs = [...base, ...extra];
+  const crumbs = reemplazaBase ? extra : [...base, ...extra];
 
   return (
     <nav aria-label="Ubicación actual" className="flex min-w-0 items-center gap-1.5 overflow-hidden font-label text-label-md">
@@ -46,11 +47,11 @@ export function ScopeBarWithContext({ items }: ScopeBarWithContextProps) {
               </span>
             )}
             {!isLast && crumb.href ? (
-              <a href={crumb.href} className="truncate text-m3-on-surface-variant hover:text-m3-primary hover:underline">
+              <Link href={crumb.href} className="truncate rounded-sm text-m3-on-surface-variant hover:text-m3-primary hover:underline">
                 {crumb.label}
-              </a>
+              </Link>
             ) : (
-              <span className={isLast ? 'truncate font-medium text-m3-on-surface' : 'truncate text-m3-on-surface-variant'}>
+              <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'truncate font-medium text-m3-on-surface' : 'truncate text-m3-on-surface-variant'}>
                 {crumb.label}
               </span>
             )}

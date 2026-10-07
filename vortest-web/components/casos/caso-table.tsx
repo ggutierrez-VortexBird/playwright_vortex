@@ -8,6 +8,8 @@ import { EstadoBadge } from "@/components/ui/status-badge";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { formatFecha } from "@/lib/format";
 import { Spinner } from "@/components/ui/spinner";
+import { Icon } from "@/components/ui/icon";
+import { useLanzarEjecucion } from "@/lib/ejecuciones/use-lanzar-ejecucion";
 
 const PAGE_SIZE = 10;
 
@@ -16,6 +18,27 @@ interface CasoTableProps {
   onEdit?: (caso: CasoPruebaListItem) => void;
   onDelete?: (caso: CasoPruebaListItem) => void;
   canEdit?: boolean;
+  /** Muestra la columna Proyecto (el listado general mezcla casos de varios proyectos). */
+  mostrarProyecto?: boolean;
+}
+
+type Orden = { clave: "codigo" | "nombre" | "proyecto" | "estado" | "fecha"; asc: boolean } | null;
+
+const ORDEN_ESTADO: Record<string, number> = { fallo: 0, errorMotor: 1, paso: 2, "sin ejecuciones": 3 };
+
+function comparar(a: CasoPruebaListItem, b: CasoPruebaListItem, clave: NonNullable<Orden>["clave"]): number {
+  switch (clave) {
+    case "codigo":
+      return a.codigo.localeCompare(b.codigo, "es", { numeric: true });
+    case "nombre":
+      return a.nombre.localeCompare(b.nombre, "es");
+    case "proyecto":
+      return a.proyectoNombre.localeCompare(b.proyectoNombre, "es");
+    case "estado":
+      return (ORDEN_ESTADO[a.estado] ?? 9) - (ORDEN_ESTADO[b.estado] ?? 9);
+    case "fecha":
+      return (a.fechaUltimaEjecucion ?? "").localeCompare(b.fechaUltimaEjecucion ?? "");
+  }
 }
 
 const ORIGEN_LABEL: Record<CasoPruebaListItem["origen"], string> = {
@@ -25,15 +48,36 @@ const ORIGEN_LABEL: Record<CasoPruebaListItem["origen"], string> = {
 };
 
 
-export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTableProps) {
+export function CasoTable({ casos, onEdit, onDelete, canEdit = false, mostrarProyecto = false }: CasoTableProps) {
   const [page, setPage] = useState(1);
+  const [orden, setOrden] = useState<Orden>(null);
+
+  const ordenados = useMemo(() => {
+    if (!orden) return casos;
+    const r = [...casos].sort((a, b) => comparar(a, b, orden.clave));
+    return orden.asc ? r : r.reverse();
+  }, [casos, orden]);
 
   const totalPages = Math.max(1, Math.ceil(casos.length / PAGE_SIZE));
   const paginaActual = Math.min(page, totalPages);
   const casosPagina = useMemo(
-    () => casos.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE),
-    [casos, paginaActual]
+    () => ordenados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE),
+    [ordenados, paginaActual]
   );
+
+  const columnas: { label: string; clave?: NonNullable<Orden>["clave"] }[] = [
+    { label: "Código", clave: "codigo" },
+    { label: "Caso", clave: "nombre" },
+    ...(mostrarProyecto ? [{ label: "Proyecto", clave: "proyecto" as const }] : []),
+    { label: "Responsable" },
+    { label: "Estado", clave: "estado" },
+    { label: "Última ejecución", clave: "fecha" },
+  ];
+
+  function ordenarPor(clave: NonNullable<Orden>["clave"]) {
+    setOrden((o) => (o?.clave === clave ? { clave, asc: !o.asc } : { clave, asc: clave !== "fecha" }));
+    setPage(1);
+  }
 
   if (casos.length === 0) {
     return <EmptyState icon="fact_check" title="No hay casos de prueba" />;
@@ -46,14 +90,34 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
         <table className="w-full text-left">
           <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
             <tr>
-              {["Código", "Caso", "Responsable", "Estado", "Última ejecución"].map((h) => (
-                <th
-                  key={h}
-                  className="px-5 py-3 font-label text-label-sm font-semibold text-m3-on-surface-variant"
-                >
-                  {h}
-                </th>
-              ))}
+              {columnas.map((c) => {
+                const activa = c.clave !== undefined && orden?.clave === c.clave;
+                return (
+                  <th
+                    key={c.label}
+                    scope="col"
+                    aria-sort={activa ? (orden!.asc ? "ascending" : "descending") : undefined}
+                    className="px-5 py-3 font-label text-label-sm font-semibold text-m3-on-surface-variant"
+                  >
+                    {c.clave ? (
+                      <button
+                        type="button"
+                        onClick={() => ordenarPor(c.clave!)}
+                        className="-mx-1 inline-flex items-center gap-1 rounded-sm px-1 hover:text-m3-on-surface"
+                      >
+                        {c.label}
+                        <Icon
+                          name={activa ? (orden!.asc ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+                          size={14}
+                          className={activa ? "text-m3-primary" : "opacity-50"}
+                        />
+                      </button>
+                    ) : (
+                      c.label
+                    )}
+                  </th>
+                );
+              })}
               <th className="px-5 py-3 text-left font-label text-label-sm font-semibold text-m3-on-surface-variant">
                 Acciones
               </th>
@@ -65,6 +129,7 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
                 <CasoRow
                   key={caso.id}
                   caso={caso}
+                  mostrarProyecto={mostrarProyecto}
                   canEdit={canEdit}
                   onEdit={onEdit}
                   onDelete={onDelete}
@@ -123,54 +188,16 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
 
 interface CasoRowProps {
   caso: CasoPruebaListItem;
+  mostrarProyecto?: boolean;
   canEdit: boolean;
   onEdit?: (caso: CasoPruebaListItem) => void;
   onDelete?: (caso: CasoPruebaListItem) => void;
 }
 
-/** Estado + fetch de "Ejecutar" compartido entre la fila de tabla y la
- *  tarjeta móvil — cada una monta su propia instancia (solo una es visible
- *  a la vez vía CSS), así que no hay conflicto de estado entre ambas. */
+/** "Ejecutar" compartido entre la fila de tabla y la tarjeta móvil; los errores salen como toast. */
 function useEjecutarCaso(caso: CasoPruebaListItem) {
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleEjecutar() {
-    setRunning(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/ejecuciones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ casoPruebaId: caso.id }),
-      });
-      if (res.status === 401 || res.status === 403) {
-        setError("Sin permisos");
-        return;
-      }
-      if (res.status === 404) {
-        setError("Caso no encontrado");
-        return;
-      }
-      if (res.status === 409) {
-        setError("Ya hay una ejecución en curso");
-        return;
-      }
-      if (!res.ok) {
-        setError("Error al ejecutar");
-        return;
-      }
-      const data = await res.json();
-      // Redirigir al detalle de la ejecución para ver el progreso en vivo
-      window.location.href = `/ejecuciones/${data.id}`;
-    } catch {
-      setError("Error de conexión");
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  return { running, error, handleEjecutar };
+  const { lanzar, lanzando } = useLanzarEjecucion();
+  return { running: lanzando, error: null as string | null, handleEjecutar: () => lanzar(caso.id) };
 }
 
 interface AccionesCasoProps {
@@ -185,7 +212,8 @@ interface AccionesCasoProps {
 
 function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDelete }: AccionesCasoProps) {
   return (
-    <div className="flex items-center gap-1">
+    // Un clic en la zona de acciones (incluido un botón deshabilitado) nunca debe abrir la fila.
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
       <Button
         variant="ghost"
         className="hover:text-m3-success"
@@ -248,7 +276,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
   );
 }
 
-function CasoRow({ caso, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoRow({ caso, mostrarProyecto, canEdit, onEdit, onDelete }: CasoRowProps) {
   const { running, error, handleEjecutar } = useEjecutarCaso(caso);
 
   function handleRowClick() {
@@ -290,6 +318,13 @@ function CasoRow({ caso, canEdit, onEdit, onDelete }: CasoRowProps) {
           </div>
         )}
       </td>
+      {mostrarProyecto && (
+        <td className="px-5 py-3 font-body text-body-sm">
+          <Link href={`/proyectos/${caso.proyectoId}/casos`} onClick={(e) => e.stopPropagation()} className="text-m3-on-surface-variant hover:text-m3-primary hover:underline">
+            {caso.proyectoNombre}
+          </Link>
+        </td>
+      )}
       <td className="px-5 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {caso.responsableEmail}
       </td>
@@ -356,6 +391,8 @@ function CasoCard({ caso, canEdit, onEdit, onDelete }: CasoRowProps) {
       )}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-body-sm text-m3-on-surface-variant">
+        <span>{caso.proyectoNombre}</span>
+        <span>·</span>
         <span>{caso.responsableEmail}</span>
         <span>·</span>
         <span>{ORIGEN_LABEL[caso.origen]}</span>

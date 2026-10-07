@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listEspacios } from "@/lib/espacios/actions";
 import { listProyectosActivos, getMetrics } from "@/lib/proyectos/actions";
 import { ProyectosClient } from "./proyectos-client";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
+
+export const metadata: Metadata = { title: "Proyectos" };
 export default async function ProyectosPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
