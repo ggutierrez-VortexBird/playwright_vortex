@@ -149,6 +149,16 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Política ZERO modificación: `script` es el raw spec.ts, sin
     // comments extras, sin waits, sin params object, sin asserts fallback.
     const casoCreado = await prisma.$transaction(async (tx) => {
+      // Se toma la sesión antes de crear el caso: de dos "Guardar" simultáneos sólo el primero pasa este update.
+      try {
+        await tx.sesionGrabacion.update({
+          where: { id: sesionId, estado: { notIn: ["descartada", "guardada"] } },
+          data: { estado: "guardada", endedAt: new Date() },
+        });
+      } catch (err) {
+        if ((err as { code?: string })?.code === "P2025") return null;
+        throw err;
+      }
       const caso = await tx.casoPrueba.create({
         data: {
           proyectoId: sesion.proyectoId,
@@ -163,14 +173,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       });
       await tx.sesionGrabacion.update({
         where: { id: sesionId },
-        data: {
-          estado: "guardada",
-          casoPruebaId: caso.id,
-          endedAt: new Date(),
-        },
+        data: { casoPruebaId: caso.id },
       });
       return caso;
     });
+
+    if (!casoCreado) {
+      return NextResponse.json(
+        { error: "cannot_save", message: "La grabación ya se guardó o se descartó." },
+        { status: 409 },
+      );
+    }
 
     if (!body.ejecutar) {
       return NextResponse.json({

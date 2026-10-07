@@ -33,7 +33,8 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
   const [loading, setLoading] = useState(false);
   const [errores, setErrores] = useState<Errores>({});
   const [error, setError] = useState<string | null>(null);
-  const refs = { nombre: useRef<HTMLInputElement>(null), ambiente: useRef<HTMLInputElement>(null) };
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const ambienteRef = useRef<HTMLInputElement>(null);
   const hayCambios = JSON.stringify(form) !== JSON.stringify(inicial);
 
   async function handleSubmit(ev: React.FormEvent) {
@@ -45,7 +46,7 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
     setErrores(e);
     const primero = (["nombre", "ambiente"] as const).find((k) => e[k]);
     if (primero) {
-      refs[primero].current?.focus();
+      ({ nombre: nombreRef, ambiente: ambienteRef })[primero].current?.focus();
       return;
     }
 
@@ -90,12 +91,12 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
         </div>
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           <Field label="Nombre del proyecto" id="edit-nombre" required error={errores.nombre}>
-            <Input ref={refs.nombre} value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} maxLength={100} />
+            <Input ref={nombreRef} value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} maxLength={100} />
           </Field>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Ambiente" id="edit-ambiente" required error={errores.ambiente}>
-              <Input ref={refs.ambiente} value={form.ambiente} onChange={(e) => setForm({ ...form, ambiente: e.target.value })} maxLength={50} />
+              <Input ref={ambienteRef} value={form.ambiente} onChange={(e) => setForm({ ...form, ambiente: e.target.value })} maxLength={50} />
             </Field>
             <Field label="Versión de sistema" id="edit-version">
               <Input value={form.versionSistema} onChange={(e) => setForm({ ...form, versionSistema: e.target.value })} maxLength={50} placeholder="Ej: v2.4.1" />

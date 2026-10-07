@@ -219,10 +219,11 @@ model Ejecucion {
   artefactos  Artefacto[]
   acta        Acta?
 
-  @@index([casoPruebaId])
-  @@index([estado])
+  @@index([estado, inicioAt])
   @@index([loteId])
   @@index([casoPruebaId, estado])
+  @@index([casoPruebaId, finAt])
+  @@index([createdAt])
 }
 
 model PasoEjecucion {
@@ -246,7 +247,6 @@ model PasoEjecucion {
   subacciones PasoSubaccion[]
 
   @@unique([ejecucionId, numero])
-  @@index([ejecucionId])
 }
 
 model PasoSubaccion {
@@ -270,7 +270,7 @@ model PasoSubaccion {
   capturaReferencia Artefacto?    @relation("CapturaReferencia", fields: [capturaReferenciaId], references: [id])
 
   @@index([ejecucionId])
-  @@index([pasoEjecucionId])
+  @@index([pasoEjecucionId, numero])
 }
 
 model Artefacto {

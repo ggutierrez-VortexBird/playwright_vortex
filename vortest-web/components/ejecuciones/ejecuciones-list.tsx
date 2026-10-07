@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EjecucionStatus } from './ejecucion-status'
 import { Button } from '@/components/ui/button'
@@ -128,14 +129,14 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
 
             {/* Acciones */}
             <div className="col-span-6 md:col-span-1 flex justify-end">
-              <a
+              <Link
                 href={`/ejecuciones/${ejec.id}`}
                 aria-label={`Ver detalle de la ejecución ${ejec.casoPrueba.codigo}`}
                 title="Ver detalle"
                 className="shrink-0 rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container hover:text-m3-primary"
               >
                 <span aria-hidden="true" className="material-symbols-outlined text-[20px]">arrow_forward</span>
-              </a>
+              </Link>
             </div>
           </div>
         ))

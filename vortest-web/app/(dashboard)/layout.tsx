@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { Logo } from "@/components/ui/logo";
-import { listEspacios, getEspacioById } from "@/lib/espacios/actions";
+import { listEspacios } from "@/lib/espacios/actions";
 import { listProyectosActivos } from "@/lib/proyectos/actions";
-import { ClientBand } from "@/components/ui/client-band";
 import { EspacioSwitcher } from "@/components/ui/espacio-switcher";
 import { ProyectoSwitcher } from "@/components/ui/proyecto-switcher";
 import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
@@ -19,7 +18,6 @@ import { ToastProvider } from "@/components/ui/toast";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  params: Promise<{ id?: string }>;
 }
 
 const ALL_NAV_ITEMS: (SidebarNavItem & { roles: RolUsuario[] })[] = [
@@ -32,11 +30,7 @@ const ALL_NAV_ITEMS: (SidebarNavItem & { roles: RolUsuario[] })[] = [
   { href: "/usuarios", label: "Usuarios", icon: "group", roles: ["superadmin", "admin"] },
 ];
 
-export default async function DashboardLayout({
-  children,
-  params,
-}: DashboardLayoutProps) {
-  const { id: espacioId } = await params;
+export default async function DashboardLayout({ children }: DashboardLayoutProps) {
   const session = await getSession();
 
   if (!session.userId) {
@@ -49,9 +43,8 @@ export default async function DashboardLayout({
     redirect("/api/logout");
   }
 
-  const [espacios, espacio, proyectos] = await Promise.all([
+  const [espacios, proyectos] = await Promise.all([
     listEspacios(usuario),
-    espacioId ? getEspacioById(espacioId) : null,
     listProyectosActivos(usuario),
   ]);
 
@@ -72,7 +65,6 @@ export default async function DashboardLayout({
           {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html).
               lg: completo (sin cambios) · md: riel de solo iconos · <md: cajón. */}
           <ResponsiveSidebarShell>
-            <ClientBand espacioColor={espacio?.color ?? null} />
             <div className="flex items-center justify-center px-5 py-6 md:px-2 lg:justify-start lg:px-5">
               <div className="md:hidden lg:block">
                 <Logo variant="dark" />

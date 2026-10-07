@@ -18,10 +18,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   try {
     const testers = await listTestersProyecto(id, session);
     return NextResponse.json({ testers });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }
@@ -38,10 +35,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const result = await asignarTesterProyecto(id, body.usuarioId, session);
     return NextResponse.json(result);
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }
@@ -63,10 +57,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const result = await quitarTesterProyecto(id, usuarioId, session);
     return NextResponse.json(result);
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

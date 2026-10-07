@@ -20,7 +20,7 @@ export const PUT = withAuth<RouteParams>(async (request, { params }, session) =>
   const formData = await request.formData();
   const scriptFile = formData.get("scriptFile") as File | null;
 
-  const updateData: any = {};
+  const updateData: Record<string, string> = {};
 
   const codigo = formData.get("codigo");
   if (codigo !== null) updateData.codigo = codigo as string;

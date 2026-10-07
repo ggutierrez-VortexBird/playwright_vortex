@@ -49,11 +49,11 @@ export function PasoAccordionList({ pasos, defaultExpandedId, onExpandedChange }
   )
   const [expandedSubaccionId, setExpandedSubaccionId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (defaultExpandedId != null) {
-      setExpandedPasoId(defaultExpandedId)
-    }
-  }, [defaultExpandedId])
+  const [defaultAntes, setDefaultAntes] = useState(defaultExpandedId)
+  if (defaultAntes !== defaultExpandedId) {
+    setDefaultAntes(defaultExpandedId)
+    if (defaultExpandedId != null) setExpandedPasoId(defaultExpandedId)
+  }
 
   const handleTogglePaso = useCallback((pasoId: string) => {
     setExpandedPasoId((prev) => {

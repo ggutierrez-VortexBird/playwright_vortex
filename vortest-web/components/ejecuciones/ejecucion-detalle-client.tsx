@@ -89,7 +89,7 @@ interface Ejecucion {
   pasos: Paso[]
   artefactos: Artefacto[]
   // HU-G19 — acta ya generada (si existe).
-  acta?: { id: string; consecutivo: string; rutaPdf: string } | null
+  acta?: { id: string; consecutivo: string } | null
 }
 
 interface Props {
@@ -173,7 +173,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
 
 export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }: Props) {
   const { ejecucion, conexion, refrescar } = useEjecucionEnVivo<Ejecucion>(ejecucionId, initialEjecucion)
-  const expandedPasoIdRef = useRef<string | null>(null)
+  const [expandedPasoId, setExpandedPasoId] = useState<string | null>(null)
   const toast = useToast()
   // HU-G18 — ref al <video> para que VideoChapterBar pueda hacer seek.
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -184,12 +184,9 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
     setVideoDurationMs(Math.round((v.duration || 0) * 1000))
   }, [])
 
-  useEffect(() => {
-    const ids = new Set(ejecucion.pasos.map((p) => p.id))
-    if (expandedPasoIdRef.current && !ids.has(expandedPasoIdRef.current)) {
-      expandedPasoIdRef.current = ejecucion.pasos[0]?.id ?? null
-    }
-  }, [ejecucion.pasos])
+  // Si el paso abierto desaparece al refrescar, se abre el primero.
+  const pasoExpandido =
+    expandedPasoId && !ejecucion.pasos.some((p) => p.id === expandedPasoId) ? ejecucion.pasos[0]?.id ?? null : expandedPasoId
 
   // Aviso al terminar (toast + región viva) y título de pestaña con el estado, útil con la pestaña en segundo plano.
   const estadoPrevio = useRef(initialEjecucion.estado)
@@ -229,9 +226,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
   const errorMsg =
     primerPasoFallido?.errorMsg ?? ejecucion.errorMsg ?? null
 
-  const handleExpandedChange = useCallback((pasoId: string | null) => {
-    expandedPasoIdRef.current = pasoId
-  }, [])
+  const handleExpandedChange = useCallback((pasoId: string | null) => setExpandedPasoId(pasoId), [])
 
   const formattedDate = formatFecha(ejecucion.inicioAt)
 
@@ -269,7 +264,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
                     ? {
                         id: ejecucion.acta.id,
                         consecutivo: ejecucion.acta.consecutivo,
-                        pdfPath: ejecucion.acta.rutaPdf,
+                        pdfPath: '',
                         downloadUrl: `/api/actas/${ejecucion.acta.id}/download`,
                       }
                     : null
@@ -373,7 +368,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
             >
               <PasoAccordionList
                 pasos={ejecucion.pasos}
-                defaultExpandedId={expandedPasoIdRef.current}
+                defaultExpandedId={pasoExpandido}
                 onExpandedChange={handleExpandedChange}
               />
             </div>

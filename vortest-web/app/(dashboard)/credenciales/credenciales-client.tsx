@@ -49,12 +49,10 @@ export function CredencialesClient({ credenciales, proyectos }: Props) {
   const [guardando, setGuardando] = useState(false);
   const [aEliminar, setAEliminar] = useState<CredencialResumen | null>(null);
   const [eliminando, setEliminando] = useState(false);
-  const refs = {
-    proyectoId: useRef<HTMLSelectElement>(null),
-    nombre: useRef<HTMLInputElement>(null),
-    storageState: useRef<HTMLTextAreaElement>(null),
-    vence: useRef<HTMLInputElement>(null),
-  };
+  const proyectoIdRef = useRef<HTMLSelectElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const storageStateRef = useRef<HTMLTextAreaElement>(null);
+  const venceRef = useRef<HTMLInputElement>(null);
 
   const hayCambios = JSON.stringify(form) !== JSON.stringify(VACIO);
 
@@ -83,7 +81,7 @@ export function CredencialesClient({ credenciales, proyectos }: Props) {
 
   function enfocarPrimero(e: Errores) {
     const primero = (["proyectoId", "nombre", "storageState", "vence"] as const).find((k) => e[k]);
-    if (primero) refs[primero].current?.focus();
+    if (primero) ({ proyectoId: proyectoIdRef, nombre: nombreRef, storageState: storageStateRef, vence: venceRef })[primero].current?.focus();
   }
 
   async function guardar(ev: React.FormEvent) {
@@ -105,7 +103,7 @@ export function CredencialesClient({ credenciales, proyectos }: Props) {
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
         const campo = data.code?.startsWith("validation:") ? (data.code.split(":")[1] as keyof Errores) : undefined;
-        if (campo && campo in refs) {
+        if (campo && campo in ({ proyectoId: proyectoIdRef, nombre: nombreRef, storageState: storageStateRef, vence: venceRef })) {
           const nuevos = { [campo]: data.error ?? "Revisa este campo" };
           setErrores(nuevos);
           enfocarPrimero(nuevos);
@@ -226,7 +224,7 @@ export function CredencialesClient({ credenciales, proyectos }: Props) {
           </div>
           {errorGeneral && <Alert tone="error">{errorGeneral}</Alert>}
           <Field label="Proyecto" required error={errores.proyectoId}>
-            <Select ref={refs.proyectoId} value={form.proyectoId} onChange={(e) => setForm({ ...form, proyectoId: e.target.value })}>
+            <Select ref={proyectoIdRef} value={form.proyectoId} onChange={(e) => setForm({ ...form, proyectoId: e.target.value })}>
               <option value="">Elige un proyecto…</option>
               {proyectos.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -236,11 +234,11 @@ export function CredencialesClient({ credenciales, proyectos }: Props) {
             </Select>
           </Field>
           <Field label="Nombre" required error={errores.nombre} hint="Para reconocerla al grabar, p. ej. “Usuario QA de catastro”.">
-            <Input ref={refs.nombre} value={form.nombre} maxLength={80} onChange={(e) => setForm({ ...form, nombre: e.target.value })} autoComplete="off" />
+            <Input ref={nombreRef} value={form.nombre} maxLength={80} onChange={(e) => setForm({ ...form, nombre: e.target.value })} autoComplete="off" />
           </Field>
           <Field label="storageState (JSON)" required error={errores.storageState}>
             <Textarea
-              ref={refs.storageState}
+              ref={storageStateRef}
               value={form.storageState}
               onChange={(e) => setForm({ ...form, storageState: e.target.value })}
               rows={6}
@@ -255,7 +253,7 @@ export function CredencialesClient({ credenciales, proyectos }: Props) {
             <input type="file" accept="application/json,.json" onChange={cargarArchivo} className="sr-only" />
           </label>
           <Field label="La sesión vence" error={errores.vence} hint="Opcional. Te avisamos cuando esté por vencer.">
-            <Input ref={refs.vence} type="datetime-local" value={form.vence} onChange={(e) => setForm({ ...form, vence: e.target.value })} />
+            <Input ref={venceRef} type="datetime-local" value={form.vence} onChange={(e) => setForm({ ...form, vence: e.target.value })} />
           </Field>
           <div className="flex justify-end gap-3 border-t border-m3-outline-variant pt-4">
             <Button variant="secondary" onClick={cerrar} disabled={guardando}>

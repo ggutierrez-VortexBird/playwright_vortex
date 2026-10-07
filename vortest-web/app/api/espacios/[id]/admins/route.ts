@@ -18,10 +18,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   try {
     const admins = await listAdminsEspacio(id, session);
     return NextResponse.json({ admins });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }
@@ -38,10 +35,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const result = await asignarAdminEspacio(id, body.usuarioId, session);
     return NextResponse.json(result);
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }
@@ -63,10 +57,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const result = await quitarAdminEspacio(id, usuarioId, session);
     return NextResponse.json(result);
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

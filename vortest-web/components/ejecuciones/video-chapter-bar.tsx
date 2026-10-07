@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   computeChapterSegments,
   findChapterAtTime,
@@ -28,37 +28,32 @@ interface Props {
  * `duracionMs` (chapter-segments.ts).
  */
 export function VideoChapterBar({ pasos, videoDurationMs, videoRef }: Props) {
-  const [segments, setSegments] = useState<ChapterSegment[]>([])
+  const segments = useMemo(() => computeChapterSegments(pasos, videoDurationMs), [pasos, videoDurationMs])
   const [activeChapterSegment, setActiveChapterSegment] = useState<ChapterSegment | null>(null)
-  const rafRef = useRef<number | null>(null)
-
-  // Recompute segments whenever the steps or the video duration change.
-  useEffect(() => {
-    const next = computeChapterSegments(pasos, videoDurationMs)
-    setSegments(next)
+  const [segmentsAntes, setSegmentsAntes] = useState(segments)
+  if (segmentsAntes !== segments) {
+    setSegmentsAntes(segments)
     setActiveChapterSegment(null)
-  }, [pasos, videoDurationMs])
+  }
 
-  // Track the current playhead via requestAnimationFrame for smoothness.
-  const updateActive = useCallback(() => {
-    const v = videoRef.current
-    if (!v) return
-    const t = v.currentTime * 1000
-    setActiveChapterSegment((prev) => {
-      const found = findChapterAtTime(segments, t)
-      if (!prev && !found) return prev
-      if (prev && found && prev.pasoId === found.pasoId) return prev
-      return found
-    })
-    rafRef.current = requestAnimationFrame(updateActive)
-  }, [segments, videoRef])
-
+  // Sigue el cabezal con requestAnimationFrame para que la barra se mueva suave.
   useEffect(() => {
-    rafRef.current = requestAnimationFrame(updateActive)
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    let raf = 0
+    const tick = () => {
+      const v = videoRef.current
+      if (v) {
+        const found = findChapterAtTime(segments, v.currentTime * 1000)
+        setActiveChapterSegment((prev) => {
+          if (!prev && !found) return prev
+          if (prev && found && prev.pasoId === found.pasoId) return prev
+          return found
+        })
+      }
+      raf = requestAnimationFrame(tick)
     }
-  }, [updateActive])
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [segments, videoRef])
 
   const handleClickSegment = useCallback(
     (seg: ChapterSegment) => {

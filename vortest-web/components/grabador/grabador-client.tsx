@@ -68,6 +68,7 @@ export function GrabadorClient({
     }
   }, []);
 
+  const connectRef = useRef<() => void>(() => undefined);
   const connect = useCallback(() => {
     setConnState(
       reconnectAttemptRef.current === 0 ? "connecting" : "reconnecting",
@@ -139,13 +140,17 @@ export function GrabadorClient({
       if (attempt < 5) {
         const delay = Math.min(1000 * 2 ** attempt, 5000);
         setConnState("reconnecting");
-        window.setTimeout(connect, delay);
+        window.setTimeout(() => connectRef.current(), delay);
       } else {
         setConnState("closed");
         setErrorMsg("No se pudo reconectar al grabador.");
       }
     };
   }, [wsUrl, sendWsMessage, sesionId, router, stopping]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     connect();

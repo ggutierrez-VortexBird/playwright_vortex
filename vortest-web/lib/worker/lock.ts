@@ -36,7 +36,7 @@ export async function checkNoRunningExecution(
 
 export async function simulateNowaitLockNotAvailable(): Promise<void> {
   // Helper for testing - simulates Postgres P2024 error
-  const pgError = new Error('could not obtain lock on row in relation') as any
+  const pgError = new Error('could not obtain lock on row in relation') as Error & { code?: string; meta?: unknown }
   pgError.code = 'P2024'
   pgError.meta = { message: 'lock_not_available' }
   throw pgError

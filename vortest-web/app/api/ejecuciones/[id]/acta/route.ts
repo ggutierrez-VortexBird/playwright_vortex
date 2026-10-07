@@ -27,7 +27,8 @@ import {
 } from "@/lib/auth";
 import { renderActaHTML } from "@/lib/acta/template";
 import { nextActaConsecutivo, renderActaToPdf } from "@/lib/acta/render-pdf";
-import type { ActaTemplateInput, ActaTemplateEjecucion } from "@/lib/acta/types";
+import type { ActaTemplateEjecucion } from "@/lib/acta/types";
+import { conCandado } from "@/lib/candado";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -109,65 +110,55 @@ export async function POST(_request: Request, { params }: RouteParams) {
     })),
   };
 
-  // Buscar Acta existente para mantener el consecutivo (idempotencia).
-  const actaExistente = await prisma.acta.findUnique({
-    where: { ejecucionId: id },
-  });
-
-  const consecutivo = actaExistente
-    ? actaExistente.consecutivo
-    : (await nextActaConsecutivo(prisma)).consecutivo;
-
-  const generadoEn = new Date();
-  const templateInput: ActaTemplateInput = {
-    ejecucion: ejecucionTemplate,
-    actaConsecutivo: consecutivo,
-    generadoEn,
-  };
-
-  const html = renderActaHTML(templateInput);
-
-  let pdfPath: string;
-  try {
-    const result = await renderActaToPdf({
-      templateHtml: html,
-      consecutivo,
+  // De a una por ejecución: dos "Generar acta" simultáneos no consumen dos consecutivos.
+  return conCandado(`acta:${id}`, async () => {
+    const actaExistente = await prisma.acta.findUnique({
+      where: { ejecucionId: id },
     });
-    pdfPath = result.pdfPath;
-  } catch (err) {
-    console.error("[acta] Error renderizando PDF", err);
-    return NextResponse.json(
-      {
-        error: "render_failed",
-        message:
-          err instanceof Error
-            ? err.message
-            : "No se pudo generar el PDF del acta",
-      },
-      { status: 500 },
-    );
-  }
 
-  // Persistir/actualizar fila Acta.
-  const acta = actaExistente
-    ? await prisma.acta.update({
-        where: { id: actaExistente.id },
-        data: { rutaPdf: pdfPath, generatedAt: generadoEn },
-      })
-    : await prisma.acta.create({
-        data: {
-          ejecucionId: id,
-          consecutivo,
-          rutaPdf: pdfPath,
-          generatedAt: generadoEn,
-        },
-      });
+    const consecutivo = actaExistente
+      ? actaExistente.consecutivo
+      : (await nextActaConsecutivo(prisma)).consecutivo;
 
-  return NextResponse.json({
-    ok: true,
-    actaId: acta.id,
-    consecutivo,
-    pdfPath,
-    downloadUrl: `/api/actas/${acta.id}/download`,
+    const generadoEn = new Date();
+    const html = renderActaHTML({ ejecucion: ejecucionTemplate, actaConsecutivo: consecutivo, generadoEn });
+
+    let pdfPath: string;
+    try {
+      pdfPath = (await renderActaToPdf({ templateHtml: html, consecutivo })).pdfPath;
+    } catch (err) {
+      console.error("[acta] Error renderizando PDF", err);
+      return NextResponse.json(
+        { error: "render_failed", message: "No se pudo generar el PDF del acta. Intenta de nuevo en unos segundos." },
+        { status: 500 },
+      );
+    }
+
+    let acta;
+    let consecutivoFinal = consecutivo;
+    try {
+      acta = actaExistente
+        ? await prisma.acta.update({
+            where: { id: actaExistente.id },
+            data: { rutaPdf: pdfPath, generatedAt: generadoEn },
+          })
+        : await prisma.acta.create({
+            data: { ejecucionId: id, consecutivo, rutaPdf: pdfPath, generatedAt: generadoEn },
+          });
+    } catch (err) {
+      // Otra instancia ganó la carrera (ejecucionId es único): se devuelve el acta que quedó.
+      const ganadora = (err as { code?: string })?.code === "P2002" ? await prisma.acta.findUnique({ where: { ejecucionId: id } }) : null;
+      if (!ganadora) throw err;
+      acta = ganadora;
+      consecutivoFinal = ganadora.consecutivo;
+    }
+
+    // Sin rutas del servidor en la respuesta: el cliente descarga por downloadUrl.
+    return NextResponse.json({
+      ok: true,
+      actaId: acta.id,
+      consecutivo: consecutivoFinal,
+      downloadUrl: `/api/actas/${acta.id}/download`,
+    });
   });
 }

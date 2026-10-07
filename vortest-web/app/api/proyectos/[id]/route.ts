@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSession, requireProyectoAccess, FORBIDDEN_ERROR, NOT_FOUND_ERROR } from "@/lib/auth";
+import { getSession, requireProyectoAccess } from "@/lib/auth";
+import { mapErrorToResponse } from "@/lib/http/errors";
+import { leerJson } from "@/lib/http/body";
 import { getProyectoById, updateProyecto, deleteProyecto } from "@/lib/proyectos/actions";
 
 interface RouteParams {
@@ -22,17 +24,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     await requireProyectoAccess(session, id);
     const proyecto = await getProyectoById(id, session);
     return NextResponse.json(proyecto);
-  } catch (err: any) {
-    if (err === FORBIDDEN_ERROR || err?.message === "FORBIDDEN") {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-    }
-    if (err === NOT_FOUND_ERROR || err?.message === "NOT_FOUND") {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
-    }
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
-    throw err;
+  } catch (err) {
+    return mapErrorToResponse(err);
   }
 }
 
@@ -47,16 +40,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const body = await request.json();
-
   try {
+    const body = await leerJson<Record<string, unknown>>(request);
     const proyecto = await updateProyecto(id, body, session);
     return NextResponse.json(proyecto);
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
-    throw err;
+  } catch (err) {
+    return mapErrorToResponse(err);
   }
 }
 
@@ -75,10 +64,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     await deleteProyecto(id, session);
     return new NextResponse(null, { status: 204 });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
-    throw err;
+  } catch (err) {
+    return mapErrorToResponse(err);
   }
 }

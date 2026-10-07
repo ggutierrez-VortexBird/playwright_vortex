@@ -24,6 +24,7 @@
  */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { findFragileSelectors } from "@/lib/recorder/selector-lint";
@@ -282,13 +283,13 @@ export function RevisarCliente({
 
               <div className="flex items-center gap-2">
                 {yaGuardado ? (
-                  <a
+                  <Link
                     href={`/casos/${savedCasoId}`}
                     data-testid="ver-caso-btn"
                     className="rounded-lg bg-m3-primary px-3.5 py-1.5 font-label text-label-sm font-semibold text-m3-on-primary shadow-sm transition hover:opacity-90"
                   >
                     Ver caso guardado
-                  </a>
+                  </Link>
                 ) : (
                   <>
                     <button

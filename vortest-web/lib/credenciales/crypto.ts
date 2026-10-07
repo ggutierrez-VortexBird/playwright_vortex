@@ -28,23 +28,32 @@ const V2_PREFIX = "v2:";
 
 const _credencialesKey = process.env.CREDENCIALES_ENCRYPTION_KEY;
 
+// scrypt es caro a propósito: se deriva una vez por proceso, no en cada cifrado o descifrado.
+let keyV1: Buffer | null = null;
+let keyV2: Buffer | null = null;
+let avisoV1 = false;
+
 /** Derived key v1 (legacy, SESSION_SECRET). */
 function getKeyV1(): Buffer {
+  if (keyV1) return keyV1;
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error(
       "SESSION_SECRET es requerido (>=32 chars) para cifrar/descifrar credenciales",
     );
   }
-  return scryptSync(secret, SALT_V1, KEY_LEN);
+  keyV1 = scryptSync(secret, SALT_V1, KEY_LEN);
+  return keyV1;
 }
 
 /** Derived key v2 (CREDENCIALES_ENCRYPTION_KEY). */
 function getKeyV2(): Buffer {
+  if (keyV2) return keyV2;
   if (!_credencialesKey) {
     throw new Error("CREDENCIALES_ENCRYPTION_KEY no está definida");
   }
-  return scryptSync(_credencialesKey, SALT_V2, KEY_LEN);
+  keyV2 = scryptSync(_credencialesKey, SALT_V2, KEY_LEN);
+  return keyV2;
 }
 
 /**
@@ -56,6 +65,16 @@ function getKeyV2(): Buffer {
  */
 export function encryptCredencial(plain: string): Buffer {
   const useV2 = Boolean(_credencialesKey);
+  if (!useV2) {
+    // v1 ata las credenciales al secreto de las cookies: en producción no se crean credenciales nuevas así.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Define CREDENCIALES_ENCRYPTION_KEY (>= 32 caracteres) para guardar credenciales");
+    }
+    if (!avisoV1) {
+      avisoV1 = true;
+      console.warn("[credenciales] CREDENCIALES_ENCRYPTION_KEY no está definida: se cifra con la clave derivada de SESSION_SECRET (sólo desarrollo).");
+    }
+  }
   const key = useV2 ? getKeyV2() : getKeyV1();
   const nonce = randomBytes(NONCE_LEN);
   const cipher = createCipheriv(ALGO, key, nonce);

@@ -21,6 +21,14 @@ interface PageProps {
   searchParams: Promise<{ token?: string; wsUrl?: string }>;
 }
 
+function mismoOrigen(a: string, b: string): boolean {
+  try {
+    return new URL(a).origin === new URL(b).origin;
+  } catch {
+    return false;
+  }
+}
+
 export default async function SesionGrabacionPage({
   params,
   searchParams,
@@ -69,9 +77,12 @@ export default async function SesionGrabacionPage({
     );
   }
 
+  const recorderPublico = process.env.RECORDER_PUBLIC_URL ?? "ws://localhost:3100";
+  // El wsUrl del querystring sólo se acepta si apunta al grabador configurado: un enlace manipulado no puede llevar el WebSocket a otro host.
   const finalWsUrl =
-    wsUrl ??
-    `${process.env.RECORDER_PUBLIC_URL ?? "ws://localhost:3100"}/?token=${encodeURIComponent(finalToken)}`;
+    wsUrl && mismoOrigen(wsUrl, recorderPublico)
+      ? wsUrl
+      : `${recorderPublico}/?token=${encodeURIComponent(finalToken)}`;
 
   const startedAtIso = (
     sesion.startedAt ?? sesion.createdAt

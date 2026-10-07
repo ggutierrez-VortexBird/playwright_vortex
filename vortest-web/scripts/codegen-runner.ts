@@ -86,6 +86,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
 import { renderSpec } from "../lib/recorder/spec-builder";
+import { createRequire } from "node:module"
 
 type NavegadorId = "chromium" | "firefox" | "webkit";
 
@@ -194,7 +195,7 @@ export async function enableRecorder(
 
 function resolvePlaywrightVersion(): string {
   try {
-    const pkg = require("playwright-core/package.json") as { version?: string };
+    const pkg = createRequire(`${process.cwd()}/`)("playwright-core/package.json") as { version?: string };
     return pkg.version ?? "desconocida";
   } catch {
     return "desconocida";

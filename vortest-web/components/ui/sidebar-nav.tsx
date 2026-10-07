@@ -1,6 +1,7 @@
 "use client";
 
 import { useSelectedLayoutSegments } from "next/navigation";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 export interface SidebarNavItem {
@@ -38,7 +39,7 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
         const isActive = section === activeSection;
 
         return (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             title={item.label}
@@ -55,7 +56,7 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
               {item.icon}
             </span>
             <span className="md:hidden lg:inline">{item.label}</span>
-          </a>
+          </Link>
         );
       })}
     </>

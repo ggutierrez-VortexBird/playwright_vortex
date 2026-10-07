@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listProyectosActivos } from "@/lib/proyectos/actions";
 import { listCasos } from "@/lib/casos/actions";
-import { listEjecuciones } from "@/lib/ejecuciones/queries";
+import { listEjecuciones, contarEjecucionesPorEstado, contarEjecucionesPorEspacio } from "@/lib/ejecuciones/queries";
 import { EjecucionStatus } from "@/components/ejecuciones/ejecucion-status";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import {
@@ -30,33 +30,21 @@ export default async function DashboardHomePage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
 
-  const [proyectos, casos, { ejecuciones }] = await Promise.all([
+  // KPIs sobre todo el alcance del usuario (agregados en la base), no sobre la primera página de ejecuciones.
+  const [proyectos, casos, { ejecuciones: recientes }, conteoPorEstado, espaciosOrdenados] = await Promise.all([
     listProyectosActivos(usuario),
     listCasos(undefined, usuario),
-    listEjecuciones(undefined, usuario),
+    listEjecuciones(undefined, usuario, 1, 6),
+    contarEjecucionesPorEstado(usuario),
+    contarEjecucionesPorEspacio(usuario),
   ]);
 
-  const totalEjecuciones = ejecuciones.length;
-  const exitosas = ejecuciones.filter((e) => e.estado === "paso").length;
-  const fallidas = ejecuciones.filter((e) => e.estado === "fallo").length;
+  const totalEjecuciones = Object.values(conteoPorEstado).reduce((s, n) => s + n, 0);
+  const exitosas = conteoPorEstado.paso ?? 0;
+  const fallidas = conteoPorEstado.fallo ?? 0;
   const resueltas = exitosas + fallidas;
   const tasaExito = resueltas > 0 ? Math.round((exitosas / resueltas) * 100) : null;
-  const recientes = ejecuciones.slice(0, 6);
-
-  const porEspacio = new Map<string, { nombre: string; color: string; total: number }>();
-  for (const ejec of ejecuciones) {
-    const espacio = ejec.casoPrueba.proyecto.espacio;
-    const entry = porEspacio.get(espacio.id) ?? { nombre: espacio.nombre, color: espacio.color, total: 0 };
-    entry.total += 1;
-    porEspacio.set(espacio.id, entry);
-  }
-  const espaciosOrdenados = Array.from(porEspacio.values()).sort((a, b) => b.total - a.total);
-
-  const porEstado = new Map<string, number>();
-  for (const ejec of ejecuciones) {
-    porEstado.set(ejec.estado, (porEstado.get(ejec.estado) ?? 0) + 1);
-  }
-  const estadosOrdenados = Array.from(porEstado.entries()).sort((a, b) => b[1] - a[1]);
+  const estadosOrdenados = Object.entries(conteoPorEstado).sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="flex flex-col gap-6">

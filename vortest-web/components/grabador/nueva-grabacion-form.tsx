@@ -50,7 +50,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
   // cuando no, `proyectoId` llega fijo desde el contenedor (p.ej. página de un proyecto).
   const [selectedProyectoId, setSelectedProyectoId] = useState(proyectoId ?? "");
   const [credencialesState, setCredencialesState] = useState<CredencialListItem[]>(credenciales ?? []);
-  const [loadingCred, setLoadingCred] = useState(false);
+  const [loadingCred, setLoadingCred] = useState(credenciales === undefined && Boolean(proyectoId));
   const [nombre, setNombre] = useState("");
   // HU-G34: el usuario tipea la URL completa (con scheme). Antes se preponía
   // `https://` visualmente y solo dejaba editar el host. Con browser headed
@@ -77,16 +77,22 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
   // proyecto, y reseteamos las selecciones que dependían del proyecto anterior
   // (credencial y caso padre). Si `credenciales` viene fijo (página standalone
   // con proyecto fijo), no se vuelve a pedir.
-  useEffect(() => {
-    if (credenciales !== undefined) return;
-    if (!selectedProyectoId) {
-      setCredencialesState([]);
-      setCredencialId(sentinelNone);
-      setParentCaseId(null);
-      return;
+  const [proyectoAntes, setProyectoAntes] = useState(selectedProyectoId);
+  if (proyectoAntes !== selectedProyectoId) {
+    setProyectoAntes(selectedProyectoId);
+    setParentCaseId(null);
+    if (credenciales === undefined) {
+      if (!selectedProyectoId) {
+        setCredencialesState([]);
+        setCredencialId(sentinelNone);
+      }
+      setLoadingCred(Boolean(selectedProyectoId));
     }
+  }
+
+  useEffect(() => {
+    if (credenciales !== undefined || !selectedProyectoId) return;
     let cancelled = false;
-    setLoadingCred(true);
     fetch(`/api/proyectos/${selectedProyectoId}/credenciales`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data: CredencialListItem[]) => {
@@ -103,7 +109,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
       .finally(() => {
         if (!cancelled) setLoadingCred(false);
       });
-    setParentCaseId(null);
     return () => {
       cancelled = true;
     };

@@ -130,3 +130,28 @@ export async function listEjecucionesPorProyecto(
 
   return { porProyecto, hasNextPage, total }
 }
+
+/** Ejecuciones por espacio (todo el alcance del usuario), agregadas en la base y no sobre una página de filas. */
+export async function contarEjecucionesPorEspacio(usuario?: UsuarioActual | null) {
+  if (usuario === null) return []
+  const porCaso = await prisma.ejecucion.groupBy({
+    by: ['casoPruebaId'],
+    where: whereListado(usuario),
+    _count: { _all: true },
+  })
+  if (porCaso.length === 0) return []
+  const casos = await prisma.casoPrueba.findMany({
+    where: { id: { in: porCaso.map((c) => c.casoPruebaId) } },
+    select: { id: true, proyecto: { select: { espacio: { select: { id: true, nombre: true, color: true } } } } },
+  })
+  const espacioDeCaso = new Map(casos.map((c) => [c.id, c.proyecto.espacio]))
+  const totales = new Map<string, { nombre: string; color: string; total: number }>()
+  for (const fila of porCaso) {
+    const e = espacioDeCaso.get(fila.casoPruebaId)
+    if (!e) continue
+    const actual = totales.get(e.id) ?? { nombre: e.nombre, color: e.color, total: 0 }
+    actual.total += fila._count._all
+    totales.set(e.id, actual)
+  }
+  return [...totales.values()].sort((a, b) => b.total - a.total)
+}

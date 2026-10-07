@@ -103,6 +103,7 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
           bytes: a.bytes,
           createdAt: a.createdAt.toISOString(),
         })),
+        acta: ejecucion.acta ? { id: ejecucion.acta.id, consecutivo: ejecucion.acta.consecutivo } : null,
       }}
     />
   )

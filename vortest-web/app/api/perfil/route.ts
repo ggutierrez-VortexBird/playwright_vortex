@@ -21,10 +21,7 @@ export async function PATCH(request: Request) {
   try {
     const usuario = await actualizarNombrePropio(body.nombre, session);
     return NextResponse.json({ usuario });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

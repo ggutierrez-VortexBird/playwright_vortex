@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
-import tailwindConfig from "@/tailwind.config";
+import { TAMANOS_TEXTO, TOKENS_M3 } from "@/lib/design-tokens";
 
 // tailwind-merge no conoce, por defecto, los tokens custom de este proyecto
 // (colores `m3-*` y la escala tipográfica `label-sm/md/lg`, `headline-*`,
@@ -10,10 +10,8 @@ import tailwindConfig from "@/tailwind.config";
 // tailwind-merge) y el que aparece último en el `cn(...)` borra al otro —
 // p. ej. `Button` perdía silenciosamente su color de texto porque el tamaño
 // (`text-label-sm`) se aplicaba después del color (`text-m3-on-primary`).
-const m3ColorClasses = Object.keys(
-  (tailwindConfig.theme?.extend?.colors as Record<string, unknown> | undefined)?.m3 ?? {}
-).map((key) => `m3-${key}`);
-const fontSizeClasses = Object.keys(tailwindConfig.theme?.extend?.fontSize ?? {});
+const m3ColorClasses = TOKENS_M3.map((t) => `m3-${t}`);
+const fontSizeClasses = [...TAMANOS_TEXTO];
 
 const twMerge = extendTailwindMerge({
   extend: {

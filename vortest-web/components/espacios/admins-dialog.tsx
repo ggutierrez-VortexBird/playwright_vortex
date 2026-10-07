@@ -36,6 +36,10 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
   async function cargar() {
     setLoading(true);
     setError(null);
+    await obtener();
+  }
+
+  async function obtener() {
     try {
       const [resAdmins, resUsuarios] = await Promise.all([
         fetch(`/api/espacios/${espacioId}/admins`),
@@ -60,7 +64,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
   }
 
   useEffect(() => {
-    cargar();
+    void obtener();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [espacioId]);
 

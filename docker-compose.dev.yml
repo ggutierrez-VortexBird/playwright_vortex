@@ -32,6 +32,7 @@ services:
       - PLAYWRIGHT_SCRIPTS_ROOT=/app/playwright-scripts
       - DATABASE_URL=postgresql://vortest:vortest@postgres:5432/vortest?schema=public
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
+      - CREDENCIALES_ENCRYPTION_KEY=${CREDENCIALES_ENCRYPTION_KEY:-}
       - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD required}
       # Apunta al servicio `recorder` del compose (HTTP interno, no el WS público).
       # El grabador abre una ventana real del navegador en el escritorio del usuario, así que corre en el host (`npm run dev:recorder`), no en Docker.
@@ -177,6 +178,7 @@ services:
       - RECORDER_MAX_SESSIONS=${RECORDER_MAX_SESSIONS:-3}
       - RECORDER_HEARTBEAT_TIMEOUT_MS=${RECORDER_HEARTBEAT_TIMEOUT_MS:-600000}
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
+      - CREDENCIALES_ENCRYPTION_KEY=${CREDENCIALES_ENCRYPTION_KEY:-}
     restart: "no"
     # [C-09] El recorder expone HTTP interno + WS en el mismo puerto.
     healthcheck:

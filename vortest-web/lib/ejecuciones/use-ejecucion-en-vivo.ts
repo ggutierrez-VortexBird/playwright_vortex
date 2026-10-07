@@ -15,61 +15,73 @@ const ESPERA_MAXIMA_MS = 30000
 export function useEjecucionEnVivo<T extends { estado: string }>(ejecucionId: string, inicial: T) {
   const [ejecucion, setEjecucion] = useState<T>(inicial)
   const [conexion, setConexion] = useState<EstadoConexion>('ok')
-  const fallos = useRef(0)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const activo = useRef(estaEnCurso(inicial.estado))
-
-  const consultar = useCallback(async (): Promise<boolean> => {
-    try {
-      const res = await fetch(`/api/ejecuciones/${ejecucionId}`, { cache: 'no-store' })
-      if (res.status === 401) {
-        setConexion('sesion-vencida')
-        return false
-      }
-      if (!res.ok) throw new Error(String(res.status))
-      const data = (await res.json()) as T
-      fallos.current = 0
-      setConexion('ok')
-      setEjecucion(data)
-      return estaEnCurso(data.estado)
-    } catch {
-      fallos.current += 1
-      if (fallos.current >= 2) setConexion('reintentando')
-      return true
-    }
-  }, [ejecucionId])
-
-  const programar = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current)
-    if (!activo.current || document.hidden) return
-    const espera = fallos.current === 0 ? INTERVALO_MS : Math.min(INTERVALO_MS * 2 ** fallos.current, ESPERA_MAXIMA_MS)
-    timer.current = setTimeout(async () => {
-      activo.current = await consultar()
-      programar()
-    }, espera)
-  }, [consultar])
+  // Cambiar este número reinicia el ciclo (p. ej. después de detener la ejecución).
+  const [reinicio, setReinicio] = useState(0)
+  const enCurso = useRef(estaEnCurso(inicial.estado))
 
   useEffect(() => {
-    programar()
+    let cancelado = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let fallos = 0
+
+    async function consultar(): Promise<boolean> {
+      try {
+        const res = await fetch(`/api/ejecuciones/${ejecucionId}`, { cache: 'no-store' })
+        if (res.status === 401) {
+          if (!cancelado) setConexion('sesion-vencida')
+          return false
+        }
+        if (!res.ok) throw new Error(String(res.status))
+        const data = (await res.json()) as T
+        fallos = 0
+        if (!cancelado) {
+          setConexion('ok')
+          setEjecucion(data)
+        }
+        return estaEnCurso(data.estado)
+      } catch {
+        fallos += 1
+        if (fallos >= 2 && !cancelado) setConexion('reintentando')
+        return true
+      }
+    }
+
+    function programar() {
+      if (timer) clearTimeout(timer)
+      if (cancelado || !enCurso.current || document.hidden) return
+      const espera = fallos === 0 ? INTERVALO_MS : Math.min(INTERVALO_MS * 2 ** fallos, ESPERA_MAXIMA_MS)
+      timer = setTimeout(async () => {
+        enCurso.current = await consultar()
+        programar()
+      }, espera)
+    }
+
     function alCambiarVisibilidad() {
-      if (document.hidden || !activo.current) return
+      if (document.hidden || !enCurso.current) return
       void consultar().then((sigue) => {
-        activo.current = sigue
+        enCurso.current = sigue
         programar()
       })
     }
+
+    if (reinicio > 0) {
+      void consultar().then((sigue) => {
+        enCurso.current = sigue
+        programar()
+      })
+    } else {
+      programar()
+    }
     document.addEventListener('visibilitychange', alCambiarVisibilidad)
     return () => {
+      cancelado = true
+      if (timer) clearTimeout(timer)
       document.removeEventListener('visibilitychange', alCambiarVisibilidad)
-      if (timer.current) clearTimeout(timer.current)
     }
-  }, [consultar, programar])
+  }, [ejecucionId, reinicio])
 
   /** Fuerza una consulta (p. ej. tras detener) y reanuda el seguimiento si sigue en curso. */
-  const refrescar = useCallback(async () => {
-    activo.current = await consultar()
-    programar()
-  }, [consultar, programar])
+  const refrescar = useCallback(() => setReinicio((n) => n + 1), [])
 
   return { ejecucion, conexion, refrescar }
 }

@@ -120,8 +120,8 @@ export async function createCaso(
       createdAt: caso.createdAt,
       updatedAt: caso.updatedAt,
     };
-  } catch (err: any) {
-    if (err.code === "P2002") {
+  } catch (err) {
+    if ((err as { code?: string })?.code === "P2002") {
       throw { status: 409, body: { error: "conflict", message: "Código duplicado en este proyecto" } };
     }
     throw err;
@@ -223,7 +223,7 @@ export async function getCasoById(id: string, session: SessionData) {
       proyecto: { select: { nombre: true } },
       responsable: { select: { email: true } },
       parentCase: { select: { codigo: true } },
-      ejecuciones: { orderBy: { finAt: "desc" } },
+      ejecuciones: { orderBy: { finAt: "desc" }, take: 1, select: { estado: true, finAt: true, inicioAt: true } },
     },
   });
 
@@ -332,8 +332,8 @@ export async function updateCaso(
       createdAt: caso.createdAt,
       updatedAt: caso.updatedAt,
     };
-  } catch (err: any) {
-    if (err.code === "P2002") {
+  } catch (err) {
+    if ((err as { code?: string })?.code === "P2002") {
       throw { status: 409, body: { error: "conflict", message: "Código duplicado en este proyecto" } };
     }
     throw err;

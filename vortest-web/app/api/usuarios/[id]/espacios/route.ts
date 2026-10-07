@@ -18,10 +18,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   try {
     const espacios = await listEspaciosDeUsuario(id, session);
     return NextResponse.json({ espacios });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }
@@ -39,10 +36,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const espacios = await setEspaciosDeUsuario(id, espacioIds, session);
     return NextResponse.json({ espacios });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

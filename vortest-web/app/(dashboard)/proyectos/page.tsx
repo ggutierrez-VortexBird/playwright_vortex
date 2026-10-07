@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getSession, getUsuarioActual } from "@/lib/auth";
 import { listEspacios } from "@/lib/espacios/actions";
-import { listProyectosActivos, getMetrics } from "@/lib/proyectos/actions";
+import { listProyectosActivos, getMetricsLote } from "@/lib/proyectos/actions";
 import { ProyectosClient } from "./proyectos-client";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
@@ -21,9 +21,11 @@ export default async function ProyectosPage() {
 
   const canEdit = usuario?.rol === "superadmin" || usuario?.rol === "admin";
 
+  const metricas = await getMetricsLote(proyectos.map((p) => p.id));
+
   const todosLosProyectos: ProyectoWithMetrics[] = await Promise.all(
     proyectos.map(async (proyecto) => {
-      const metrics = await getMetrics(proyecto.id);
+      const metrics = metricas.get(proyecto.id)!;
       return {
         id: proyecto.id,
         espacioId: proyecto.espacioId,

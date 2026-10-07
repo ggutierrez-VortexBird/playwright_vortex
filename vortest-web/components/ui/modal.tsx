@@ -22,10 +22,11 @@ interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Modal({ open, onClose, children, className, labelledBy, hayCambios = false, ...rest }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmando, setConfirmando] = useState(false);
-
-  useEffect(() => {
+  const [abiertoAntes, setAbiertoAntes] = useState(open);
+  if (abiertoAntes !== open) {
+    setAbiertoAntes(open);
     if (!open) setConfirmando(false);
-  }, [open]);
+  }
 
   useEffect(() => {
     if (!open) return;

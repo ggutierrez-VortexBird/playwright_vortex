@@ -28,7 +28,8 @@ export function EditCasoForm({ caso, onSuccess, onCancel, onCambiosChange }: Edi
   const [loading, setLoading] = useState(false);
   const [errores, setErrores] = useState<Errores>({});
   const [error, setError] = useState<string | null>(null);
-  const refs = { codigo: useRef<HTMLInputElement>(null), nombre: useRef<HTMLInputElement>(null) };
+  const codigoRef = useRef<HTMLInputElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
 
   const hayCambios = codigo !== caso.codigo || nombre !== caso.nombre || scriptFile !== null || responsableId !== caso.responsableId;
   useEffect(() => onCambiosChange?.(hayCambios), [hayCambios, onCambiosChange]);
@@ -42,7 +43,7 @@ export function EditCasoForm({ caso, onSuccess, onCancel, onCambiosChange }: Edi
     setErrores(e);
     const primero = (["codigo", "nombre"] as const).find((k) => e[k]);
     if (primero) {
-      refs[primero].current?.focus();
+      ({ codigo: codigoRef, nombre: nombreRef })[primero].current?.focus();
       return;
     }
 
@@ -66,7 +67,7 @@ export function EditCasoForm({ caso, onSuccess, onCancel, onCambiosChange }: Edi
         const data = await res.json().catch(() => ({}));
         const mensaje = data.message || "Ya existe otro caso con ese código";
         setErrores({ codigo: mensaje });
-        refs.codigo.current?.focus();
+        codigoRef.current?.focus();
       } else if (res.status === 403) {
         setError("No tienes permisos para editar casos");
       } else {
@@ -82,11 +83,11 @@ export function EditCasoForm({ caso, onSuccess, onCancel, onCambiosChange }: Edi
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <Field label="Código" id="edit-codigo" required error={errores.codigo}>
-        <Input ref={refs.codigo} value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={50} placeholder="Ej: CP-LOGIN-01" />
+        <Input ref={codigoRef} value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={50} placeholder="Ej: CP-LOGIN-01" />
       </Field>
 
       <Field label="Nombre del caso" id="edit-nombre" required error={errores.nombre}>
-        <Input ref={refs.nombre} value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} placeholder="Ej: Login con credenciales válidas" />
+        <Input ref={nombreRef} value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} placeholder="Ej: Login con credenciales válidas" />
       </Field>
 
       <div className="flex flex-col gap-1.5">

@@ -100,7 +100,6 @@ export async function GET(
       ? {
           id: ejecucion.acta.id,
           consecutivo: ejecucion.acta.consecutivo,
-          rutaPdf: ejecucion.acta.rutaPdf,
         }
       : null,
   })

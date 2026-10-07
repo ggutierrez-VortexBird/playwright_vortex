@@ -7,7 +7,7 @@ export const YA_EXISTE_EJECUCION_EN_CURSO_ERROR = new Error(
   'YA_EXISTE_EJECUCION_EN_CURSO'
 )
 
-// La ejecución ya terminó (estado terminal: paso, fallo, reparado, errorMotor
+// La ejecución ya terminó (estado terminal: paso, fallo, errorMotor
 // o cancelado) y no puede ser detenida. Análogo a
 // YA_EXISTE_EJECUCION_EN_CURSO_ERROR pero para el caso opuesto.
 export const EJECUCION_YA_TERMINADA_ERROR = new Error(

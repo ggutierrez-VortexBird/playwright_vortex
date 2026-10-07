@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -33,17 +33,22 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
-  // Intercept Next.js client-side navigation when dirty
-  const routerPush = useCallback(
-    (url: string) => {
-      if (!isDirty) {
-        router.push(url);
-        return;
-      }
-      setPendingUrl(url);
-    },
-    [isDirty, router]
-  );
+  // Con cambios sin guardar, los enlaces internos (migas, menú) piden confirmación antes de salir.
+  useEffect(() => {
+    if (!isDirty) return;
+    function alHacerClic(e: MouseEvent) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const enlace = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!enlace || enlace.target === "_blank" || enlace.hasAttribute("download")) return;
+      const destino = new URL(enlace.href, window.location.href);
+      if (destino.origin !== window.location.origin || destino.pathname === window.location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingUrl(destino.pathname + destino.search);
+    }
+    document.addEventListener("click", alHacerClic, true);
+    return () => document.removeEventListener("click", alHacerClic, true);
+  }, [isDirty]);
 
   function confirmLeave() {
     const url = pendingUrl;
@@ -53,11 +58,6 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
       router.push(url);
     }
   }
-
-  // Expose routerPush globally so next/link components can use it via onClick
-  useEffect(() => {
-    (window as unknown as Record<string, unknown>).__dirtyRouterPush = routerPush;
-  }, [routerPush]);
 
   // --- Datos de la cuenta (nombre) ---
   const [nombre, setNombre] = useState(nombreActual ?? "");

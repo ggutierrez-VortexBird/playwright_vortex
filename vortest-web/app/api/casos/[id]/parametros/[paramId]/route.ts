@@ -23,6 +23,7 @@ import { NextResponse } from "next/server";
 import { getSession, requireProyectoAccess } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { actualizarValorDefecto } from "@/lib/casos/parametros";
+import { mapErrorToResponse } from "@/lib/http/errors";
 
 interface RouteParams {
   params: Promise<{ id: string; paramId: string }>;
@@ -71,7 +72,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!caso) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  await requireProyectoAccess(session, caso.proyectoId);
+  try {
+    await requireProyectoAccess(session, caso.proyectoId);
+  } catch (err) {
+    return mapErrorToResponse(err);
+  }
 
   // Pre-check to differentiate 404 (not found) vs 403 (credencial).
   const existing = await prisma.parametroGrabacion.findFirst({

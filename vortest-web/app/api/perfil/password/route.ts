@@ -21,10 +21,7 @@ export async function POST(request: Request) {
   try {
     const result = await cambiarPasswordPropia(body.actual, body.nueva, session);
     return NextResponse.json(result);
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

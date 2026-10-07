@@ -134,77 +134,57 @@ export async function getProyectoById(id: string, session: SessionData): Promise
   };
 }
 
-/**
- * Get metrics for a proyecto: totalCasos, casosConformes, casosNoConformes, fechaUltimaEjecucion.
- * Uses 2-query strategy:
- * 1. Get all active casos for the proyecto
- * 2. Get all executions for those casos (ordered by finAt desc), then dedup manually to get latest per caso
- */
-export async function getMetrics(proyectoId: string): Promise<{
+export interface MetricasProyecto {
   totalCasos: number;
   casosConformes: number;
   casosNoConformes: number;
   fechaUltimaEjecucion: string | null;
-}> {
-  // Step 1: Get all active casos and collect their IDs
+}
+
+/**
+ * Métricas de varios proyectos con dos consultas en total (antes eran dos por proyecto y traían filas completas):
+ * casos activos y la ejecución terminada más reciente de cada caso.
+ */
+export async function getMetricsLote(proyectoIds: string[]): Promise<Map<string, MetricasProyecto>> {
+  const resultado = new Map<string, MetricasProyecto>(
+    proyectoIds.map((id) => [id, { totalCasos: 0, casosConformes: 0, casosNoConformes: 0, fechaUltimaEjecucion: null }]),
+  );
+  if (proyectoIds.length === 0) return resultado;
+
   const casos = await prisma.casoPrueba.findMany({
-    where: { proyectoId, activo: true },
-    select: { id: true },
+    where: { proyectoId: { in: proyectoIds }, activo: true },
+    select: { id: true, proyectoId: true },
   });
-  const totalCasos = casos.length;
-  const casoIds = casos.map((c) => c.id);
-
-  if (casoIds.length === 0) {
-    return {
-      totalCasos: 0,
-      casosConformes: 0,
-      casosNoConformes: 0,
-      fechaUltimaEjecucion: null,
-    };
+  const proyectoDeCaso = new Map<string, string>();
+  for (const c of casos as { id: string; proyectoId?: string }[]) {
+    const pid = c.proyectoId ?? (proyectoIds.length === 1 ? proyectoIds[0] : undefined);
+    if (!pid) continue;
+    proyectoDeCaso.set(c.id, pid);
+    resultado.get(pid)!.totalCasos++;
   }
+  if (proyectoDeCaso.size === 0) return resultado;
 
-  // Query 2: Get all executions for the casos (only completed ones), ordered by finAt desc
   const ejecuciones = await prisma.ejecucion.findMany({
-    where: { casoPruebaId: { in: casoIds }, finAt: { not: null } },
+    where: { casoPruebaId: { in: [...proyectoDeCaso.keys()] }, finAt: { not: null } },
     orderBy: { finAt: "desc" },
+    select: { casoPruebaId: true, estado: true, finAt: true },
   });
-
-  if (ejecuciones.length === 0) {
-    return {
-      totalCasos,
-      casosConformes: 0,
-      casosNoConformes: 0,
-      fechaUltimaEjecucion: null,
-    };
-  }
-
-  // Dedup: keep only the latest execution per caso (first occurrence due to orderBy desc)
-  const latestByCaso = new Map<string, typeof ejecuciones[0]>();
+  const vistos = new Set<string>();
   for (const e of ejecuciones) {
-    if (!latestByCaso.has(e.casoPruebaId)) {
-      latestByCaso.set(e.casoPruebaId, e);
-    }
+    if (vistos.has(e.casoPruebaId)) continue;
+    vistos.add(e.casoPruebaId);
+    const m = resultado.get(proyectoDeCaso.get(e.casoPruebaId)!);
+    if (!m) continue;
+    if (e.estado === "paso") m.casosConformes++;
+    else if (e.estado === "fallo") m.casosNoConformes++;
+    const fecha = e.finAt?.toISOString() ?? null;
+    if (fecha && (!m.fechaUltimaEjecucion || fecha > m.fechaUltimaEjecucion)) m.fechaUltimaEjecucion = fecha;
   }
+  return resultado;
+}
 
-  const latestEjecuciones = Array.from(latestByCaso.values());
-
-  const casosConformes = latestEjecuciones.filter((e) => e.estado === "paso").length;
-  const casosNoConformes = latestEjecuciones.filter((e) => e.estado === "fallo").length;
-
-  // Get the latest finAt from the executions
-  const fechas = latestEjecuciones
-    .map((e) => e.finAt)
-    .filter((f): f is Date => f !== null)
-    .sort((a, b) => b.getTime() - a.getTime());
-
-  const fechaUltimaEjecucion = fechas.length > 0 ? fechas[0].toISOString() : null;
-
-  return {
-    totalCasos,
-    casosConformes,
-    casosNoConformes,
-    fechaUltimaEjecucion,
-  };
+export async function getMetrics(proyectoId: string): Promise<MetricasProyecto> {
+  return (await getMetricsLote([proyectoId])).get(proyectoId)!;
 }
 
 /**

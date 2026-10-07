@@ -137,7 +137,7 @@ export async function dispararEjecucion(casoPruebaId: string) {
  * Implementación atómica con `updateMany` + filtro por estado:
  * - Si `updateMany` afecta 1 fila: la ejecución era activa y se canceló OK.
  * - Si `updateMany` afecta 0 filas: o no existe, o ya está terminal
- *   (`paso`, `fallo`, `reparado`, `errorMotor`, `cancelado`).
+ *   (`paso`, `fallo`, `errorMotor`, `cancelado`).
  *   Se distingue con un `findUnique` adicional: si no existe → NOT_FOUND_ERROR;
  *   si existe → EJECUCION_YA_TERMINADA_ERROR.
  *

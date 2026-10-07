@@ -4,6 +4,7 @@
 // que bloquee el CI antes de una limpieza progresiva (ver [C-03]).
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
+import globals from "globals";
 
 export default tseslint.config(
   {
@@ -19,5 +20,15 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-explicit-any": "warn",
     },
+  },
+  {
+    // Scripts JS que Playwright y Node cargan como CommonJS (el reporter, verificaciones).
+    files: ["scripts/**/*.js"],
+    languageOptions: { globals: globals.node, sourceType: "commonjs" },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
+    files: ["**/*.spec.ts"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
   },
 );

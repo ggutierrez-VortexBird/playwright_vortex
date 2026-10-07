@@ -86,11 +86,11 @@ export function ModeSelectorModal({
   const [step, setStep] = useState<Step>("select");
 
   // Al abrir, siempre arranca en el paso 1.
-  useEffect(() => {
-    if (open) {
-      setStep("select");
-    }
-  }, [open]);
+  const [abiertoAntes, setAbiertoAntes] = useState(open);
+  if (abiertoAntes !== open) {
+    setAbiertoAntes(open);
+    if (open) setStep("select");
+  }
 
   // Mover foco al primer botón cuando abre.
   useEffect(() => {

@@ -34,7 +34,7 @@ export interface ChapterSegment {
   numero: number
   /** Descripción corta del paso para el overlay. */
   descripcion: string
-  /** Estado del paso (paso / fallo / reparado). */
+  /** Estado del paso (paso / fallo). */
   estado: string
   /** Offset en ms desde el inicio del video. */
   inicioMs: number

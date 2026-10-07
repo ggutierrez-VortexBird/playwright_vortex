@@ -158,7 +158,7 @@ export class ArtifactsService {
     outputDir: string,
     totalSteps: number,
   ): Promise<{ artefactos: CollectedArtifactRef[]; anyFailed: boolean }> {
-    let entries: string[] = []
+    let entries: string[]
     try {
       entries = fs.readdirSync(outputDir)
     } catch {

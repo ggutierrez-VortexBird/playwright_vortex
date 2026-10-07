@@ -32,6 +32,10 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
   async function cargar() {
     setLoading(true);
     setError(null);
+    await obtener();
+  }
+
+  async function obtener() {
     try {
       const [resTesters, resUsuarios] = await Promise.all([
         fetch(`/api/proyectos/${proyectoId}/testers`),
@@ -54,7 +58,7 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
   }
 
   useEffect(() => {
-    cargar();
+    void obtener();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proyectoId]);
 

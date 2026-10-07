@@ -322,7 +322,12 @@ async function handleEnd(jobId: string, payload: EndEventPayload): Promise<void>
   // resolvió al hijo pendiente en el momento de la cancelación (ver lib/
   // ejecuciones/actions.ts) y no hay nada más que hacer acá.
   if (updated.count > 0 && current.pendingChildEjecucionId) {
-    await handlePendingChild(current.pendingChildEjecucionId, payload)
+    // CAS sobre pendingChildEjecucionId: sólo quien logra limpiarlo despacha al hijo, así un 'end' repetido no lo lanza dos veces.
+    const tomado = await prisma.ejecucion.updateMany({
+      where: { id: jobId, pendingChildEjecucionId: current.pendingChildEjecucionId },
+      data: { pendingChildEjecucionId: null },
+    })
+    if (tomado.count === 1) await handlePendingChild(current.pendingChildEjecucionId, payload)
   }
 
   clearJobBuffers(jobId)
@@ -393,15 +398,17 @@ async function main(): Promise<void> {
       })
 
       for (const stuck of stuckEjecuciones) {
-        console.warn(`[watchdog] Ejecución ${stuck.id} colgada, marcando errorMotor`)
-        await prisma.ejecucion.update({
-          where: { id: stuck.id },
+        // Condicionado a 'corriendo': si el 'end' llegó entre la consulta y este update, no se pisa el resultado real.
+        const { count } = await prisma.ejecucion.updateMany({
+          where: { id: stuck.id, estado: 'corriendo' },
           data: {
             estado: 'errorMotor',
             finAt: new Date(),
             errorMsg: 'Ejecución colgada: watchdog detectó que estaba corriendo sin actividad.',
           },
         })
+        if (count === 0) continue
+        console.warn(`[watchdog] Ejecución ${stuck.id} colgada, marcada errorMotor`)
         clearJobBuffers(stuck.id)
       }
     } catch (err) {

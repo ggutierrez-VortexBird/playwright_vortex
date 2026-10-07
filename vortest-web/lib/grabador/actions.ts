@@ -194,9 +194,10 @@ export async function iniciarSesionGrabacion(
   if (input.parentCaseId) {
     try {
       storageState = await runParentCaseAndGetStorageState(input.parentCaseId, input.proyectoId, input.navegador);
-    } catch (err: any) {
+    } catch (err) {
       // Propagar el error con status/body si ya viene formateado
-      if (err.status && err.body) {
+      const formateado = err as { status?: number; body?: unknown };
+      if (formateado?.status && formateado.body) {
         throw err;
       }
       throw {

@@ -22,9 +22,13 @@ export function FiltrosEjecuciones({ conteo, q = '', estado }: FiltrosEjecucione
   const params = useSearchParams()
   const [cargando, startTransition] = useTransition()
   const [texto, setTexto] = useState(q)
+  const [qAntes, setQAntes] = useState(q)
+  if (qAntes !== q) {
+    setQAntes(q)
+    setTexto(q)
+  }
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => setTexto(q), [q])
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
   function navegar(cambios: Record<string, string | undefined>) {

@@ -38,9 +38,11 @@ export function BrowserChrome({
   const [copied, setCopied] = useState(false);
 
   // Mantiene el draft en sync si pageUrl cambia desde afuera.
-  useEffect(() => {
+  const [pageUrlAntes, setPageUrlAntes] = useState(pageUrl);
+  if (pageUrlAntes !== pageUrl) {
+    setPageUrlAntes(pageUrl);
     setDraft(pageUrl);
-  }, [pageUrl]);
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

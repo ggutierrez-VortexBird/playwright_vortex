@@ -16,6 +16,7 @@ export function ResponsiveSidebarShell({ children }: { children: ReactNode }) {
   const [esMovil, setEsMovil] = useState(false);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia("(max-width: 767px)");
     const actualizar = () => setEsMovil(mq.matches);
     actualizar();

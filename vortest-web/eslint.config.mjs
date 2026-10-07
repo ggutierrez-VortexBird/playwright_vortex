@@ -1,31 +1,36 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+import globals from "globals";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  // "next/typescript" registra el plugin @typescript-eslint (el código ya
-  // tiene comentarios `eslint-disable @typescript-eslint/no-explicit-any`
-  // que, sin esto, ESLint marca como "rule not found").
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default defineConfig([
+  ...nextVitals,
+  ...nextTs,
   {
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "coverage/**",
-      "runtime/**",
-      "test-results/**",
-      "playwright-report/**",
-      "openspec/**",
-      "sdd/**",
-    ],
+    // Los tests no se modifican (regla del proyecto): mocks con require() y any son el patrón establecido ahí.
+    files: ["__tests__/**", "__mocks__/**", "e2e/**", "**/*.test.{ts,tsx,js}", "jest.setup.ts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@next/next/no-img-element": "off",
+      "react/display-name": "off",
+    },
   },
-];
-
-export default eslintConfig;
+  {
+    files: ["scripts/**/*.{js,cjs}", "*.{js,cjs}"],
+    languageOptions: { globals: globals.node },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  globalIgnores([
+    "node_modules/**",
+    ".next/**",
+    "coverage/**",
+    "runtime/**",
+    "test-results/**",
+    "playwright-report/**",
+    "openspec/**",
+    "sdd/**",
+    "next-env.d.ts",
+  ]),
+]);

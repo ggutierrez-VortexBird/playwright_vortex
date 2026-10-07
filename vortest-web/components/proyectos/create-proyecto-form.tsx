@@ -37,7 +37,9 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
   const [loading, setLoading] = useState(false);
   const [errores, setErrores] = useState<Errores>({});
   const [error, setError] = useState<string | null>(null);
-  const refs = { espacio: useRef<HTMLSelectElement>(null), nombre: useRef<HTMLInputElement>(null), ambiente: useRef<HTMLInputElement>(null) };
+  const espacioRef = useRef<HTMLSelectElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const ambienteRef = useRef<HTMLInputElement>(null);
 
   const needsEspacioSelect = !espacioId && espacios && espacios.length > 0;
   const effectiveEspacioId = espacioId || selectedEspacioId;
@@ -59,7 +61,7 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
     setErrores(e);
     const primero = (["espacio", "nombre", "ambiente"] as const).find((k) => e[k]);
     if (primero) {
-      refs[primero].current?.focus();
+      ({ espacio: espacioRef, nombre: nombreRef, ambiente: ambienteRef })[primero].current?.focus();
       return;
     }
 
@@ -110,7 +112,7 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           {needsEspacioSelect && (
             <Field label="Espacio" id="espacio" required error={errores.espacio}>
-              <Select ref={refs.espacio} value={selectedEspacioId} onChange={(e) => setSelectedEspacioId(e.target.value)}>
+              <Select ref={espacioRef} value={selectedEspacioId} onChange={(e) => setSelectedEspacioId(e.target.value)}>
                 <option value="">Selecciona un espacio</option>
                 {espacios.map((espacio) => (
                   <option key={espacio.id} value={espacio.id}>
@@ -128,11 +130,11 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
           )}
 
           <Field label="Nombre del proyecto" id="nombre" required error={errores.nombre}>
-            <Input ref={refs.nombre} value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={100} placeholder="Ej: Tests QA Bancoomeva" />
+            <Input ref={nombreRef} value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={100} placeholder="Ej: Tests QA Bancoomeva" />
           </Field>
 
           <Field label="Ambiente" id="ambiente" required error={errores.ambiente}>
-            <Input ref={refs.ambiente} value={ambiente} onChange={(e) => setAmbiente(e.target.value)} maxLength={50} placeholder="Ej: QA, PROD, DEV" />
+            <Input ref={ambienteRef} value={ambiente} onChange={(e) => setAmbiente(e.target.value)} maxLength={50} placeholder="Ej: QA, PROD, DEV" />
           </Field>
 
           <ColorPicker name="color" value={color} onChange={setColor} />

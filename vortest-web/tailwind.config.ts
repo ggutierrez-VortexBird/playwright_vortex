@@ -1,10 +1,7 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
+import { TOKENS_M3 } from "./lib/design-tokens";
 
-// Los valores viven en app/tokens.css (claro y oscuro); acá sólo se exponen como utilidades.
-const TOKENS_M3 = [
-  "primary", "on-primary", "primary-container", "on-primary-container", "primary-fixed", "primary-fixed-dim", "on-primary-fixed", "on-primary-fixed-variant", "secondary", "on-secondary", "secondary-container", "on-secondary-container", "secondary-fixed", "secondary-fixed-dim", "on-secondary-fixed", "on-secondary-fixed-variant", "tertiary", "on-tertiary", "tertiary-container", "on-tertiary-container", "tertiary-fixed", "tertiary-fixed-dim", "on-tertiary-fixed", "on-tertiary-fixed-variant", "background", "on-background", "surface", "surface-dim", "surface-bright", "surface-container-lowest", "surface-container-low", "surface-container", "surface-container-high", "surface-container-highest", "surface-variant", "surface-tint", "on-surface", "on-surface-variant", "inverse-surface", "inverse-on-surface", "inverse-primary", "outline", "outline-variant", "error", "on-error", "error-container", "on-error-container", "danger-container", "success", "on-success", "success-container", "on-success-container", "info", "on-info", "info-container", "on-info-container", "warning", "on-warning", "warning-container", "on-warning-container", "warn-container", "scrim", "video",
-] as const;
 
 const fuenteSans = ["var(--font-archivo)", "system-ui", "sans-serif"];
 

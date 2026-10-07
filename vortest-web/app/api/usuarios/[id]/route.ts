@@ -19,10 +19,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const usuario = await updateUsuarioRolEstado(id, body, session);
     return NextResponse.json({ usuario });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

@@ -70,10 +70,7 @@ export async function POST(request: Request) {
   try {
     const proyecto = await createProyecto(body, session);
     return NextResponse.json(proyecto, { status: 201 });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

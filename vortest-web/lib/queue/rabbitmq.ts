@@ -21,6 +21,7 @@
 // EngineEvent real al caller.
 import amqp, { type AmqpConnectionManager, type ChannelWrapper } from 'amqp-connection-manager'
 import type { ConfirmChannel, ConsumeMessage } from 'amqplib'
+import { createHash } from 'node:crypto'
 import { env } from '../env'
 import {
   EngineEventSchema,
@@ -168,6 +169,10 @@ export async function consumeEngineEvents(handler: EngineEventHandler): Promise<
   }
 }
 
+// Un evento que siempre falla se reencolaría para siempre y bloquearía al resto: se cuenta por contenido y se descarta al 5.º intento.
+const MAX_INTENTOS_EVENTO = 5
+const intentosFallidos = new Map<string, number>()
+
 async function handleMessage(
   wrapper: ChannelWrapper,
   msg: ConsumeMessage,
@@ -198,11 +203,21 @@ async function handleMessage(
     return
   }
 
+  const clave = createHash('sha1').update(msg.content).digest('hex')
   try {
     await handler(event)
+    intentosFallidos.delete(clave)
     wrapper.ack(msg)
   } catch (err) {
-    console.error('[rabbitmq] Error procesando evento de engine.events, se reencola:', err)
+    const intentos = (intentosFallidos.get(clave) ?? 0) + 1
+    if (intentos >= MAX_INTENTOS_EVENTO) {
+      intentosFallidos.delete(clave)
+      console.error(`[rabbitmq] Evento de engine.events falló ${intentos} veces, se descarta para no bloquear la cola (job ${event.jobId}, ${event.payload.type}):`, err)
+      wrapper.nack(msg, false, false)
+      return
+    }
+    intentosFallidos.set(clave, intentos)
+    console.error(`[rabbitmq] Error procesando evento de engine.events (intento ${intentos}/${MAX_INTENTOS_EVENTO}), se reencola:`, err)
     wrapper.nack(msg, false, true)
   }
 }

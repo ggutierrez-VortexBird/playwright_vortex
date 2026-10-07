@@ -45,8 +45,9 @@ export async function POST(
         { status: 404 },
       );
     }
+    console.error("[grabador] Error descartando la sesión:", err);
     return NextResponse.json(
-      { error: "internal", message: err instanceof Error ? err.message : "unknown" },
+      { error: "internal", message: "No se pudo descartar la grabación. Intenta de nuevo." },
       { status: 500 },
     );
   }

@@ -28,7 +28,7 @@ export const POST = withAuth<{ params: Promise<{ id: string }> }>(
       }
       if (
         error === EJECUCION_YA_TERMINADA_ERROR ||
-        (error as any)?.message === 'EJECUCION_YA_TERMINADA'
+        (error as { message?: string })?.message === 'EJECUCION_YA_TERMINADA'
       ) {
         return NextResponse.json(
           { error: 'La ejecución ya terminó, no se puede detener' },

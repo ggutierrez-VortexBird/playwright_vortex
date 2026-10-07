@@ -16,10 +16,7 @@ export async function GET(request: Request) {
   try {
     const usuarios = await listUsuarios(session);
     return NextResponse.json({ usuarios });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }
@@ -38,10 +35,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const usuario = await createUsuario(body, session);
     return NextResponse.json({ usuario }, { status: 201 });
-  } catch (err: any) {
-    if (err.status) {
-      return NextResponse.json(err.body, { status: err.status });
-    }
+  } catch (err) {
     return mapErrorToResponse(err);
   }
 }

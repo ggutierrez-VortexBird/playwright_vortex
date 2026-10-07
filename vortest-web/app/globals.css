@@ -45,14 +45,6 @@
  * de diseño de cada pantalla: son marcas de color por espacio, no
  * componentes de chrome.
  * ============================================================ */
-.client-band {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 3px;
-  height: 100%;
-}
-
 .sw-mark {
   width: 9px;
   height: 9px;

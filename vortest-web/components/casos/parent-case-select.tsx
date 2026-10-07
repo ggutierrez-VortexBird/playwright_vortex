@@ -19,16 +19,19 @@ export function ParentCaseSelect({
   disabled,
 }: ParentCaseSelectProps) {
   const [options, setOptions] = useState<ParentCaseOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(proyectoId));
+  const clave = `${proyectoId ?? ""}|${excludeId ?? ""}`;
+  const [claveAntes, setClaveAntes] = useState(clave);
+  if (claveAntes !== clave) {
+    setClaveAntes(clave);
+    setOptions([]);
+    setLoading(Boolean(proyectoId));
+  }
 
   useEffect(() => {
-    if (!proyectoId) {
-      setOptions([]);
-      return;
-    }
+    if (!proyectoId) return;
 
     let cancelled = false;
-    setLoading(true);
 
     const params = new URLSearchParams({
       parentOptions: "true",

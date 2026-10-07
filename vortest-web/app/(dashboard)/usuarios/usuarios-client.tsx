@@ -44,15 +44,6 @@ function formatFecha(iso: string | null): string {
 }
 
 export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actorRol }: UsuariosClientProps) {
-  // Listen for the "Nuevo usuario" button click dispatched from PageHeader
-  useEffect(() => {
-    function handleOpenModal() {
-      setShowCreateModal(true);
-    }
-    document.addEventListener("open-create-usuario-modal", handleOpenModal);
-    return () => document.removeEventListener("open-create-usuario-modal", handleOpenModal);
-  }, []);
-
   const [usuarios, setUsuarios] = useState<UsuarioRow[]>(initialUsuarios);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,6 +55,15 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Listen for the "Nuevo usuario" button click dispatched from PageHeader
+  useEffect(() => {
+    function handleOpenModal() {
+      setShowCreateModal(true);
+    }
+    document.addEventListener("open-create-usuario-modal", handleOpenModal);
+    return () => document.removeEventListener("open-create-usuario-modal", handleOpenModal);
+  }, []);
   const [editingUsuario, setEditingUsuario] = useState<UsuarioRow | null>(null);
   const [managingEspaciosFor, setManagingEspaciosFor] = useState<UsuarioRow | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todos");

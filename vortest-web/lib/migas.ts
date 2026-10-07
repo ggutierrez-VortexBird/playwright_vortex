@@ -4,7 +4,7 @@ import type { BreadcrumbSegment } from "@/components/breadcrumb-context";
 interface ProyectoConEspacio {
   id: string;
   nombre: string;
-  espacio: { id: string; nombre: string };
+  espacio?: { id: string; nombre: string } | null;
 }
 
 /** Espacio › Proyecto; el espacio sólo enlaza para quien puede abrir su página. Las migas nunca rompen la página: sin rol, va sin enlace. */
@@ -16,8 +16,9 @@ export async function migasDeProyecto(session: SessionData, proyecto: ProyectoCo
   } catch {
     veEspacio = false;
   }
+  const espacio = proyecto.espacio;
   return [
-    { label: proyecto.espacio.nombre, href: veEspacio ? `/espacios/${proyecto.espacio.id}/proyectos` : undefined },
+    ...(espacio ? [{ label: espacio.nombre, href: veEspacio ? `/espacios/${espacio.id}/proyectos` : undefined }] : []),
     { label: proyecto.nombre, href: `/proyectos/${proyecto.id}/casos` },
   ];
 }

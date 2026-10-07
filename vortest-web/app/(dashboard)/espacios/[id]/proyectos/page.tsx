@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession, getUsuarioActual, requireEspacioAdmin, FORBIDDEN_ERROR, scopeEspacioWhere } from "@/lib/auth";
-import { listProyectosByEspacio, getMetrics } from "@/lib/proyectos/actions";
+import { listProyectosByEspacio, getMetricsLote } from "@/lib/proyectos/actions";
 import { getEspacioById } from "@/lib/espacios/actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { NuevoProyectoTrigger } from "@/components/proyectos/nuevo-proyecto-trigger";
@@ -25,9 +25,11 @@ interface PageProps {
 async function getProyectosWithMetrics(espacioId: string, usuario?: UsuarioActual | null): Promise<ProyectoWithMetrics[]> {
   const proyectos = await listProyectosByEspacio(espacioId, usuario);
 
+  const metricas = await getMetricsLote(proyectos.map((p) => p.id));
+
   const proyectosWithMetrics = await Promise.all(
     proyectos.map(async (proyecto) => {
-      const metrics = await getMetrics(proyecto.id);
+      const metrics = metricas.get(proyecto.id)!;
       return {
         ...proyecto,
         totalCasos: metrics.totalCasos,
