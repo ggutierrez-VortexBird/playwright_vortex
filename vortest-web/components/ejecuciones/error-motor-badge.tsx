@@ -6,7 +6,7 @@ export function ErrorMotorBadge({ message }: { message: string }) {
         Error motor
       </span>
       {message && (
-        <span className="font-mono-code text-[11px] text-m3-error">{message}</span>
+        <span className="font-mono-code text-label-xs text-m3-error">{message}</span>
       )}
     </div>
   )

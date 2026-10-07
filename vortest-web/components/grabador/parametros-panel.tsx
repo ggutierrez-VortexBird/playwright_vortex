@@ -87,7 +87,7 @@ export function ParametrosPanel({ parametros, emptyMessage }: ParametrosPanelPro
             return (
               <tr key={p.id} className="border-t border-m3-outline-variant">
                 <td className="px-3 py-2 font-mono-code text-xs">
-                  <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 text-[11px] text-m3-on-surface">
+                  <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 text-label-xs text-m3-on-surface">
                     {`{{${p.nombre}}}`}
                   </span>
                 </td>

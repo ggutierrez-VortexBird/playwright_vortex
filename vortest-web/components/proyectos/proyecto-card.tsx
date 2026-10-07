@@ -83,7 +83,7 @@ export function ProyectoCard({
       {/* Cabecera coloreada */}
       <div className="flex flex-col p-4 pb-5 text-white" style={{ backgroundColor: color }}>
         <div className="mb-2.5 flex items-center justify-between text-xs">
-          <span className="rounded-md bg-black/20 px-2.5 py-0.5 font-mono-code text-[11px] font-semibold tracking-wider text-white/90">
+          <span className="rounded-md bg-black/20 px-2.5 py-0.5 font-mono-code text-label-xs font-semibold tracking-wider text-white/90">
             {codigoProyecto(proyecto.id)}
           </span>
           {canEdit && (onManageTesters || onEdit || onDelete) && (
@@ -95,7 +95,7 @@ export function ProyectoCard({
                   title="Testers"
                   aria-label="Testers del proyecto"
                 >
-                  <span className="material-symbols-outlined text-[16px]">group</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">group</span>
                 </button>
               )}
               {onEdit && (
@@ -105,7 +105,7 @@ export function ProyectoCard({
                   title="Editar"
                   aria-label="Editar proyecto"
                 >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">edit</span>
                 </button>
               )}
               {onDelete && (
@@ -115,14 +115,14 @@ export function ProyectoCard({
                   title="Eliminar"
                   aria-label="Eliminar proyecto"
                 >
-                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
                 </button>
               )}
             </div>
           )}
         </div>
         {espacioNombre && (
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-white/80">{espacioNombre}</p>
+          <p className="truncate text-label-xs font-semibold uppercase tracking-wider text-white/80">{espacioNombre}</p>
         )}
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <h3 className="truncate text-xl font-bold tracking-tight text-white">{proyecto.nombre}</h3>
@@ -146,15 +146,15 @@ export function ProyectoCard({
 
         <div className="grid grid-cols-3 gap-2 rounded-xl border border-m3-outline-variant bg-m3-surface-container-low px-3 py-3 text-center">
           <div>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">Casos</span>
+            <span className="block text-label-xs font-bold uppercase tracking-wider text-m3-on-surface-variant">Casos</span>
             <span className="text-lg font-bold leading-tight text-m3-on-surface">{proyecto.totalCasos}</span>
           </div>
           <div className="border-x border-m3-outline-variant">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">Conformes</span>
+            <span className="block text-label-xs font-bold uppercase tracking-wider text-m3-on-surface-variant">Conformes</span>
             <span className="text-lg font-bold leading-tight text-m3-success">{proyecto.casosConformes}</span>
           </div>
           <div>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">No conf.</span>
+            <span className="block text-label-xs font-bold uppercase tracking-wider text-m3-on-surface-variant">No conf.</span>
             <span
               className={`text-lg font-bold leading-tight ${
                 proyecto.casosNoConformes > 0 ? "text-m3-error" : "text-m3-on-surface"
@@ -178,7 +178,7 @@ export function ProyectoCard({
             className="inline-flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white no-underline shadow-sm transition duration-200 hover:opacity-90"
           >
             Ver
-            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">arrow_forward</span>
           </Link>
         </div>
       </div>

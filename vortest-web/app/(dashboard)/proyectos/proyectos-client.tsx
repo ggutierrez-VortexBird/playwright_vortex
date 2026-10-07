@@ -137,7 +137,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
               }}
               className="inline-flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
               Nuevo Proyecto
             </Button>
           ) : undefined
@@ -156,7 +156,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
             aria-label="Cerrar aviso"
             className="rounded p-1 hover:bg-m3-error/10"
           >
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}

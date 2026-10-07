@@ -131,7 +131,7 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
                 title="Ver detalle"
                 className="shrink-0 rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container hover:text-m3-primary"
               >
-                <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </a>
             </div>
           </div>

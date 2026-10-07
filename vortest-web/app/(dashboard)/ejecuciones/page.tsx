@@ -58,7 +58,7 @@ export default async function EjecucionesPage({ searchParams }: EjecucionesPageP
         badge={{ value: totalEjecuciones, label: 'visibles' }}
         actions={
           <ButtonLink href="/casos" className="inline-flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
             Nueva ejecución
           </ButtonLink>
         }
@@ -138,7 +138,7 @@ export default async function EjecucionesPage({ searchParams }: EjecucionesPageP
                     className="h-3 w-3 rounded-full"
                     style={{ backgroundColor: proyecto.espacio.color }}
                   />
-                  <h3 className="font-headline text-headline-md text-m3-primary">
+                  <h3 className="font-headline text-headline-md text-m3-on-surface">
                     {proyecto.nombre}
                   </h3>
                   <span className="font-body text-body-sm text-m3-on-surface-variant">

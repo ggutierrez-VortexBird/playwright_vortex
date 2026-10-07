@@ -77,13 +77,13 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
       <div className="flex flex-col justify-between px-5 pb-5 pt-4 text-white" style={{ backgroundColor: espacio.color }}>
         <div className="flex items-center justify-between gap-2 text-xs text-white/90">
           <div className="flex items-center gap-2">
-            <span className="rounded-md bg-white/15 px-2 py-0.5 font-mono-code text-[11px] font-medium tracking-wider">
+            <span className="rounded-md bg-white/15 px-2 py-0.5 font-mono-code text-label-xs font-medium tracking-wider">
               {codigoEspacio(espacio.id)}
             </span>
-            <span className="text-[11px]">{formatRelativo(espacio.createdAt)}</span>
+            <span className="text-label-xs">{formatRelativo(espacio.createdAt)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-semibold text-white">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-label-xs font-semibold text-white">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Activo
             </span>
             {canEdit && (
@@ -94,7 +94,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   title={`${espacio.miembros.length} administrador${espacio.miembros.length !== 1 ? "es" : ""}`}
                   aria-label="Administradores del espacio"
                 >
-                  <span className="material-symbols-outlined text-[16px]">group</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">group</span>
                 </button>
                 <button
                   onClick={() => onEdit(espacio)}
@@ -102,7 +102,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   title="Editar"
                   aria-label="Editar espacio"
                 >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">edit</span>
                 </button>
                 <button
                   onClick={() => onDelete(espacio)}
@@ -110,14 +110,14 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   title="Eliminar"
                   aria-label="Eliminar espacio"
                 >
-                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
                 </button>
               </div>
             )}
           </div>
         </div>
         <div className="mt-3">
-          <span className="block text-[11px] font-medium uppercase tracking-wider text-white/80">Espacio de trabajo</span>
+          <span className="block text-label-xs font-medium uppercase tracking-wider text-white/80">Espacio de trabajo</span>
           <h3 className="mt-0.5 truncate text-lg font-bold leading-snug tracking-tight text-white">{espacio.nombre}</h3>
         </div>
       </div>
@@ -168,24 +168,24 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
                   {miembrosVisibles.map((m) => (
                     <div
                       key={m.id}
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-m3-surface-container-lowest ${avatarColor(m.id)}`}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-label-xs font-bold text-white ring-2 ring-m3-surface-container-lowest ${avatarColor(m.id)}`}
                       title={m.email}
                     >
                       {initialesDeEmail(m.email)}
                     </div>
                   ))}
                   {miembrosOcultos > 0 && (
-                    <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-m3-inverse-surface text-[9px] font-medium text-m3-inverse-on-surface ring-2 ring-m3-surface-container-lowest">
+                    <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-m3-inverse-surface text-label-xs font-medium text-m3-inverse-on-surface ring-2 ring-m3-surface-container-lowest">
                       +{miembrosOcultos}
                     </div>
                   )}
                 </div>
-                <span className="font-body text-[11px] font-medium text-m3-on-surface-variant">
+                <span className="font-body text-label-xs font-medium text-m3-on-surface-variant">
                   {espacio.miembros.length} admin{espacio.miembros.length !== 1 ? "es" : ""}
                 </span>
               </>
             ) : (
-              <span className="font-body text-[11px] font-medium text-m3-on-surface-variant">Sin administradores</span>
+              <span className="font-body text-label-xs font-medium text-m3-on-surface-variant">Sin administradores</span>
             )}
           </div>
           <button
@@ -194,7 +194,7 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
             className="inline-flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition duration-200 hover:opacity-90"
           >
             Entrar
-            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">arrow_forward</span>
           </button>
         </div>
       </div>
@@ -217,7 +217,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: espacio.color }} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-body text-body-md font-semibold text-m3-on-surface">{espacio.nombre}</div>
-        <div className="font-mono-code text-[11px] text-m3-on-surface-variant">{codigoEspacio(espacio.id)}</div>
+        <div className="font-mono-code text-label-xs text-m3-on-surface-variant">{codigoEspacio(espacio.id)}</div>
       </div>
       <div className="hidden shrink-0 items-center gap-4 text-xs text-m3-on-surface-variant sm:flex">
         <span>{espacio.proyectoCount} proyectos</span>
@@ -237,7 +237,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
             title="Administradores del espacio"
             aria-label="Administradores del espacio"
           >
-            <span className="material-symbols-outlined text-[16px]">group</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">group</span>
           </Button>
           <Button
             variant="ghost"
@@ -247,7 +247,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
             title="Editar"
             aria-label="Editar espacio"
           >
-            <span className="material-symbols-outlined text-[16px]">edit</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">edit</span>
           </Button>
           <Button
             variant="ghost"
@@ -257,7 +257,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
             title="Eliminar"
             aria-label="Eliminar espacio"
           >
-            <span className="material-symbols-outlined text-[16px]">delete</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
           </Button>
         </div>
       )}
@@ -265,7 +265,7 @@ function EspacioRow({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDelet
         onClick={() => onEnter(espacio.id)}
         className="shrink-0 rounded-full bg-m3-primary px-4 py-1.5 text-xs font-semibold text-m3-on-primary hover:opacity-90"
       >
-        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+        <span aria-hidden="true" className="material-symbols-outlined text-[14px]">arrow_forward</span>
       </button>
     </div>
   );
@@ -348,7 +348,7 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
               title="Vista en cuadrícula"
               aria-label="Vista en cuadrícula"
             >
-              <span className="material-symbols-outlined text-[16px]">grid_view</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">grid_view</span>
             </button>
             <button
               onClick={() => setViewMode("list")}
@@ -360,7 +360,7 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
               title="Vista en lista"
               aria-label="Vista en lista"
             >
-              <span className="material-symbols-outlined text-[16px]">view_list</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">view_list</span>
             </button>
           </div>
         </div>
@@ -543,7 +543,7 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         actions={
           canEdit ? (
             <Button variant="primary" className="inline-flex items-center gap-2" onClick={openCreateModal}>
-              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
               Nuevo espacio
             </Button>
           ) : undefined
@@ -552,9 +552,9 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
 
       {/* Success notification */}
       {successMessage && (
-        <div className="fixed right-4 top-4 z-50 animate-in slide-in-from-right-2 fade-in duration-300">
-          <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-lg">
-            <span className="material-symbols-outlined text-[16px] text-green-600">check_circle</span>
+        <div className="fixed right-4 top-4 z-toast animate-in slide-in-from-right-2 fade-in duration-300">
+          <div className="flex items-center gap-2 rounded-lg border border-m3-success/30 bg-m3-success-container px-4 py-3 text-sm text-m3-on-success-container shadow-lg">
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-success">check_circle</span>
             {successMessage}
           </div>
         </div>
@@ -570,11 +570,11 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         >
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 id="espacios-dialog-title" className="font-headline text-headline-md text-m3-primary">
+              <h3 id="espacios-dialog-title" className="font-headline text-headline-md text-m3-on-surface">
                 {editingEspacio ? "Editar espacio" : "Nuevo espacio"}
               </h3>
               <Button variant="ghost" size="sm" onClick={closeModal} aria-label="Cerrar">
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
               </Button>
             </div>
             <EspaciosForm

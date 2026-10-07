@@ -63,7 +63,7 @@ export function EditProyectoForm({ proyecto, onSuccess, onCancel }: EditProyecto
           </h2>
           {onCancel && (
             <Button variant="ghost" size="sm" type="button" onClick={onCancel} aria-label="Cerrar">
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
             </Button>
           )}
         </div>

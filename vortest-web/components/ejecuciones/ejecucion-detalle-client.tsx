@@ -114,7 +114,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
         rel="noopener noreferrer"
         className="flex items-center gap-3 rounded-lg border border-m3-outline-variant bg-m3-surface-container-low p-3 transition hover:border-m3-primary hover:bg-m3-surface-container"
       >
-        <span className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
+        <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
           {icon}
         </span>
         <div className="min-w-0 flex-1">
@@ -125,7 +125,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
             {artefacto.tipo} · {sizeLabel} · Abrir en el visor de trazas
           </div>
         </div>
-        <span className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">
+        <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">
           open_in_new
         </span>
       </a>
@@ -139,7 +139,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
       rel="noopener noreferrer"
       className="flex items-center gap-3 rounded-lg border border-m3-outline-variant bg-m3-surface-container-low p-3 transition hover:border-m3-primary hover:bg-m3-surface-container"
     >
-      <span className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
+      <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
@@ -150,7 +150,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
           {artefacto.tipo} · {sizeLabel}
         </div>
       </div>
-      <span className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">
+      <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">
         download
       </span>
     </a>
@@ -234,14 +234,14 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         title={caso.nombre}
         subtitle={
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span className="font-mono-code text-[11px] text-m3-on-surface-variant">
+            <span className="font-mono-code text-label-xs text-m3-on-surface-variant">
               Ejecución #{ejecucionId.slice(0, 8)}
             </span>
-            <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-[11px] text-m3-on-surface-variant">
+            <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-label-xs text-m3-on-surface-variant">
               {caso.codigo}
             </span>
             <span className="inline-flex items-center gap-1 text-body-sm text-m3-on-surface-variant">
-              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                 schedule
               </span>
               {formattedDate}
@@ -303,7 +303,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
               data-purpose="first-error"
             >
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 material-symbols-outlined text-[20px] text-m3-error">
+                <span aria-hidden="true" className="mt-0.5 material-symbols-outlined text-[20px] text-m3-error">
                   error
                 </span>
                 <div className="flex-1 min-w-0">
@@ -472,7 +472,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
                 nodoEjecucion={ejecucion.nodoEjecucion}
               />
               <div className="mt-6 pt-6 border-t border-m3-outline-variant">
-                <dt className="font-label text-[11px] font-semibold text-m3-on-surface-variant uppercase mb-3">
+                <dt className="font-label text-label-xs font-semibold text-m3-on-surface-variant uppercase mb-3">
                   Resumen de Aserciones
                 </dt>
                 <AsercionesResumen

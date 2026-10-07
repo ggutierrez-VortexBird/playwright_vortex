@@ -40,7 +40,7 @@ export function ConfirmDialog({
     <Modal open={open} onClose={onCancel} labelledBy="confirm-dialog-title" className="max-w-md">
       <div className="p-8 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-m3-danger-container">
-          <span className="material-symbols-outlined text-[26px] text-m3-error">delete</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[26px] text-m3-error">delete</span>
         </div>
         <h3 id="confirm-dialog-title" className="mt-4 font-headline text-headline-md text-m3-on-surface">
           {title}

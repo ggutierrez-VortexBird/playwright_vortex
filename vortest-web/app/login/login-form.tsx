@@ -56,7 +56,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
         />
         {state?.field === "email" && state?.error && (
           <p role="alert" className="flex items-center gap-1 font-label text-label-sm text-m3-error">
-            <span className="material-symbols-outlined text-[14px]">error</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
             {state.error}
           </p>
         )}
@@ -93,7 +93,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
         />
         {state?.field === "password" && state?.error && (
           <p role="alert" className="flex items-center gap-1 font-label text-label-sm text-m3-error">
-            <span className="material-symbols-outlined text-[14px]">error</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
             {state.error}
           </p>
         )}
@@ -105,7 +105,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
           role="alert"
           className="flex items-center gap-1.5 rounded-md bg-m3-error-container px-3 py-2 font-body text-body-sm text-m3-error"
         >
-          <span className="material-symbols-outlined text-[16px]">error</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">error</span>
           {state.error}
         </p>
       )}
@@ -116,7 +116,7 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
         className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity duration-200"
       >
         {isPending && (
-          <span className="material-symbols-outlined animate-spin text-[18px]">
+          <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[18px]">
             progress_activity
           </span>
         )}

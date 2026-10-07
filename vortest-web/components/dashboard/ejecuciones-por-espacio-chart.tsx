@@ -23,13 +23,15 @@ export function EjecucionesPorEspacioChart({ data }: EjecucionesPorEspacioChartP
           width={128}
           tickLine={false}
           axisLine={false}
-          tick={{ fontSize: 13, fill: "var(--m3-on-surface)" }}
+          tick={{ fontSize: 13, fill: "rgb(var(--m3-on-surface))" }}
         />
         <Tooltip
-          cursor={{ fill: "var(--m3-surface-container)" }}
+          cursor={{ fill: "rgb(var(--m3-surface-container))" }}
           contentStyle={{
             borderRadius: 8,
-            border: "1px solid var(--m3-outline-variant)",
+            background: "rgb(var(--m3-surface-container-lowest))",
+            color: "rgb(var(--m3-on-surface))",
+            border: "1px solid rgb(var(--m3-outline-variant))",
             fontSize: 13,
           }}
         />

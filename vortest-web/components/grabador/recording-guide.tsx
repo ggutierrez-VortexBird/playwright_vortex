@@ -47,7 +47,7 @@ export function RecordingGuide({ connState }: RecordingGuideProps) {
       <div className="rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between border-b border-m3-outline-variant pb-3">
           <h3 className="flex items-center gap-2 font-headline text-headline-sm text-m3-on-surface">
-            <span className="material-symbols-outlined text-[18px] text-m3-info">help</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-m3-info">help</span>
             Guía durante la grabación
           </h3>
           <span className="rounded bg-m3-info-container px-2 py-0.5 font-label text-label-sm font-semibold text-m3-info">

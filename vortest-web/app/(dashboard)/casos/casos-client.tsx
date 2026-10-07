@@ -113,7 +113,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
               data-testid="nuevo-caso-button"
               className="inline-flex items-center gap-1.5"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
               Nuevo caso
             </Button>
           ) : undefined
@@ -132,7 +132,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
             aria-label="Cerrar aviso"
             className="rounded p-1 hover:bg-m3-error/10"
           >
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}
@@ -154,11 +154,11 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
       <Modal open={!!editingCaso} onClose={handleCancel} labelledBy="editar-caso-title" className="max-w-lg">
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 id="editar-caso-title" className="font-headline text-headline-md text-m3-primary">
+            <h2 id="editar-caso-title" className="font-headline text-headline-md text-m3-on-surface">
               Editar caso de prueba
             </h2>
             <Button variant="ghost" size="sm" onClick={handleCancel} aria-label="Cerrar">
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
             </Button>
           </div>
           {editingCaso && (
@@ -186,7 +186,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
                 data-testid="nuevo-caso-button"
                 className="inline-flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-[16px]">add</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
                 Nuevo caso
               </Button>
             ) : undefined

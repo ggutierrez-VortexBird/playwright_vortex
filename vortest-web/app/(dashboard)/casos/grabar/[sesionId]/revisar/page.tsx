@@ -74,7 +74,7 @@ export default async function RevisarSesionPage({
             href={`/casos/grabar/${sesion.id}/revisar`}
             className="inline-flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
           >
-            <span className="material-symbols-outlined text-[16px]">save</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">save</span>
             Guardar como caso
           </a>
         }

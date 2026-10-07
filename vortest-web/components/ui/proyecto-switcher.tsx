@@ -93,7 +93,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
 
       {isOpen && (
         <div
-          className="scroll-hidden absolute left-0 top-full z-50 mt-1 max-h-72 min-w-64 overflow-y-auto rounded border border-white/20 bg-m3-primary-container py-1 shadow-lg"
+          className="scroll-hidden absolute left-0 top-full z-dropdown mt-1 max-h-72 min-w-64 overflow-y-auto rounded border border-white/20 bg-m3-primary-container py-1 shadow-lg"
           role="listbox"
         >
           {proyectos.length === 0 ? (
@@ -129,7 +129,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-dropdown"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />

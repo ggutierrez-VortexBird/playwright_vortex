@@ -106,7 +106,7 @@ export function UsuarioEspaciosDialog({ usuarioId, usuarioEmail, onClose, onChan
     <Modal open onClose={handleClose} labelledBy="usuario-espacios-dialog-title" className="max-w-md">
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 id="usuario-espacios-dialog-title" className="font-headline text-headline-md text-m3-primary">Espacios asignados</h3>
+          <h3 id="usuario-espacios-dialog-title" className="font-headline text-headline-md text-m3-on-surface">Espacios asignados</h3>
           <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Cerrar">
             ✕
           </Button>
@@ -114,7 +114,7 @@ export function UsuarioEspaciosDialog({ usuarioId, usuarioEmail, onClose, onChan
         <p className="mb-3 font-body text-body-sm text-m3-on-surface-variant">{usuarioEmail}</p>
 
         {error && (
-          <div className="mb-3 rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">{error}</div>
+          <div className="mb-3 rounded border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">{error}</div>
         )}
 
         {loading ? (

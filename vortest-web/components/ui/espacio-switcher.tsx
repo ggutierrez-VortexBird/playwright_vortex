@@ -62,7 +62,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
 
       {isOpen && (
         <div
-          className="scroll-hidden absolute left-0 top-full z-50 mt-1 max-h-72 min-w-48 overflow-y-auto rounded border border-m3-outline-variant bg-m3-surface-container-lowest py-1 shadow-lg"
+          className="scroll-hidden absolute left-0 top-full z-dropdown mt-1 max-h-72 min-w-48 overflow-y-auto rounded border border-m3-outline-variant bg-m3-surface-container-lowest py-1 shadow-lg"
           role="listbox"
         >
           {espacios.length === 0 ? (
@@ -92,7 +92,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-dropdown"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />

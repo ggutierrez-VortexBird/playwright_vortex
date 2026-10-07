@@ -13,7 +13,7 @@ export function SectionSearch({ value, onChange, placeholder, className = "" }: 
     <div
       className={`flex w-full max-w-xs items-center gap-2 rounded-full border border-m3-outline-variant bg-m3-surface px-3.5 py-2 text-m3-on-surface-variant transition-colors focus-within:border-m3-secondary ${className}`}
     >
-      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+      <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
         search
       </span>
       <input

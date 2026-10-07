@@ -11,7 +11,7 @@ export function NuevoProyectoTrigger() {
       className="inline-flex items-center gap-2"
       onClick={() => document.dispatchEvent(new CustomEvent("open-create-proyecto-modal"))}
     >
-      <span className="material-symbols-outlined text-[16px]">add</span>
+      <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
       Nuevo Proyecto
     </Button>
   );

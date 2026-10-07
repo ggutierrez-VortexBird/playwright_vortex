@@ -60,7 +60,7 @@ export default async function DashboardHomePage() {
     <div className="flex flex-col gap-6">
       {/* Greeting — Issue #8: use nombre, not email */}
       <PageHeader
-        title={`Hola, ${usuario?.nombre ?? "Usuario"}`}
+        title={`Hola, ${usuario?.nombre?.trim() || usuario?.email.split("@")[0] || "de nuevo"}`}
         subtitle={usuario?.email ?? "—"}
       />
 
@@ -130,7 +130,7 @@ export default async function DashboardHomePage() {
                   <span
                     className="h-2.5 w-2.5 rounded-sm"
                     style={{
-                      backgroundColor: `var(--${ESTADO_TOKEN[estado] ?? "m3-outline-variant"})`,
+                      backgroundColor: `rgb(var(--${ESTADO_TOKEN[estado] ?? "m3-outline-variant"}))`,
                     }}
                   />
                   {estadoLabel(estado, "ejecucion")}{" "}
@@ -145,7 +145,7 @@ export default async function DashboardHomePage() {
       {/* Recent activity */}
       <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
         <div className="flex items-center justify-between border-b border-m3-outline-variant px-5 py-4">
-          <h3 className="font-headline text-headline-md text-m3-primary">Actividad reciente</h3>
+          <h3 className="font-headline text-headline-md text-m3-on-surface">Actividad reciente</h3>
           <Link
             href="/ejecuciones"
             className="font-label text-label-sm font-semibold text-m3-secondary hover:underline"

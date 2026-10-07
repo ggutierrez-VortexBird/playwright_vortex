@@ -86,7 +86,7 @@ export function KpiTile({
         {/* Icon */}
         {icon && (
           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-m3-surface-container-high">
-            <span className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
+            <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
               {icon}
             </span>
           </div>
@@ -106,7 +106,7 @@ export function KpiTile({
           {/* Trend badge */}
           {trend && (
             <div className={cn("flex items-center gap-0.5 font-label text-label-sm", TREND_COLORS[trend.direction])}>
-              <span className="material-symbols-outlined text-[14px]">
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                 {TREND_ICONS[trend.direction]}
               </span>
               <span>{trend.value}</span>

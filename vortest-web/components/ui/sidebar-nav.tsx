@@ -42,16 +42,15 @@ export function SidebarNav({ items }: SidebarNavProps): ReactNode {
             key={item.href}
             href={item.href}
             title={item.label}
-            aria-current={isActive ? "true" : undefined}
+            aria-current={isActive ? "page" : undefined}
             className={
               isActive
-                ? "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md font-semibold text-white bg-white/10 transition-colors md:justify-center lg:justify-start"
-                : "flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container/80 transition-colors hover:bg-white/5 hover:text-m3-on-primary md:justify-center lg:justify-start"
+                ? "relative flex items-center gap-3 rounded-md px-3.5 py-2.5 font-body text-body-md font-semibold text-white bg-white/10 transition-colors duration-fast ease-standard before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-m3-secondary-container md:justify-center lg:justify-start"
+                : "flex items-center gap-3 rounded-md px-3.5 py-2.5 font-body text-body-md text-m3-on-primary-container transition-colors duration-fast ease-standard hover:bg-white/5 hover:text-white md:justify-center lg:justify-start"
             }
           >
-            <span
+            <span aria-hidden="true"
               className={`material-symbols-outlined shrink-0 text-[20px] ${isActive ? "text-m3-secondary-container" : ""}`}
-              aria-hidden="true"
             >
               {item.icon}
             </span>

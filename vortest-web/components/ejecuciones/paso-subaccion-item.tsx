@@ -84,7 +84,7 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
           onKeyDown={handleKeyDown}
           className="w-full text-left px-4 py-3 flex items-center gap-3 bg-m3-surface-container-lowest hover:bg-m3-surface-container-high transition-colors"
         >
-          <Camera className="w-4 h-4 text-blue-500 flex-shrink-0" />
+          <Camera className="w-4 h-4 text-m3-info flex-shrink-0" />
           <span className="text-xs font-medium text-m3-on-surface-variant/70 mono w-5">
             {subaccion.numero}
           </span>
@@ -94,10 +94,10 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
           {subaccion.errorMsg && (
             <span className="text-xs text-m3-error truncate max-w-[200px]">{subaccion.errorMsg}</span>
           )}
-          <span className="text-[10px] uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
+          <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
             {subaccion.tipo}
           </span>
-          <StatusBadge tone={estadoTone(subaccion.estado, 'paso')} className="px-2 text-[10px]">
+          <StatusBadge tone={estadoTone(subaccion.estado, 'paso')} className="px-2 text-label-xs">
             {estadoLabel(subaccion.estado, 'paso')}
           </StatusBadge>
           <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
@@ -155,10 +155,10 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
       {subaccion.errorMsg && (
         <span className="text-xs text-m3-error truncate max-w-[200px]">{subaccion.errorMsg}</span>
       )}
-      <span className="text-[10px] uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
+      <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
         {subaccion.tipo}
       </span>
-      <StatusBadge tone={estadoTone(subaccion.estado, 'paso')} className="px-2 text-[10px]">
+      <StatusBadge tone={estadoTone(subaccion.estado, 'paso')} className="px-2 text-label-xs">
         {estadoLabel(subaccion.estado, 'paso')}
       </StatusBadge>
       <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>

@@ -156,7 +156,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
   return (
     <div className="flex flex-col gap-6">
       {successMessage && (
-        <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div className="rounded-lg border border-m3-success/30 bg-m3-success-container px-4 py-3 text-sm text-m3-on-success-container">
           {successMessage}
         </div>
       )}
@@ -192,11 +192,11 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} labelledBy="create-usuario-title" className="max-w-md">
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 id="create-usuario-title" className="font-headline text-headline-md text-m3-primary">
+            <h2 id="create-usuario-title" className="font-headline text-headline-md text-m3-on-surface">
               Nuevo usuario
             </h2>
             <Button variant="ghost" size="sm" type="button" onClick={() => setShowCreateModal(false)} aria-label="Cerrar">
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
             </Button>
           </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -238,7 +238,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
             )}
 
             {error && (
-              <div className="rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">{error}</div>
+              <div className="rounded border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">{error}</div>
             )}
 
             <div className="mt-1 flex justify-end gap-3">
@@ -292,7 +292,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
                     : "border-transparent text-m3-on-surface-variant hover:border-m3-outline-variant hover:text-m3-on-surface"
                 }`}
               >
-                {tab.label} <span className="ml-1 text-[11px]">{tab.count}</span>
+                {tab.label} <span className="ml-1 text-label-xs">{tab.count}</span>
               </button>
             ))}
             {(busqueda || filtro !== "todos") && (
@@ -417,7 +417,7 @@ function RolBadge({ rol }: { rol: RolUsuario }) {
     rol === "superadmin"
       ? "bg-m3-secondary-container text-m3-secondary"
       : rol === "admin"
-        ? "bg-teal-100 text-teal-700"
+        ? "bg-m3-primary-fixed text-m3-on-primary-fixed"
         : "bg-pink-100 text-pink-700";
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-label text-label-sm font-medium ${classes}`}>
@@ -467,7 +467,7 @@ function RowActions({
         title={puedeEditar ? "Editar rol y estado" : "No puedes editar este usuario"}
         aria-label="Editar rol y estado"
       >
-        <span className="material-symbols-outlined text-[20px]">edit</span>
+        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">edit</span>
       </Button>
       {puedeGestionarEspacios && (
         <Button
@@ -477,7 +477,7 @@ function RowActions({
           title="Gestionar espacios asignados"
           aria-label="Gestionar espacios asignados"
         >
-          <span className="material-symbols-outlined text-[20px]">share</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[20px]">share</span>
         </Button>
       )}
     </div>
@@ -510,7 +510,7 @@ function UsuarioTr({
           <div className="min-w-0">
             <p className="truncate font-body text-body-sm font-semibold text-m3-on-surface">
               {usuario.nombre || usuario.email}
-              {esYoMismo && <span className="ml-1.5 rounded bg-m3-info-container px-1.5 py-0.5 text-[10px] font-bold text-m3-info">Tú</span>}
+              {esYoMismo && <span className="ml-1.5 rounded bg-m3-info-container px-1.5 py-0.5 text-label-xs font-bold text-m3-info">Tú</span>}
             </p>
             <p className="truncate font-body text-body-sm text-m3-on-surface-variant">{usuario.email}</p>
           </div>
@@ -662,11 +662,11 @@ function EditUsuarioDialog({
     <Modal open onClose={onClose} labelledBy="edit-usuario-title" className="max-w-md">
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="edit-usuario-title" className="font-headline text-headline-md text-m3-primary">
+          <h2 id="edit-usuario-title" className="font-headline text-headline-md text-m3-on-surface">
             Editar usuario
           </h2>
           <Button variant="ghost" size="sm" type="button" onClick={onClose} aria-label="Cerrar">
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
           </Button>
         </div>
         <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">{usuario.email}</p>
@@ -701,7 +701,7 @@ function EditUsuarioDialog({
           </div>
 
           {error && (
-            <div className="rounded border border-m3-error bg-red-50 px-3 py-2 text-sm text-m3-error">{error}</div>
+            <div className="rounded border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">{error}</div>
           )}
 
           <div className="mt-1 flex justify-end gap-3">

@@ -97,13 +97,13 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
               <div className="space-y-4">
                 {paso.resultadoEsperado && (
                   <div>
-                    <p className="text-[11px] font-semibold text-m3-on-surface-variant uppercase mb-1">Resultado esperado</p>
+                    <p className="text-label-xs font-semibold text-m3-on-surface-variant uppercase mb-1">Resultado esperado</p>
                     <p className="text-sm text-m3-on-surface-variant bg-m3-surface-container-lowest p-3 border border-m3-outline-variant rounded-md">{paso.resultadoEsperado}</p>
                   </div>
                 )}
                 {paso.resultadoObtenido && (
                   <div>
-                    <p className="text-[11px] font-semibold text-m3-on-surface-variant uppercase mb-1">Resultado obtenido</p>
+                    <p className="text-label-xs font-semibold text-m3-on-surface-variant uppercase mb-1">Resultado obtenido</p>
                     <p className={`text-sm p-3 border rounded-md font-medium ${
                       paso.estado === 'fallo' ? 'text-m3-error bg-m3-error-container/15 border-m3-error/20' : 'text-m3-on-tertiary-container bg-m3-tertiary-container/15 border-m3-tertiary-container/30'
                     }`}>

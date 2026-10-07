@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
@@ -59,14 +60,11 @@ export function PageHeader({
                   </span>
                 )}
                 {crumb.href ? (
-                  <a
-                    href={crumb.href}
-                    className="hover:text-m3-primary hover:underline"
-                  >
+                  <Link href={crumb.href} className="rounded-sm hover:text-m3-primary hover:underline">
                     {crumb.label}
-                  </a>
+                  </Link>
                 ) : (
-                  <span>{crumb.label}</span>
+                  <span aria-current={i === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</span>
                 )}
               </span>
             ))}
@@ -75,11 +73,11 @@ export function PageHeader({
 
         {/* Title row: h1 + optional badge */}
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="font-headline text-headline-lg text-m3-primary truncate">
+          <h1 className="font-wide font-headline text-headline-lg font-semibold tracking-tight text-m3-on-surface truncate">
             {title}
           </h1>
           {badge && (
-            <span className="inline-flex items-center rounded-full bg-m3-primary-container px-2.5 py-0.5 font-label text-label-sm font-medium text-m3-inverse-on-surface">
+            <span className="inline-flex items-center rounded-full bg-m3-surface-container-high px-2.5 py-0.5 font-label text-label-sm font-medium text-m3-on-surface-variant">
               <span className="mr-1 font-semibold">{badge.value}</span>
               <span>{badge.label}</span>
             </span>

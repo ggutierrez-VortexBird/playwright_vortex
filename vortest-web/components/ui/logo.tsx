@@ -1,7 +1,8 @@
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  /** Controla el tamaño: "light" (login, más grande) vs "dark" (sidebar, más compacto). */
+  /** "light": login, sigue el tema. "dark": siempre sobre fondo oscuro (sidebar). */
   variant?: "light" | "dark";
   className?: string;
 }
@@ -13,14 +14,13 @@ const SIZES: Record<"light" | "dark", { width: number; height: number }> = {
 
 export function Logo({ variant = "light", className }: LogoProps) {
   const { width, height } = SIZES[variant];
+  if (variant === "dark") {
+    return <Image src="/logo-oscuro.png" alt="vorTest" width={width} height={height} priority className={className} />;
+  }
   return (
-    <Image
-      src="/logo.png"
-      alt="VorTest"
-      width={width}
-      height={height}
-      priority
-      className={className}
-    />
+    <>
+      <Image src="/logo.png" alt="vorTest" width={width} height={height} priority className={cn("solo-tema-claro", className)} />
+      <Image src="/logo-oscuro.png" alt="vorTest" width={width} height={height} priority className={cn("solo-tema-oscuro", className)} />
+    </>
   );
 }

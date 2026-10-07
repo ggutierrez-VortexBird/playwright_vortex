@@ -30,5 +30,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // api/internal fuera del matcher: al pasar por acá Next corta el cuerpo en 10 MB y los videos grandes llegaban rotos (400).
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|logo.png|api/internal).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|logo(?:-oscuro)?\\.png|api/internal).*)"],
 };

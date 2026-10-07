@@ -104,7 +104,7 @@ export default async function DashboardLayout({
 
           {/* Main — TopAppBar + body */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-10 flex min-h-16 flex-wrap items-center gap-3 border-b border-m3-outline-variant bg-m3-surface px-4 py-2 sm:gap-4 lg:px-6">
+            <header className="sticky top-0 z-sticky flex min-h-16 flex-wrap items-center gap-3 border-b border-m3-outline-variant bg-m3-surface px-4 py-2 sm:gap-4 lg:px-6">
               <MobileMenuButton />
               <ScopeBarWithContext items={navItems} />
               {usuario.rol !== "superadmin" && <EspacioSwitcher espacios={espacios} />}

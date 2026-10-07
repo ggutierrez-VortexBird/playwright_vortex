@@ -1,24 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Escala única de radio (grid de 8px) — ver tailwind.config.ts
-       borderRadius. sm: chips/controles chicos · md: botones/inputs ·
-       lg: cards, modales, contenedores de tabla (radio canónico único). */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    /* M3 font role tokens — Archivo for display/headline/body/label,
-       JetBrains Mono for code. Resolves taste-brief Section 2 font decisions. */
-    --m3-font-headline: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --m3-font-body: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --m3-font-code: var(--font-jetbrains-mono), "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  }
-
   * {
     box-sizing: border-box;
     margin: 0;
@@ -31,8 +15,8 @@
   }
 
   body {
-    background: var(--m3-background);
-    color: var(--m3-on-surface);
+    background: rgb(var(--m3-background));
+    color: rgb(var(--m3-on-surface));
     font-family: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
     /* Igual al token `body-md` (tailwind.config.ts) para que el texto
        sin tokenizar comparta el mismo ritmo vertical que el tokenizado. */
@@ -42,7 +26,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--m3-secondary);
+    outline: 2px solid rgb(var(--m3-secondary));
     outline-offset: 2px;
   }
 
@@ -88,7 +72,7 @@
   height: 8px;
   border-radius: 2px;
   flex: 0 0 8px;
-  background: var(--m3-secondary);
+  background: rgb(var(--m3-secondary));
 }
 
 /* ============================================================
@@ -117,7 +101,7 @@
  * ============================================================ */
 @layer components {
   .video {
-    background: var(--m3-inverse-surface);
+    background: rgb(var(--m3-video));
     border-radius: 6px;
     height: 206px;
     position: relative;
@@ -130,7 +114,7 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    background: rgba(186, 26, 26, 0.92);
+    background: rgb(179 38 30 / 0.92);
     color: #fff;
     font-size: 10.5px;
     padding: 3px 8px;
@@ -155,7 +139,7 @@
     display: block;
   }
   .video .bar i.done {
-    background: var(--m3-error);
+    background: rgb(var(--m3-error));
   }
   .video .bar i.chapter {
     transition: width 0.3s ease;
@@ -180,14 +164,14 @@
     background: rgba(255, 255, 255, 0.55);
   }
   .video-chapter-bar button.chapter.active {
-    background: var(--m3-secondary-fixed-dim, #ffb95f);
+    background: rgb(var(--m3-secondary-container));
     height: 6px;
   }
   .video-chapter-bar button.chapter.done {
-    background: var(--m3-error, #ba1a1a);
+    background: rgb(var(--m3-error));
   }
   .video-chapter-bar button.chapter.done.active {
-    background: var(--m3-secondary, #855300);
+    background: rgb(var(--m3-secondary-container));
   }
 
   /* HU-G18 — overlay "Paso N · descripción" */
@@ -210,11 +194,8 @@
 }
 
 /* ---------- accordion panel (HU-4.5) ---------- */
-.accordion-panel {
-  font-family: 'Inter', sans-serif;
-}
 .accordion-panel .mono {
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 /* ---------- scrollbar tokens (HU-4.5) ---------- */
@@ -225,7 +206,7 @@
   background: transparent;
 }
 .steps-scroll::-webkit-scrollbar-thumb {
-  background-color: #e5e7eb;
+  background-color: rgb(var(--m3-outline-variant));
   border-radius: 10px;
 }
 
@@ -262,12 +243,12 @@ dialog {
 }
 
 dialog::backdrop {
-  background: rgba(19, 30, 43, 0.5);
+  background: rgb(var(--m3-scrim) / 0.55);
   backdrop-filter: blur(4px);
 }
 
 dialog[open] {
-  animation: dialogFadeIn 0.2s ease-out;
+  animation: dialogFadeIn var(--duration-base) var(--ease-standard);
 }
 
 @keyframes dialogFadeIn {
@@ -278,72 +259,6 @@ dialog[open] {
   to {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-/* ============================================================
- * Material Design 3 — tokens del sistema de diseño único de la app
- * (fase2/mockups/*.html). Fuente de verdad del diseño desde el
- * 2026-09-08 (antes convivía con un segundo sistema documental,
- * ahora retirado — ver `documentacion/acta-mockups.html`, que queda
- * como referencia histórica).
- * ============================================================ */
-
-@layer base {
-  :root {
-    --m3-primary: #2f5fbd;
-    --m3-on-primary: #ffffff;
-    --m3-primary-container: #131b2e;
-    --m3-on-primary-container: #7c839b;
-    --m3-primary-fixed: #dae2fd;
-    --m3-primary-fixed-dim: #bec6e0;
-    --m3-on-primary-fixed: #131b2e;
-    --m3-on-primary-fixed-variant: #3f465c;
-    --m3-secondary: #855300;
-    --m3-on-secondary: #ffffff;
-    --m3-secondary-container: #fea619;
-    --m3-on-secondary-container: #684000;
-    --m3-secondary-fixed: #ffddb8;
-    --m3-secondary-fixed-dim: #ffb95f;
-    --m3-on-secondary-fixed: #2a1700;
-    --m3-on-secondary-fixed-variant: #653e00;
-    --m3-background: #f7f9fb;
-    --m3-surface: #f7f9fb;
-    --m3-surface-dim: #d8dadc;
-    --m3-surface-bright: #f7f9fb;
-    --m3-surface-container-lowest: #ffffff;
-    --m3-surface-container-low: #f2f4f6;
-    --m3-surface-container: #eceef0;
-    --m3-surface-container-high: #e6e8ea;
-    --m3-surface-container-highest: #e0e3e5;
-    --m3-surface-variant: #e0e3e5;
-    --m3-surface-tint: #565e74;
-    --m3-on-surface: #191c1e;
-    --m3-on-surface-variant: #45464d;
-    --m3-on-background: #191c1e;
-    --m3-inverse-surface: #2d3133;
-    --m3-inverse-on-surface: #eff1f3;
-    --m3-inverse-primary: #bec6e0;
-    --m3-outline: #76777d;
-    --m3-outline-variant: #c6c6cd;
-    --m3-error: #ba1a1a;
-    --m3-on-error: #ffffff;
-    --m3-error-container: #ffdad6;
-    --m3-on-error-container: #93000a;
-    --m3-success: #12805c;
-    --m3-success-container: #e4f5ee;
-    --m3-info: #2f5fbd;
-    --m3-info-container: #e9eefb;
-    --m3-danger-container: #fce8e6;
-    --m3-warn-container: #fff3df;
-    --m3-tertiary: #12805c;
-    --m3-on-tertiary: #ffffff;
-    --m3-tertiary-container: #002113;
-    --m3-on-tertiary-container: #009668;
-    --m3-tertiary-fixed: #6ffbbe;
-    --m3-tertiary-fixed-dim: #4edea3;
-    --m3-on-tertiary-fixed: #002113;
-    --m3-on-tertiary-fixed-variant: #005236;
   }
 }
 
@@ -395,7 +310,7 @@ dialog[open] {
 .step-divider {
   width: 1px;
   height: 16px;
-  background-color: var(--m3-outline-variant);
+  background-color: rgb(var(--m3-outline-variant));
   margin-left: 28px;
   margin-top: -8px;
   margin-bottom: -8px;
@@ -418,4 +333,28 @@ dialog[open] {
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+@layer utilities {
+  .font-wide {
+    font-stretch: 112%;
+  }
+}
+
+.solo-tema-oscuro {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .solo-tema-claro {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .solo-tema-oscuro {
+    display: revert;
+  }
+}
+:root[data-theme="dark"] .solo-tema-claro {
+  display: none;
+}
+:root[data-theme="dark"] .solo-tema-oscuro {
+  display: revert;
 }

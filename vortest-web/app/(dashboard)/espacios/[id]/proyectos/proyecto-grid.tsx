@@ -146,7 +146,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-m3-error bg-red-50 p-4 text-m3-error">
+      <div className="rounded-lg border border-m3-error bg-m3-error-container p-4 text-m3-error">
         Error: {error}
       </div>
     );
@@ -166,7 +166,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
             aria-label="Cerrar aviso"
             className="rounded p-1 hover:bg-m3-error/10"
           >
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}

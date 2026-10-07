@@ -253,7 +253,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
           </svg>
         ) : (
-          <span className="material-symbols-outlined text-[20px]">play_arrow</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[20px]">play_arrow</span>
         )}
       </Button>
       {canEdit && (
@@ -265,7 +265,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
           data-testid="editar-script-row-action"
           className="rounded-lg p-2 text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-primary"
         >
-          <span className="material-symbols-outlined text-[20px]">code</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[20px]">code</span>
         </Link>
       )}
       {canEdit && onEdit && (
@@ -279,7 +279,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
           aria-label="Editar"
           title="Editar"
         >
-          <span className="material-symbols-outlined text-[20px]">edit</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[20px]">edit</span>
         </Button>
       )}
       {canEdit && onDelete && (
@@ -293,7 +293,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
           aria-label="Eliminar"
           title="Eliminar"
         >
-          <span className="material-symbols-outlined text-[20px]">delete</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[20px]">delete</span>
         </Button>
       )}
       {error && <span className="font-label text-label-sm text-m3-error">{error}</span>}

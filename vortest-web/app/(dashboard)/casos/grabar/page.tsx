@@ -88,7 +88,7 @@ export default async function SesionesRecuperablesPage({ searchParams }: PagePro
             className="inline-flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
             data-testid="link-nueva-grabacion"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
             Nueva grabación
           </Link>
         }
@@ -106,7 +106,7 @@ export default async function SesionesRecuperablesPage({ searchParams }: PagePro
               href="/casos/grabar/nueva"
               className="inline-flex items-center gap-2 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
               Iniciar nueva grabación
             </Link>
           }

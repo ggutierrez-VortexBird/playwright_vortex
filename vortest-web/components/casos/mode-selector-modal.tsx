@@ -144,7 +144,7 @@ export function ModeSelectorModal({
             data-testid="mode-selector-back"
             className="group inline-flex shrink-0 items-center gap-1 font-label text-label-sm font-semibold text-m3-secondary transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
               arrow_back
             </span>
             <span className="group-hover:underline">Volver</span>
@@ -165,14 +165,13 @@ export function ModeSelectorModal({
                 className="group flex flex-col items-center rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center transition-all hover:border-m3-secondary hover:bg-m3-secondary-fixed/20 focus:outline-none focus-visible:border-m3-secondary focus-visible:bg-m3-secondary-fixed/20 focus-visible:ring-2 focus-visible:ring-m3-secondary"
               >
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-m3-surface-container-high transition-all group-hover:scale-105 group-hover:bg-m3-secondary-container">
-                  <span
+                  <span aria-hidden="true"
                     className="material-symbols-outlined text-[32px] text-m3-on-surface-variant transition-colors group-hover:text-m3-on-surface"
-                    aria-hidden="true"
                   >
                     {card.icon}
                   </span>
                 </div>
-                <h3 className="mb-2 font-headline text-headline-md text-m3-primary">
+                <h3 className="mb-2 font-headline text-headline-md text-m3-on-surface">
                   {card.title}
                 </h3>
                 <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">
@@ -180,9 +179,8 @@ export function ModeSelectorModal({
                 </p>
                 <span className="inline-flex items-center gap-1 font-label text-label-md font-medium text-m3-secondary group-hover:text-m3-on-secondary-container">
                   {card.ctaLabel}
-                  <span
+                  <span aria-hidden="true"
                     className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1"
-                    aria-hidden="true"
                   >
                     arrow_forward
                   </span>

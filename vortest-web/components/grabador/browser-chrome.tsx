@@ -72,7 +72,7 @@ export function BrowserChrome({
           title="Atrás (no soportado en headless de Playwright)"
           className="rounded p-1 opacity-40"
         >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_back</span>
         </button>
         <button
           data-testid="bc-forward"
@@ -80,7 +80,7 @@ export function BrowserChrome({
           title="Adelante (no soportado)"
           className="rounded p-1 opacity-40"
         >
-          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </button>
         <button
           data-testid="bc-reload"
@@ -88,13 +88,13 @@ export function BrowserChrome({
           title="Recargar (no soportado)"
           className="rounded p-1 opacity-40"
         >
-          <span className="material-symbols-outlined text-[18px]">refresh</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">refresh</span>
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="min-w-0 flex-1" data-testid="bc-form">
         <div className="flex items-center gap-2 rounded-lg border border-m3-outline-variant bg-m3-surface-container px-3 py-1.5 transition focus-within:border-m3-secondary focus-within:ring-1 focus-within:ring-m3-secondary">
-          <span className="material-symbols-outlined shrink-0 text-[16px] text-m3-success" aria-hidden="true">
+          <span aria-hidden="true" className="material-symbols-outlined shrink-0 text-[16px] text-m3-success">
             {isSecure ? "lock" : "lock_open"}
           </span>
           <input
@@ -125,7 +125,7 @@ export function BrowserChrome({
           title="Copiar URL"
           className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-label text-label-sm font-medium text-m3-on-surface-variant transition hover:bg-m3-surface-container-high hover:text-m3-on-surface"
         >
-          <span className="material-symbols-outlined text-[16px]">content_copy</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">content_copy</span>
           {copied ? "Copiado" : "Copiar"}
         </button>
         <a
@@ -136,7 +136,7 @@ export function BrowserChrome({
           aria-disabled={!pageUrl}
           className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-label text-label-sm font-medium text-m3-secondary transition hover:bg-m3-secondary-container ${!pageUrl ? "pointer-events-none opacity-40" : ""}`}
         >
-          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">open_in_new</span>
           Visitar
         </a>
       </div>

@@ -149,7 +149,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
       />
       {/* Datos de la cuenta */}
       <section className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
-        <h3 className="font-headline text-headline-md text-m3-primary">Datos de la cuenta</h3>
+        <h3 className="font-headline text-headline-md text-m3-on-surface">Datos de la cuenta</h3>
         {/* Issue #12: fixed copy */}
         <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
           Tu correo es {email}. Para cambiarlo, contacta a un administrador.
@@ -175,13 +175,13 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
           </div>
           {nombreError && (
             <p role="alert" className="flex items-center gap-1 font-body text-body-sm text-m3-error">
-              <span className="material-symbols-outlined text-[14px]">error</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
               {nombreError}
             </p>
           )}
           {nombreOk && (
             <p className="flex items-center gap-1 font-body text-body-sm text-m3-tertiary">
-              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">check_circle</span>
               Nombre actualizado.
             </p>
           )}
@@ -192,7 +192,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
               className="flex items-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity duration-200"
             >
               {savingNombre && (
-                <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
               )}
               {savingNombre ? "Guardando…" : "Guardar cambios"}
             </button>
@@ -214,7 +214,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
 
       {/* Seguridad */}
       <section className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
-        <h3 className="font-headline text-headline-md text-m3-primary">Seguridad</h3>
+        <h3 className="font-headline text-headline-md text-m3-on-surface">Seguridad</h3>
         <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
           Cambia tu contraseña. Necesitas confirmar la actual.
         </p>
@@ -279,13 +279,13 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
           </p>
           {passwordError && (
             <p role="alert" className="flex items-center gap-1 font-body text-body-sm text-m3-error">
-              <span className="material-symbols-outlined text-[14px]">error</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
               {passwordError}
             </p>
           )}
           {passwordOk && (
             <p className="flex items-center gap-1 font-body text-body-sm text-m3-tertiary">
-              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">check_circle</span>
               Contraseña actualizada.
             </p>
           )}
@@ -296,7 +296,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
               className="flex items-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity duration-200"
             >
               {savingPassword && (
-                <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
               )}
               {savingPassword ? "Cambiando…" : "Cambiar contraseña"}
             </button>

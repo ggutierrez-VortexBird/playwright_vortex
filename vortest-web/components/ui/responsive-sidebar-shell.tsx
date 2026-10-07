@@ -18,13 +18,13 @@ export function ResponsiveSidebarShell({ children }: { children: ReactNode }) {
     <>
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          className="fixed inset-0 z-overlay bg-m3-scrim/55 md:hidden"
           onClick={close}
           aria-hidden="true"
         />
       )}
       <aside
-        className={`sticky top-0 z-40 flex h-screen flex-none flex-col bg-m3-primary-container text-m3-on-primary transition-transform duration-200 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-64 md:z-20 md:w-[72px] md:translate-x-0 lg:w-60 ${
+        className={`sticky top-0 z-modal flex h-screen flex-none flex-col bg-m3-primary-container text-white transition-transform duration-base ease-standard max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-64 md:z-sticky md:w-[72px] md:translate-x-0 lg:w-60 ${
           open ? "" : "max-md:-translate-x-full"
         }`}
       >

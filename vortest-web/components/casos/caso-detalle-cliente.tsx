@@ -184,12 +184,12 @@ export function CasoDetalleCliente({
         title={caso.nombre}
         subtitle={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-[11px] text-m3-on-surface-variant">
+            <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-label-xs text-m3-on-surface-variant">
               {caso.codigo}
             </span>
             <OrigenChip origen={caso.origen} />
             {caso.scriptFileName && (
-              <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-[11px] text-m3-on-surface-variant">
+              <span className="rounded bg-m3-surface-container-high px-1.5 py-0.5 font-mono-code text-label-xs text-m3-on-surface-variant">
                 {caso.scriptFileName}
               </span>
             )}
@@ -203,7 +203,7 @@ export function CasoDetalleCliente({
             data-testid="ejecutar-button"
             className="inline-flex items-center gap-1.5"
           >
-            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">play_arrow</span>
             {busy ? "Encolando…" : "Ejecutar"}
           </Button>
         }
@@ -225,7 +225,7 @@ export function CasoDetalleCliente({
 
         <div className="p-5">
           <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
-            <h3 className="font-headline text-headline-md text-m3-primary tracking-wide">
+            <h3 className="font-headline text-headline-md text-m3-on-surface tracking-wide">
               SCRIPT GENERADO
             </h3>
             {editingScript ? (
@@ -257,7 +257,7 @@ export function CasoDetalleCliente({
                 title="Editar el script de Playwright"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded font-label text-label-sm font-medium text-m3-on-surface-variant border border-m3-outline-variant hover:bg-m3-surface-container-high hover:text-m3-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[18px]">
+                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                   terminal
                 </span>
                 Editar script
@@ -282,11 +282,11 @@ export function CasoDetalleCliente({
             {/* Titlebar + tab del archivo — mismo tratamiento que el editor del grabador */}
             <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
               <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">
-                <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-[9px] font-bold text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-label-xs font-bold text-white">
                   TS
                 </span>
                 <span className="font-medium">{caso.scriptFileName ?? `${caso.codigo}.spec.ts`}</span>
-                <span className="ml-1 text-[10px] text-slate-500">
+                <span className="ml-1 text-label-xs text-slate-500">
                   {formatBytes((editingScript ? scriptDraft : script).length)}
                 </span>
               </div>
@@ -312,7 +312,7 @@ export function CasoDetalleCliente({
             </div>
 
             {/* Statusbar */}
-            <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-[11px] text-slate-400">
+            <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-label-xs text-slate-400">
               <span className="flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-full ${editingScript ? "bg-amber-400" : "bg-emerald-400"}`} />
                 {editingScript ? "Editando" : "Solo lectura"}

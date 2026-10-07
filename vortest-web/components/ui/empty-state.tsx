@@ -33,7 +33,7 @@ export function EmptyState({
     <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center shadow-card">
       {/* Icon circle */}
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant">
-        <span className="material-symbols-outlined text-[24px]" aria-hidden="true">
+        <span aria-hidden="true" className="material-symbols-outlined text-[24px]">
           {icon}
         </span>
       </div>

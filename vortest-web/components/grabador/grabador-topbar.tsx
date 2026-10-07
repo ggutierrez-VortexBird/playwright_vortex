@@ -122,7 +122,7 @@ export function GrabadorTopbar({
 
   const dotClass =
     connState === "live"
-      ? "bg-red-500 animate-pulse"
+      ? "bg-m3-error-container0 animate-pulse"
       : connState === "connecting" || connState === "reconnecting"
         ? "bg-amber-500"
         : "bg-slate-500";
@@ -154,7 +154,7 @@ export function GrabadorTopbar({
 
         {elapsed && (
           <div className="flex items-center gap-1.5 rounded-full border border-m3-outline-variant bg-m3-surface-container px-2.5 py-1 font-mono-code text-label-sm font-semibold text-m3-on-surface">
-            <span className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">schedule</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">schedule</span>
             {elapsed}
           </div>
         )}
@@ -187,7 +187,7 @@ export function GrabadorTopbar({
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                 </svg>
               ) : (
-                <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                   play_arrow
                 </span>
               )}
@@ -206,7 +206,7 @@ export function GrabadorTopbar({
                   : "border-m3-outline-variant text-m3-on-surface-variant hover:border-m3-error/40 hover:bg-m3-error-container hover:text-m3-error",
               ].join(" ")}
             >
-              <span className="material-symbols-outlined text-[16px]">delete</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
               {confirming ? "¿Confirmar descarte?" : "Descartar sesión"}
             </button>
             <button

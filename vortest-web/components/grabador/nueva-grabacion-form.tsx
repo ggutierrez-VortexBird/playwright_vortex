@@ -175,7 +175,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
       {!embedded && (
         <header className="bg-m3-surface border-b border-m3-surface-variant px-6 py-4 flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-headline text-headline-lg text-m3-primary leading-tight">
+            <h2 className="font-headline text-headline-lg text-m3-on-surface leading-tight">
               Configuración de Grabación
             </h2>
             <p className="font-body text-body-md text-m3-on-surface-variant mt-1">
@@ -186,7 +186,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
             aria-hidden="true"
             className="w-10 h-10 rounded-full bg-m3-secondary-fixed flex items-center justify-center shrink-0"
           >
-            <span
+            <span aria-hidden="true"
               className="material-symbols-outlined text-m3-secondary text-[22px]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
@@ -381,7 +381,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
                         : "border-m3-outline-variant hover:bg-m3-surface-container"
                     }`}
                   >
-                    <span
+                    <span aria-hidden="true"
                       className={`material-symbols-outlined text-[32px] ${
                         checked ? "text-m3-secondary" : "text-m3-on-surface-variant"
                       }`}
@@ -446,7 +446,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
           className="px-6 py-2 rounded bg-m3-secondary-container text-m3-on-secondary-container font-label text-label-sm font-bold flex items-center gap-2 hover:bg-m3-secondary hover:text-m3-on-secondary transition-all shadow-sm"
         >
           Continuar
-          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </button>
       </footer>
     </form>

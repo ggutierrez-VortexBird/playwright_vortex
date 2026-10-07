@@ -28,7 +28,7 @@ export function DistribucionResultadosChart({ data }: DistribucionResultadosChar
         <XAxis type="number" hide />
         <YAxis type="category" dataKey="name" hide />
         {data.map((d) => (
-          <Bar key={d.estado} dataKey={d.estado} stackId="resultados" fill={`var(--${d.token})`} />
+          <Bar key={d.estado} dataKey={d.estado} stackId="resultados" fill={`rgb(var(--${d.token}))`} />
         ))}
       </BarChart>
     </ResponsiveContainer>

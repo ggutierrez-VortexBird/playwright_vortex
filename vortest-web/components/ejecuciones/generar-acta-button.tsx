@@ -71,7 +71,7 @@ export function GenerarActaButton({ ejecucionId, initialActa, bloqueadoEstados }
           className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
           title={`Acta ${acta.consecutivo}`}
         >
-          <span className="material-symbols-outlined text-[16px]">description</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">description</span>
           Descargar acta ({acta.consecutivo})
         </a>
       ) : (
@@ -82,7 +82,7 @@ export function GenerarActaButton({ ejecucionId, initialActa, bloqueadoEstados }
           data-testid="generar-acta-button"
           className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
         >
-          <span className="material-symbols-outlined text-[16px]">
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
             {busy ? 'hourglass_top' : 'picture_as_pdf'}
           </span>
           {busy ? 'Generando acta…' : 'Generar acta de evidencia'}
@@ -92,7 +92,7 @@ export function GenerarActaButton({ ejecucionId, initialActa, bloqueadoEstados }
         <span
           role="alert"
           data-testid="generar-acta-error"
-          className="text-[11px] text-m3-error font-body"
+          className="text-label-xs text-m3-error font-body"
         >
           {error}
         </span>

@@ -54,12 +54,11 @@ export function OrigenChip({ origen, className = "" }: OrigenChipProps) {
       data-testid="origen-chip"
       data-origen={origen}
       title={style.label}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-label text-[11px] font-semibold ${style.bg} ${style.fg} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-label text-label-xs font-semibold ${style.bg} ${style.fg} ${className}`}
     >
-      <span
+      <span aria-hidden="true"
         className="material-symbols-outlined text-[14px] leading-none"
         style={{ fontVariationSettings: "'FILL' 1" }}
-        aria-hidden="true"
       >
         {style.icon}
       </span>

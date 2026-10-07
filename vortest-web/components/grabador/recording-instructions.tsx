@@ -74,7 +74,7 @@ export function RecordingInstructions({
             </div>
             <div className="mx-0.5 hidden h-3.5 w-px bg-m3-outline-variant sm:block" />
             <div className="hidden items-center gap-2 rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest px-2.5 py-1 font-label text-label-sm font-medium text-m3-on-surface shadow-sm sm:flex">
-              <span className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">devices</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">devices</span>
               Navegador de pruebas — Grabación activa
             </div>
           </div>
@@ -92,7 +92,7 @@ export function RecordingInstructions({
 
         <div className="flex flex-col items-center bg-m3-surface-container-lowest p-8 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-m3-info/30 bg-m3-info-container text-m3-info shadow-sm">
-            <span className="material-symbols-outlined text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <span aria-hidden="true" className="material-symbols-outlined text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               videocam
             </span>
           </div>

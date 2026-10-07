@@ -230,7 +230,7 @@ export function RevisarCliente({
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 font-mono-code text-label-sm text-m3-on-surface-variant">
-                <span className="material-symbols-outlined text-[15px]">link</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[15px]">link</span>
                 <a href={urlInicial} target="_blank" rel="noopener noreferrer" className="truncate underline-offset-2 hover:text-m3-secondary hover:underline">
                   {urlInicial}
                 </a>
@@ -260,7 +260,7 @@ export function RevisarCliente({
                   title="Copiar script al portapapeles"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-label text-label-sm font-semibold text-m3-on-surface shadow-sm transition hover:bg-m3-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">content_copy</span>
                   {copied ? "¡Copiado!" : "Copiar"}
                 </button>
                 {dirty && !yaGuardado && (
@@ -271,7 +271,7 @@ export function RevisarCliente({
                     title="Descartar cambios"
                     className="inline-flex items-center gap-1.5 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3 py-1.5 font-label text-label-sm font-semibold text-m3-error shadow-sm transition hover:bg-m3-error-container disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-[16px]">undo</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">undo</span>
                     Descartar cambios
                   </button>
                 )}
@@ -297,7 +297,7 @@ export function RevisarCliente({
                       disabled={busy !== null || !code}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest px-3.5 py-1.5 font-label text-label-sm font-semibold text-m3-on-surface shadow-sm transition hover:bg-m3-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      <span aria-hidden="true" className="material-symbols-outlined text-[16px]">save</span>
                       {busy === "guardar" ? "Guardando…" : "Guardar caso"}
                     </button>
                     <button
@@ -307,7 +307,7 @@ export function RevisarCliente({
                       disabled={busy !== null || !code}
                       className="inline-flex items-center gap-2 rounded-lg bg-m3-inverse-surface px-4 py-1.5 font-label text-label-sm font-bold text-m3-inverse-on-surface shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      <span aria-hidden="true" className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                         play_arrow
                       </span>
                       {busy === "guardar-ejecutar" ? "Guardando y ejecutando…" : "Guardar y ejecutar"}
@@ -328,7 +328,7 @@ export function RevisarCliente({
                     : "border-m3-success bg-m3-success-container text-m3-success"
                 }`}
               >
-                <span className="material-symbols-outlined text-[16px]">
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
                   {syntaxErrorCount > 0 ? "error" : "check_circle"}
                 </span>
                 {syntaxErrorCount > 0
@@ -351,7 +351,7 @@ export function RevisarCliente({
                 {fragileSelectors.length} selector{fragileSelectors.length === 1 ? "" : "es"} frágil{fragileSelectors.length === 1 ? "" : "es"}
               </span>
             </div>
-            <div className="flex items-center gap-1 rounded-md border border-m3-outline-variant bg-m3-surface-container px-2.5 py-1 font-mono-code text-[11px] text-m3-on-surface-variant">
+            <div className="flex items-center gap-1 rounded-md border border-m3-outline-variant bg-m3-surface-container px-2.5 py-1 font-mono-code text-label-xs text-m3-on-surface-variant">
               <span>Sesión:</span>
               <span className="font-medium text-m3-on-surface">{sesionId}</span>
             </div>
@@ -414,13 +414,13 @@ export function RevisarCliente({
           {/* Titlebar + tab del archivo */}
           <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
             <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">
-              <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-[9px] font-bold text-white">
+              <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-label-xs font-bold text-white">
                 TS
               </span>
               <span className="font-medium" data-testid="filename-hint">
                 {suggestedFileName}
               </span>
-              <span className="ml-1 text-[10px] text-slate-500">{formatBytes(code.length)}</span>
+              <span className="ml-1 text-label-xs text-slate-500">{formatBytes(code.length)}</span>
             </div>
             <button
               type="button"
@@ -429,12 +429,12 @@ export function RevisarCliente({
               title="Descartar cambios y volver al script original"
               className="rounded p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">restart_alt</span>
             </button>
           </div>
 
           {/* Ruta del archivo */}
-          <div className="truncate border-b border-slate-800 bg-[#0d1424] px-4 py-1.5 font-mono-code text-[11px] text-slate-400">
+          <div className="truncate border-b border-slate-800 bg-[#0d1424] px-4 py-1.5 font-mono-code text-label-xs text-slate-400">
             {codegenFilePath ?? suggestedFileName}
           </div>
 
@@ -459,7 +459,7 @@ export function RevisarCliente({
           </div>
 
           {/* Statusbar */}
-          <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-[11px] text-slate-400">
+          <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-label-xs text-slate-400">
             <div className="flex items-center gap-4">
               {syntaxErrorCount > 0 ? (
                 <span className="flex items-center gap-1 text-amber-400">
@@ -524,7 +524,7 @@ export function RevisarCliente({
                           >
                             {step.description || step.kind}
                           </p>
-                          <span
+                          <span aria-hidden="true"
                             className={`material-symbols-outlined shrink-0 text-[18px] text-m3-on-surface-variant transition-transform ${
                               isExpanded ? "rotate-180" : ""
                             }`}
@@ -540,7 +540,7 @@ export function RevisarCliente({
                           {step.rawText}
                         </p>
                         {isExpanded && (
-                          <dl className="mt-2 grid grid-cols-2 gap-2 border-t border-m3-outline-variant pt-2 text-[11px]">
+                          <dl className="mt-2 grid grid-cols-2 gap-2 border-t border-m3-outline-variant pt-2 text-label-xs">
                             <div>
                               <dt className="font-label font-semibold uppercase tracking-wide text-m3-on-surface-variant">
                                 Tipo
@@ -575,7 +575,7 @@ export function RevisarCliente({
 
           <div className="space-y-3.5 rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
             <h2 className="flex items-center gap-2 font-headline text-label-lg font-semibold text-m3-on-surface">
-              <span className="material-symbols-outlined text-[18px] text-m3-on-surface-variant">tune</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-m3-on-surface-variant">tune</span>
               Parámetros de la sesión
             </h2>
             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -594,7 +594,7 @@ export function RevisarCliente({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container p-2.5">
-      <span className="block font-label text-[10px] font-bold uppercase tracking-wider text-m3-on-surface-variant">
+      <span className="block font-label text-label-xs font-bold uppercase tracking-wider text-m3-on-surface-variant">
         {label}
       </span>
       <span className="font-body text-body-sm font-semibold text-m3-on-surface">{value}</span>

@@ -102,7 +102,7 @@ export function ExecutionTimeline({ steps, currentStepId, onStepClick, className
               aria-label={`Paso ${step.numero}: ${step.descripcion} - ${step.estado}`}
               title={step.descripcion}
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                 {step.estado === 'running' ? 'sync' : config.icon}
               </span>
               <span className="font-label text-label-xs font-semibold mt-0.5">

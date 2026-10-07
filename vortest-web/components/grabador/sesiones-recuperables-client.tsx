@@ -190,7 +190,7 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                         className="rounded p-1.5 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
                         title="Descartar sesión"
                       >
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">delete</span>
                       </button>
                     )}
                     <Link
@@ -199,7 +199,7 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                       data-testid="sesion-revisar-link"
                       title="Revisar pasos capturados"
                     >
-                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      <span aria-hidden="true" className="material-symbols-outlined text-[16px]">visibility</span>
                     </Link>
                   </div>
                 </td>
@@ -243,7 +243,7 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                   className="rounded p-2 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
                   title="Descartar sesión"
                 >
-                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[18px]">delete</span>
                 </button>
               )}
               <Link
@@ -252,7 +252,7 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                 data-testid="sesion-revisar-link-mobile"
                 title="Revisar pasos capturados"
               >
-                <span className="material-symbols-outlined text-[18px]">visibility</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">visibility</span>
               </Link>
             </div>
           </div>

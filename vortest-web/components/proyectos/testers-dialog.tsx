@@ -104,7 +104,7 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
         <div className="mb-1 flex items-center justify-between">
           <h3 id="testers-dialog-title" className="font-headline text-headline-md text-m3-on-surface">Testers del proyecto</h3>
           <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Cerrar">
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">close</span>
           </Button>
         </div>
         <p className="mb-4 font-body text-body-sm text-m3-on-surface-variant">{proyectoNombre}</p>
@@ -144,7 +144,7 @@ export function TestersDialog({ proyectoId, proyectoNombre, onClose }: TestersDi
                     onClick={() => handleQuitar(a.id)}
                     aria-label={`Quitar ${a.email}`}
                   >
-                    <span className="material-symbols-outlined text-[18px]">close</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">close</span>
                   </Button>
                 </li>
               ))}

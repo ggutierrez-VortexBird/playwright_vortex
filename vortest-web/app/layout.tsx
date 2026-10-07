@@ -1,27 +1,13 @@
-import type { Metadata } from "next";
-import { Archivo, IBM_Plex_Mono, Inter, JetBrains_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Archivo, JetBrains_Mono } from "next/font/google";
+import "./tokens.css";
 import "./globals.css";
+import { CLAVE_TEMA } from "@/lib/tema";
 
 const archivo = Archivo({
   subsets: ["latin"],
+  axes: ["wdth"],
   variable: "--font-archivo",
-  display: "swap",
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-ibm-plex-mono",
-  display: "swap",
-});
-
-// Inter + JetBrains Mono for the grabador screens (HU-G1).
-// next/font/google does not support Material Symbols Outlined, so the
-// icon font is loaded via a <link> in the <head> below.
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "900"],
-  variable: "--font-inter",
   display: "swap",
 });
 
@@ -33,10 +19,20 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "VorTest", template: "%s | VorTest" },
-  description: "Automatización de pruebas",
+  title: { default: "vorTest", template: "%s · vorTest" },
+  description: "Automatización de pruebas con evidencia verificable",
   icons: { icon: "/logo.png" },
 };
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F5F8F8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0C1719" },
+  ],
+};
+
+// Se aplica antes del primer pintado para que el tema elegido no parpadee.
+const scriptTema = `try{var t=localStorage.getItem("${CLAVE_TEMA}");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export default function RootLayout({
   children,
@@ -44,16 +40,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${archivo.variable} ${ibmPlexMono.variable} ${inter.variable} ${jetbrainsMono.variable}`}
-    >
+    <html lang="es" className={`${archivo.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Material Symbols Outlined — icon font used in grabador screens (HU-G1).
-            Not supported by next/font/google, so we load it via <link>. */}
+        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block"
         />
       </head>
       <body className="antialiased">{children}</body>

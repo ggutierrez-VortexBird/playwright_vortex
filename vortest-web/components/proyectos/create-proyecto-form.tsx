@@ -78,12 +78,12 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
     <Modal open onClose={() => onCancel?.()} labelledBy="create-proyecto-title" className="max-w-md">
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="create-proyecto-title" className="font-headline text-headline-md text-m3-primary">
+          <h2 id="create-proyecto-title" className="font-headline text-headline-md text-m3-on-surface">
             Nuevo Proyecto
           </h2>
           {onCancel && (
             <Button variant="ghost" size="sm" type="button" onClick={onCancel} aria-label="Cerrar">
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
             </Button>
           )}
         </div>
@@ -160,7 +160,7 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
         <ColorPicker name="color" value={color} onChange={setColor} />
 
         {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-m3-error">
+          <div className="rounded-md bg-m3-error-container p-3 text-sm text-m3-error">
             {error}
           </div>
         )}

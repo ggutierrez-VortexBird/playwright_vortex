@@ -32,9 +32,8 @@ export function ReparadosCounter({ pasos }: ReparadosCounterProps) {
       className="inline-flex items-center gap-1.5 rounded-full border border-m3-secondary/30 bg-m3-secondary-container/25 px-2.5 py-1 font-label text-label-sm font-medium text-m3-on-secondary-container"
       title={`${count} paso(s) continuaron usando un selector de respaldo`}
     >
-      <span
+      <span aria-hidden="true"
         className="material-symbols-outlined text-[14px]"
-        aria-hidden="true"
       >
         build
       </span>

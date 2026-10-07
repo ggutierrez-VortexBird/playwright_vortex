@@ -135,12 +135,12 @@ export function ActaHeader({ acta, onCopyHash, className }: ActaHeaderProps) {
             >
               {copied ? (
                 <span className="flex items-center gap-1.5 text-m3-tertiary">
-                  <span className="material-symbols-outlined text-[16px]">check</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">check</span>
                   Copiado
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">content_copy</span>
                   Copiar
                 </span>
               )}

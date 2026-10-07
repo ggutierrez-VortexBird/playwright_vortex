@@ -43,7 +43,7 @@ export function ReRunButton({ casoPruebaId }: ReRunButtonProps) {
         {loading ? 'Lanzando…' : 'Volver a ejecutar'}
       </button>
       {error && (
-        <span className="font-mono text-[10px] text-m3-error" role="alert">
+        <span className="font-mono text-label-xs text-m3-error" role="alert">
           {error}
         </span>
       )}
