@@ -9,11 +9,14 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) {
+    return NextResponse.json({ error: "validation", message: "El cuerpo de la petición no es JSON válido" }, { status: 400 });
+  }
 
   if (typeof body?.nombre !== "string") {
     return NextResponse.json(
-      { error: "validation", message: "nombre is required" },
+      { error: "validation", message: "Escribe tu nombre" },
       { status: 400 }
     );
   }

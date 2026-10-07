@@ -36,13 +36,14 @@ export function ScopeBarWithContext({ items }: ScopeBarWithContextProps) {
   const crumbs = reemplazaBase ? extra : [...base, ...extra];
 
   return (
-    <nav aria-label="Ubicación actual" className="flex min-w-0 items-center gap-1.5 overflow-hidden font-label text-label-md">
+    <nav aria-label="Ubicación actual" className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden font-label text-label-md">
       {crumbs.map((crumb, i) => {
         const isLast = i === crumbs.length - 1;
         return (
-          <span key={`${crumb.label}-${i}`} className="flex min-w-0 items-center gap-1.5">
+          // En pantallas angostas sólo se ve la ubicación actual; el título de la página ya da el contexto.
+          <span key={`${crumb.label}-${i}`} className={`min-w-0 items-center gap-1.5 ${isLast ? "flex" : "hidden md:flex"}`}>
             {i > 0 && (
-              <span className="text-m3-on-surface-variant" aria-hidden="true">
+              <span className="hidden text-m3-on-surface-variant md:inline" aria-hidden="true">
                 /
               </span>
             )}

@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Field, Input } from "@/components/ui/field";
+import { useToast } from "@/components/ui/toast";
 
 interface PerfilClientProps {
   nombreActual: string | null;
@@ -12,6 +15,7 @@ interface PerfilClientProps {
 
 export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
   const router = useRouter();
+  const toast = useToast();
 
   // --- Dirty state tracking (Issue #2: unsaved changes warning) ---
   const [isDirty, setIsDirty] = useState(false);
@@ -63,13 +67,11 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
   const [nombre, setNombre] = useState(nombreActual ?? "");
   const [savingNombre, setSavingNombre] = useState(false);
   const [nombreError, setNombreError] = useState<string | null>(null);
-  const [nombreOk, setNombreOk] = useState(false);
 
   async function handleGuardarNombre(e: React.FormEvent) {
     e.preventDefault();
     setSavingNombre(true);
     setNombreError(null);
-    setNombreOk(false);
     try {
       const res = await fetch("/api/perfil", {
         method: "PATCH",
@@ -81,7 +83,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
         setNombreError(body.message ?? body.error ?? "No se pudo guardar el nombre");
         return;
       }
-      setNombreOk(true);
+      toast({ tone: "success", title: "Nombre actualizado" });
       setIsDirty(false);
       router.refresh();
     } catch {
@@ -97,19 +99,21 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
   const [confirmar, setConfirmar] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordOk, setPasswordOk] = useState(false);
+
+  const [erroresPassword, setErroresPassword] = useState<{ actual?: string; nueva?: string; confirmar?: string }>({});
 
   async function handleCambiarPassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordError(null);
-    setPasswordOk(false);
 
-    if (nueva.length < 8) {
-      setPasswordError("La nueva contraseña debe tener al menos 8 caracteres");
-      return;
-    }
-    if (nueva !== confirmar) {
-      setPasswordError("La confirmación no coincide con la nueva contraseña");
+    const errores: { actual?: string; nueva?: string; confirmar?: string } = {};
+    if (!actual) errores.actual = "Escribe tu contraseña actual";
+    if (nueva.length < 8) errores.nueva = "La nueva contraseña debe tener al menos 8 caracteres";
+    else if (nueva !== confirmar) errores.confirmar = "La confirmación no coincide con la nueva contraseña";
+    setErroresPassword(errores);
+    const primero = (["actual", "nueva", "confirmar"] as const).find((k) => errores[k]);
+    if (primero) {
+      document.getElementById(primero)?.focus();
       return;
     }
 
@@ -125,13 +129,13 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
         setPasswordError(body.message ?? body.error ?? "No se pudo cambiar la contraseña");
         return;
       }
-      setPasswordOk(true);
+      toast({ tone: "success", title: "Contraseña actualizada" });
       setActual("");
       setNueva("");
       setConfirmar("");
       setIsDirty(false);
     } catch {
-      setPasswordError("Error de conexión");
+      setPasswordError("Sin conexión con el servidor. Intenta de nuevo.");
     } finally {
       setSavingPassword(false);
     }
@@ -157,50 +161,32 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
         </p>
         <form onSubmit={handleGuardarNombre} className="mt-4 flex flex-col gap-4">
           <div>
-            <label htmlFor="nombre" className="mb-1.5 block font-label text-label-sm font-medium text-m3-on-surface">
-              Nombre para mostrar
-            </label>
-            <input
-              id="nombre"
-              type="text"
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value);
-                setNombreOk(false);
-                markDirty();
-              }}
-              maxLength={100}
-              placeholder="ej. Gabriel Gutiérrez"
-              className="w-full rounded-lg border border-m3-outline bg-m3-surface-container-lowest px-3 py-2.5 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant focus:border-m3-primary focus:outline-none focus:ring-1 focus:ring-m3-primary"
-            />
+            <Field label="Nombre para mostrar" id="nombre" error={nombreError}>
+              <Input
+                value={nombre}
+                onChange={(e) => {
+                  setNombre(e.target.value);
+                  markDirty();
+                }}
+                maxLength={100}
+                placeholder="ej. Gabriel Gutiérrez"
+              />
+            </Field>
           </div>
-          {nombreError && (
-            <p role="alert" className="flex items-center gap-1 font-body text-body-sm text-m3-error">
-              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
-              {nombreError}
-            </p>
-          )}
-          {nombreOk && (
-            <p className="flex items-center gap-1 font-body text-body-sm text-m3-tertiary">
-              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">check_circle</span>
-              Nombre actualizado.
-            </p>
-          )}
           <div className="flex gap-3">
             <Button type="submit" loading={savingNombre} loadingText="Guardando…">
               Guardar cambios
             </Button>
             {isDirty && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setNombre(nombreActual ?? "");
                   setIsDirty(false);
                 }}
-                className="rounded-lg border border-m3-outline-variant px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-surface-variant hover:bg-m3-surface-container-high transition-colors duration-200"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </div>
         </form>
@@ -213,93 +199,58 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
           Cambia tu contraseña. Necesitas confirmar la actual.
         </p>
         <form onSubmit={handleCambiarPassword} className="mt-4 flex flex-col gap-4">
-          <div>
-            <label htmlFor="actual" className="mb-1.5 block font-label text-label-sm font-medium text-m3-on-surface">
-              Contraseña actual
-            </label>
-            <input
-              id="actual"
+          <Field label="Contraseña actual" id="actual" required error={erroresPassword.actual}>
+            <Input
               type="password"
               value={actual}
               onChange={(e) => {
                 setActual(e.target.value);
                 markDirty();
               }}
-              required
               autoComplete="current-password"
-              className="w-full rounded-lg border border-m3-outline bg-m3-surface-container-lowest px-3 py-2.5 font-body text-body-md text-m3-on-surface focus:border-m3-primary focus:outline-none focus:ring-1 focus:ring-m3-primary"
             />
-          </div>
+          </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nueva" className="mb-1.5 block font-label text-label-sm font-medium text-m3-on-surface">
-                Nueva contraseña
-              </label>
-              <input
-                id="nueva"
+            <Field label="Nueva contraseña" id="nueva" required error={erroresPassword.nueva} hint="Al menos 8 caracteres.">
+              <Input
                 type="password"
                 value={nueva}
                 onChange={(e) => {
                   setNueva(e.target.value);
                   markDirty();
                 }}
-                required
-                minLength={8}
                 autoComplete="new-password"
-                className="w-full rounded-lg border border-m3-outline bg-m3-surface-container-lowest px-3 py-2.5 font-body text-body-md text-m3-on-surface focus:border-m3-primary focus:outline-none focus:ring-1 focus:ring-m3-primary"
               />
-            </div>
-            <div>
-              <label htmlFor="confirmar" className="mb-1.5 block font-label text-label-sm font-medium text-m3-on-surface">
-                Confirmar nueva contraseña
-              </label>
-              <input
-                id="confirmar"
+            </Field>
+            <Field label="Confirmar nueva contraseña" id="confirmar" required error={erroresPassword.confirmar}>
+              <Input
                 type="password"
                 value={confirmar}
                 onChange={(e) => {
                   setConfirmar(e.target.value);
                   markDirty();
                 }}
-                required
-                minLength={8}
                 autoComplete="new-password"
-                className="w-full rounded-lg border border-m3-outline bg-m3-surface-container-lowest px-3 py-2.5 font-body text-body-md text-m3-on-surface focus:border-m3-primary focus:outline-none focus:ring-1 focus:ring-m3-primary"
               />
-            </div>
+            </Field>
           </div>
-          <p className="font-body text-body-sm text-m3-on-surface-variant">
-            Debe tener al menos 8 caracteres.
-          </p>
-          {passwordError && (
-            <p role="alert" className="flex items-center gap-1 font-body text-body-sm text-m3-error">
-              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">error</span>
-              {passwordError}
-            </p>
-          )}
-          {passwordOk && (
-            <p className="flex items-center gap-1 font-body text-body-sm text-m3-tertiary">
-              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">check_circle</span>
-              Contraseña actualizada.
-            </p>
-          )}
+          {passwordError && <Alert tone="error">{passwordError}</Alert>}
           <div className="flex gap-3">
             <Button type="submit" loading={savingPassword} loadingText="Cambiando…">
               Cambiar contraseña
             </Button>
             {isDirty && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setActual("");
                   setNueva("");
                   setConfirmar("");
                   setIsDirty(false);
                 }}
-                className="rounded-lg border border-m3-outline-variant px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-surface-variant hover:bg-m3-surface-container-high transition-colors duration-200"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </div>
         </form>

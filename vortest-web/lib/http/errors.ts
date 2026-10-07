@@ -62,6 +62,10 @@ export function mapErrorToResponse(err: unknown): NextResponse {
     const { status, body } = err as { status: number; body: unknown };
     return NextResponse.json(body, { status });
   }
+  // request.json() con un cuerpo que no es JSON lanza SyntaxError: es un error del cliente, no del servidor.
+  if (err instanceof SyntaxError) {
+    return NextResponse.json({ error: "validation", message: "El cuerpo de la petición no es JSON válido" }, { status: 400 });
+  }
   console.error("[api] Error no controlado:", err);
   return NextResponse.json({ error: "Error interno" }, { status: 500 });
 }

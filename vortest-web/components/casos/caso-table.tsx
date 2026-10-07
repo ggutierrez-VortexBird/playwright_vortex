@@ -169,8 +169,9 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false, mostrarPro
           >
             Anterior
           </Button>
-          <span className="rounded-lg border border-m3-info bg-m3-info-container px-3 py-1.5 font-bold text-m3-info">
-            {paginaActual}
+          <span aria-live="polite" className="rounded-md bg-m3-primary-fixed px-3 py-1.5 font-semibold tabular-nums text-m3-on-primary-fixed">
+            <span className="sr-only">Página </span>
+            {paginaActual} de {totalPages}
           </span>
           <Button
             variant="secondary"

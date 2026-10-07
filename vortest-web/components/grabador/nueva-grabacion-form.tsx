@@ -7,6 +7,7 @@ import { encodeDraftQuery, type GrabacionDraft } from "@/lib/grabador/draft";
 import type { CredencialListItem } from "@/lib/grabador/types";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
 import { Alert } from "@/components/ui/alert";
+import { Field, Input, Select } from "@/components/ui/field";
 
 interface ProyectoOption {
   id: string;
@@ -132,20 +133,20 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
     }
   }
 
+  const [erroresCampo, setErroresCampo] = useState<{ proyecto?: string; nombre?: string; url?: string }>({});
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (proyectos && !selectedProyectoId) {
-      setError("Selecciona un proyecto");
-      return;
-    }
-    if (!nombre.trim()) {
-      setError("El nombre del caso es requerido");
-      return;
-    }
-    if (!urlCompleta || !isValidUrl(urlCompleta)) {
-      setError("La URL inicial debe ser válida (incluir http:// o https://)");
+    const errores: { proyecto?: string; nombre?: string; url?: string } = {};
+    if (proyectos && !selectedProyectoId) errores.proyecto = "Selecciona un proyecto";
+    if (!nombre.trim()) errores.nombre = "Escribe un nombre para el caso";
+    if (!urlCompleta || !isValidUrl(urlCompleta)) errores.url = "Escribe una URL completa, que empiece por http:// o https://";
+    setErroresCampo(errores);
+    const primero = (["proyecto", "nombre", "url"] as const).find((k) => errores[k]);
+    if (primero) {
+      document.getElementById({ proyecto: "grabar-proyecto", nombre: "caso_nombre", url: "url_inicial" }[primero])?.focus();
       return;
     }
 
@@ -206,134 +207,76 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
       <div className="p-6 space-y-6">
         {/* Proyecto — solo cuando no viene fijo desde el contenedor padre */}
         {proyectos && (
-          <div>
-            <label
-              htmlFor="grabar-proyecto"
-              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
-            >
-              Proyecto
-            </label>
-            <select
-              id="grabar-proyecto"
-              value={selectedProyectoId}
-              onChange={(e) => setSelectedProyectoId(e.target.value)}
-              required
-              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer"
-            >
+          <Field label="Proyecto" id="grabar-proyecto" required error={erroresCampo.proyecto}>
+            <Select value={selectedProyectoId} onChange={(e) => setSelectedProyectoId(e.target.value)}>
               <option value="">Selecciona un proyecto</option>
               {proyectos.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre} · {p.espacioNombre}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         )}
 
         {/* Nombre del Caso */}
-        <div>
-          <label
-            htmlFor="caso_nombre"
-            className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
-          >
-            Nombre del Caso
-          </label>
-          <input
-            id="caso_nombre"
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            maxLength={200}
-            placeholder="ej. Login Exitoso - Usuario Standard"
-            className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all"
-          />
-        </div>
+        <Field label="Nombre del caso" id="caso_nombre" required error={erroresCampo.nombre}>
+          <Input value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} placeholder="ej. Login exitoso - usuario estándar" />
+        </Field>
 
         {/* URL Inicial — HU-G34: input libre, el usuario tipea la URL completa
             (incluyendo scheme). La validación del scheme vive en el server
             (`iniciarSesionGrabacion`) y en el BrowserChrome post-start. */}
-        <div>
-          <label
-            htmlFor="url_inicial"
-            className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
-          >
-            URL Inicial
-          </label>
-          <input
-            id="url_inicial"
-            type="url"
-            value={urlInicial}
-            onChange={(e) => setUrlInicial(e.target.value)}
-            required
-            placeholder="https://app.ejemplo.com/login"
-            className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface placeholder:text-m3-on-surface-variant focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all"
-          />
-        </div>
+        <Field label="URL inicial" id="url_inicial" required error={erroresCampo.url} hint="La página donde abre el navegador del grabador.">
+          <Input type="url" value={urlInicial} onChange={(e) => setUrlInicial(e.target.value)} placeholder="https://app.ejemplo.com/login" className="font-mono-code text-body-sm" />
+        </Field>
 
         {/* Grid 2 cols */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Ambiente */}
-          <div>
-            <label
-              htmlFor="ambiente"
-              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
-            >
-              Ambiente
-            </label>
-            <select
-              id="ambiente"
-              value={ambiente}
-              onChange={(e) => setAmbiente(e.target.value as typeof ambiente)}
-              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer"
-            >
-              <option value="QA">QA (Testing)</option>
-              <option value="Staging">Staging (Pre-prod)</option>
+          <Field label="Ambiente" id="ambiente">
+            <Select value={ambiente} onChange={(e) => setAmbiente(e.target.value as typeof ambiente)}>
+              <option value="QA">QA (pruebas)</option>
+              <option value="Staging">Staging (preproducción)</option>
               <option value="Prod">Producción</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
 
           {/* Credencial */}
-          <div>
-            <label
-              htmlFor="credencial"
-              className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
-            >
-              Credencial (Auto-Login)
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="credencial" className="font-label text-label-md text-m3-on-surface">
+              Credencial (sesión iniciada)
             </label>
-            <select
+            <Select
               id="credencial"
+              aria-describedby="credencial-ayuda"
               value={credencialId}
               onChange={(e) => setCredencialId(e.target.value)}
               disabled={loadingCred || (!!proyectos && !selectedProyectoId)}
-              className="w-full bg-m3-surface-container-lowest border border-m3-outline-variant rounded px-3 py-2 font-body text-body-md text-m3-on-surface focus:outline-none focus:border-m3-secondary focus:ring-1 focus:ring-m3-secondary transition-all appearance-none cursor-pointer disabled:opacity-50"
             >
-              {/* "Login manual" siempre disponible: la credencial es
-                 opcional porque el grabador todavía no aplica su
-                 storageState al navegador. */}
-              <option value={sentinelNone}>Ninguna (Login manual)</option>
+              <option value={sentinelNone}>Ninguna (iniciar sesión a mano)</option>
               {credencialesState.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}
                   {c.vence ? ` (vence ${new Date(c.vence).toLocaleDateString(LOCALE, { timeZone: TIME_ZONE })})` : ""}
                 </option>
               ))}
-            </select>
-            <p className="mt-1.5 text-xs text-m3-on-surface-variant">
+            </Select>
+            <p id="credencial-ayuda" className="font-body text-body-xs text-m3-on-surface-variant">
               {proyectos && !selectedProyectoId
                 ? "Elige un proyecto para ver sus credenciales."
                 : loadingCred
                   ? "Cargando credenciales…"
                   : tieneCredenciales
-                    ? "La credencial queda registrada en la sesión. El login se hace dentro de la ventana del navegador que se abre."
-                    : "No hay credenciales para este proyecto. Puedes grabar igual: el login se hace dentro de la ventana del navegador que se abre."}
+                    ? "El navegador del grabador abre con esa sesión ya iniciada."
+                    : "No hay credenciales para este proyecto. Puedes grabar igual e iniciar sesión dentro de la ventana del grabador."}
             </p>
           </div>
 
           {/* Caso padre (login) */}
           <div>
             <label
-              htmlFor="parent-case"
+              htmlFor="parentCase"
               className="block font-label text-label-sm font-semibold text-m3-primary mb-1.5"
             >
               Caso padre (Login)

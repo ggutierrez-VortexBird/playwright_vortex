@@ -20,12 +20,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - **Identidad**: la paleta sale del logo (teal `#135C65` y ámbar `#EEAA0B`); los títulos van en tinta y el teal queda para lo accionable. Tokens en un solo archivo (`app/tokens.css`) [UI-01, UI-02].
 - **Vocabulario de resultados único**: "Conforme / No conforme", "En cola", "Ejecutando", "Error del motor", "Cancelada", siempre con ícono además del color [UI-04, UI-05].
 - Componentes base nuevos (Button con carga, Field, Alert, Toast, Card, Tabs, Spinner) en lugar de copias por pantalla [UI-06].
-- Formularios: error en línea, foco al primer error y aviso antes de cerrar con cambios sin guardar [UX-08].
+- Formularios (login, casos, proyectos, espacios, usuarios, credenciales, perfil y grabación): error en línea, foco al primer error y aviso antes de cerrar con cambios sin guardar [UX-08].
+- En móvil las migas muestran sólo la ubicación actual; la tabla de casos indica "Página 1 de 2" [UX-07, UX-10].
 - "Detener" confirma con el diálogo de la app en vez del `window.confirm` del navegador [UX-03].
 - La 404 y las pantallas de error explican qué pasó en español, con código de soporte y salidas claras [UI-08, UX-01].
 - Textos en español neutro (sin voseo ni jerga técnica) [UX-13].
 - El inicio calcula sus indicadores sobre todas las ejecuciones, no sobre las últimas 20 [BUG-15].
-- La API responde 400 ante un cuerpo inválido y 403 ante falta de permisos (antes 500) [BUG-12, BUG-13].
+- La API responde 400 ante un cuerpo que no es JSON (en todas las rutas) y 403 ante falta de permisos (antes 500) [BUG-12, BUG-13].
 - `npm run lint` vuelve a funcionar (`eslint .`, configuración de Next 16): 0 errores en web y motor [COD-01, COD-02].
 
 ### Corregido

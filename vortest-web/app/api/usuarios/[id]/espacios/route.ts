@@ -30,7 +30,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) {
+    return NextResponse.json({ error: "validation", message: "El cuerpo de la petición no es JSON válido" }, { status: 400 });
+  }
   const espacioIds: string[] = Array.isArray(body.espacioIds) ? body.espacioIds : [];
 
   try {
