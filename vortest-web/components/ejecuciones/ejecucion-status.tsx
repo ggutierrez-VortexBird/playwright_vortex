@@ -1,5 +1,4 @@
-import { StatusBadge } from '@/components/ui/status-badge'
-import { estadoLabel, estadoTone } from '@/lib/ejecuciones/estado'
+import { EstadoBadge } from '@/components/ui/status-badge'
 
 interface Paso {
   id: string
@@ -13,21 +12,6 @@ interface EjecucionStatusProps {
 }
 
 export function EjecucionStatus({ estado, pasos }: EjecucionStatusProps) {
-  let label = estadoLabel(estado, 'ejecucion')
-  if (estado === 'fallo' && pasos) {
-    const primerPasoFallido = pasos.find(p => p.estado === 'fallo')
-    if (primerPasoFallido) {
-      label = `Falló en el paso ${primerPasoFallido.numero}`
-    }
-  }
-
-  const tone = estadoTone(estado, 'ejecucion')
-  return (
-    <StatusBadge
-      tone={tone}
-      className={tone === 'neutral' ? 'border border-m3-outline-variant' : undefined}
-    >
-      {label}
-    </StatusBadge>
-  )
+  const primerPasoFallido = pasos?.find(p => p.estado === 'fallo')?.numero
+  return <EstadoBadge estado={estado} primerPasoFallido={primerPasoFallido} />
 }

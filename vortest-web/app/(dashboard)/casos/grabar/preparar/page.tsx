@@ -32,7 +32,7 @@ export default async function PrepararGrabacionPage({ searchParams }: PageProps)
           title="Preparar grabación"
           breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Preparar" }]}
         />
-        <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">
+        <div className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">
           Faltan datos de la grabación. Vuelve a completar el formulario.
         </div>
       </div>

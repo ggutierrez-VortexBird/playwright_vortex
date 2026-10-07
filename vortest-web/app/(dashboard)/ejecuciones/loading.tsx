@@ -14,7 +14,7 @@ export default function Loading() {
         {[1, 2].map((section) => (
           <div key={section} className="flex flex-col gap-3">
             <Skeleton className="h-4 w-32" />
-            <div className="overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+            <div className="overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
               {[1, 2, 3].map((row) => (
                 <div
                   key={row}

@@ -64,7 +64,7 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+    <div className="overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
       {/* Table header with search */}
       <div className="flex items-center gap-3 border-b border-m3-outline-variant bg-m3-surface-container px-4 py-2.5">
         <SectionSearch

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 interface UsuarioOption {
   id: string;
@@ -115,9 +116,7 @@ export function AdminsDialog({ espacioId, espacioNombre, onClose, onChanged }: A
         <p className="mb-3 font-body text-body-sm text-m3-on-surface-variant">{espacioNombre}</p>
 
         {error && (
-          <div className="mb-3 rounded border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">
-            {error}
-          </div>
+          <Alert tone="error" className="mb-3">{error}</Alert>
         )}
 
         {loading ? (

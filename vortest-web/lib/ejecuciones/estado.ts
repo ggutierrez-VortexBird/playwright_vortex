@@ -1,45 +1,56 @@
 /**
- * DUP-02 — Mapa único estado → etiqueta / tono para ejecuciones y pasos.
- * Todo el vocabulario es "Conforme / No conforme" (sin "Reparado").
+ * Mapa único estado → etiqueta, tono e ícono para ejecuciones, pasos y casos.
+ * Vocabulario del dominio: "Conforme / No conforme".
  */
 import type { StatusBadgeTone } from '@/components/ui/status-badge'
 
 export type EstadoContexto = 'ejecucion' | 'paso'
 
-export const ESTADO_LABEL: Record<EstadoContexto, Record<string, string>> = {
-  ejecucion: {
-    pendiente: 'Pendiente',
-    corriendo: 'Corriendo',
-    paso: 'Pasó',
-    fallo: 'Falló',
-    errorMotor: 'Error motor',
-    cancelado: 'Cancelado',
-  },
-  paso: {
-    paso: 'Conforme',
-    fallo: 'No conforme',
-  },
+interface EstadoVisual {
+  label: string
+  tone: StatusBadgeTone
+  icon: string
 }
 
-export const ESTADO_TONE: Record<EstadoContexto, Record<string, StatusBadgeTone>> = {
-  ejecucion: {
-    pendiente: 'info',
-    corriendo: 'warning',
-    paso: 'success',
-    fallo: 'error',
-    errorMotor: 'error',
-    cancelado: 'neutral',
-  },
-  paso: {
-    paso: 'success',
-    fallo: 'error',
-  },
+const EJECUCION: Record<string, EstadoVisual> = {
+  pendiente: { label: 'En cola', tone: 'info', icon: 'schedule' },
+  corriendo: { label: 'Ejecutando', tone: 'info', icon: 'progress_activity' },
+  paso: { label: 'Conforme', tone: 'success', icon: 'check_circle' },
+  fallo: { label: 'No conforme', tone: 'error', icon: 'cancel' },
+  errorMotor: { label: 'Error del motor', tone: 'warning', icon: 'report' },
+  cancelado: { label: 'Cancelada', tone: 'neutral', icon: 'block' },
+  'sin ejecuciones': { label: 'Sin ejecutar', tone: 'neutral', icon: 'radio_button_unchecked' },
+}
+
+const PASO: Record<string, EstadoVisual> = {
+  paso: { label: 'Conforme', tone: 'success', icon: 'check_circle' },
+  fallo: { label: 'No conforme', tone: 'error', icon: 'cancel' },
+  pendiente: { label: 'Pendiente', tone: 'neutral', icon: 'radio_button_unchecked' },
+  corriendo: { label: 'Ejecutando', tone: 'info', icon: 'progress_activity' },
+}
+
+const MAPAS: Record<EstadoContexto, Record<string, EstadoVisual>> = { ejecucion: EJECUCION, paso: PASO }
+
+export const ESTADOS_EN_CURSO = ['pendiente', 'corriendo'] as const
+
+export function estadoVisual(estado: string, contexto: EstadoContexto = 'ejecucion'): EstadoVisual {
+  return MAPAS[contexto][estado] ?? { label: estado, tone: 'neutral', icon: 'help' }
 }
 
 export function estadoLabel(estado: string, contexto: EstadoContexto = 'ejecucion'): string {
-  return ESTADO_LABEL[contexto][estado] ?? estado
+  return estadoVisual(estado, contexto).label
 }
 
 export function estadoTone(estado: string, contexto: EstadoContexto = 'ejecucion'): StatusBadgeTone {
-  return ESTADO_TONE[contexto][estado] ?? 'neutral'
+  return estadoVisual(estado, contexto).tone
+}
+
+/** "No conforme · paso 3" cuando se conoce el primer paso que falló. */
+export function resultadoEjecucionLabel(estado: string, primerPasoFallido?: number | null): string {
+  const base = estadoLabel(estado, 'ejecucion')
+  return estado === 'fallo' && primerPasoFallido != null ? `${base} · paso ${primerPasoFallido}` : base
+}
+
+export function estaEnCurso(estado: string): boolean {
+  return (ESTADOS_EN_CURSO as readonly string[]).includes(estado)
 }

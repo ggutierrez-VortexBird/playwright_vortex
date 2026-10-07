@@ -15,6 +15,7 @@ import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
 import { MobileNavProvider } from "@/components/mobile-nav-context";
 import { MobileMenuButton } from "@/components/ui/mobile-menu-button";
 import { ResponsiveSidebarShell } from "@/components/ui/responsive-sidebar-shell";
+import { ToastProvider } from "@/components/ui/toast";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -57,6 +58,7 @@ export default async function DashboardLayout({
   const navItems: SidebarNavItem[] = ALL_NAV_ITEMS.filter((item) => item.roles.includes(usuario.rol));
 
   return (
+    <ToastProvider>
     <ProjectProvider>
       <BreadcrumbProvider>
         <MobileNavProvider>
@@ -74,7 +76,7 @@ export default async function DashboardLayout({
               </div>
               <span
                 aria-hidden="true"
-                className="hidden h-10 w-10 items-center justify-center rounded-2xl bg-white/10 font-headline text-headline-md font-bold text-white md:flex lg:hidden"
+                className="hidden h-10 w-10 items-center justify-center rounded-lg bg-white/10 font-headline text-headline-md font-bold text-white md:flex lg:hidden"
               >
                 V
               </span>
@@ -120,5 +122,6 @@ export default async function DashboardLayout({
       </MobileNavProvider>
       </BreadcrumbProvider>
     </ProjectProvider>
+    </ToastProvider>
   );
 }

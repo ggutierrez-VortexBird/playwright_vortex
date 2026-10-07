@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/components/ui/button";
 
 interface PerfilClientProps {
   nombreActual: string | null;
@@ -148,7 +149,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
         onCancel={() => setPendingUrl(null)}
       />
       {/* Datos de la cuenta */}
-      <section className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
+      <section className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
         <h3 className="font-headline text-headline-md text-m3-on-surface">Datos de la cuenta</h3>
         {/* Issue #12: fixed copy */}
         <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
@@ -186,16 +187,9 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
             </p>
           )}
           <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={savingNombre}
-              className="flex items-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity duration-200"
-            >
-              {savingNombre && (
-                <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-              )}
-              {savingNombre ? "Guardando…" : "Guardar cambios"}
-            </button>
+            <Button type="submit" loading={savingNombre} loadingText="Guardando…">
+              Guardar cambios
+            </Button>
             {isDirty && (
               <button
                 type="button"
@@ -213,7 +207,7 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
       </section>
 
       {/* Seguridad */}
-      <section className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
+      <section className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
         <h3 className="font-headline text-headline-md text-m3-on-surface">Seguridad</h3>
         <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
           Cambia tu contraseña. Necesitas confirmar la actual.
@@ -290,16 +284,9 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
             </p>
           )}
           <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={savingPassword}
-              className="flex items-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity duration-200"
-            >
-              {savingPassword && (
-                <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-              )}
-              {savingPassword ? "Cambiando…" : "Cambiar contraseña"}
-            </button>
+            <Button type="submit" loading={savingPassword} loadingText="Cambiando…">
+              Cambiar contraseña
+            </Button>
             {isDirty && (
               <button
                 type="button"

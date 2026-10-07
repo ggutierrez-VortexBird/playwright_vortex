@@ -51,7 +51,7 @@ export function ParametrosPanel({ parametros, emptyMessage }: ParametrosPanelPro
 
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm p-6 text-center text-m3-on-surface-variant">
+      <div className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm p-6 text-center text-m3-on-surface-variant">
         <p className="text-sm">
           {emptyMessage ?? "Este caso no tiene parámetros."}
         </p>
@@ -64,7 +64,7 @@ export function ParametrosPanel({ parametros, emptyMessage }: ParametrosPanelPro
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+    <div className="overflow-x-auto rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
       <table className="w-full font-body text-body-sm">
         <thead className="bg-m3-surface-container text-m3-on-surface-variant">
           <tr>

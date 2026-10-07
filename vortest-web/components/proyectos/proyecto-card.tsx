@@ -144,7 +144,7 @@ export function ProyectoCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 rounded-xl border border-m3-outline-variant bg-m3-surface-container-low px-3 py-3 text-center">
+        <div className="grid grid-cols-3 gap-2 rounded-md border border-m3-outline-variant bg-m3-surface-container-low px-3 py-3 text-center">
           <div>
             <span className="block text-label-xs font-bold uppercase tracking-wider text-m3-on-surface-variant">Casos</span>
             <span className="text-lg font-bold leading-tight text-m3-on-surface">{proyecto.totalCasos}</span>

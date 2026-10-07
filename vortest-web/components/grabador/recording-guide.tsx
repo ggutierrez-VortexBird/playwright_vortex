@@ -44,7 +44,7 @@ export function RecordingGuide({ connState }: RecordingGuideProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm">
+      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between border-b border-m3-outline-variant pb-3">
           <h3 className="flex items-center gap-2 font-headline text-headline-sm text-m3-on-surface">
             <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-m3-info">help</span>
@@ -73,7 +73,7 @@ export function RecordingGuide({ connState }: RecordingGuideProps) {
         </ol>
       </div>
 
-      <div className="rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
+      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${service.dot}`} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Alert } from "@/components/ui/alert";
 
 interface UsuarioOption {
   id: string;
@@ -46,9 +47,7 @@ export function ResponsableSelect({ value, onChange }: ResponsableSelectProps) {
 
   if (error) {
     return (
-      <div className="mt-1 block w-full rounded-md border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">
-        {error}
-      </div>
+      <Alert tone="error" className="mt-1">{error}</Alert>
     );
   }
 

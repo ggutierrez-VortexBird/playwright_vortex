@@ -12,6 +12,7 @@
  * ACTA-Plan-Browser-Headed-Real.md.
  */
 import type { SpecLineKind } from "@/lib/recorder/parse-spec";
+import { Alert } from "@/components/ui/alert";
 
 export interface RecordingInstructionsProps {
   /** URL inicial que el QA tipeó en el form. */
@@ -56,7 +57,7 @@ export function RecordingInstructions({
   return (
     <div
       data-testid="recording-instructions"
-      className="relative overflow-hidden rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm sm:p-6"
+      className="relative overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm sm:p-6"
     >
       <div
         aria-hidden="true"
@@ -64,7 +65,7 @@ export function RecordingInstructions({
       />
 
       {/* Mockup de ventana externa (Playwright codegen headed) */}
-      <div className="relative mb-6 overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-low shadow-sm">
+      <div className="relative mb-6 overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-low shadow-sm">
         <div className="flex items-center justify-between border-b border-m3-outline-variant bg-m3-surface-container px-4 py-2.5">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
@@ -91,7 +92,7 @@ export function RecordingInstructions({
         </div>
 
         <div className="flex flex-col items-center bg-m3-surface-container-lowest p-8 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-m3-info/30 bg-m3-info-container text-m3-info shadow-sm">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg border border-m3-info/30 bg-m3-info-container text-m3-info shadow-sm">
             <span aria-hidden="true" className="material-symbols-outlined text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               videocam
             </span>
@@ -134,12 +135,8 @@ export function RecordingInstructions({
       </dl>
 
       {errorMsg && (
-        <div
-          data-testid="recording-error"
-          className="mt-4 rounded-lg border border-m3-error bg-m3-error-container/60 px-4 py-2 font-body text-body-sm text-m3-error"
-        >
-          {errorMsg}
-        </div>
+        <Alert tone="error"
+          data-testid="recording-error" className="mt-4">{errorMsg}</Alert>
       )}
     </div>
   );
@@ -155,7 +152,7 @@ function Stat({
   testid: string;
 }) {
   return (
-    <div className="rounded-xl border border-m3-outline-variant/70 bg-m3-surface-container-low p-3">
+    <div className="rounded-md border border-m3-outline-variant/70 bg-m3-surface-container-low p-3">
       <span className="block font-label text-label-sm font-semibold uppercase tracking-wider text-m3-on-surface-variant">
         {label}
       </span>

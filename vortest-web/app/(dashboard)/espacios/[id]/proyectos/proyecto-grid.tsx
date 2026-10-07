@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
+import { Alert } from "@/components/ui/alert";
 
 interface ProyectoGridProps {
   espacioId: string;
@@ -146,9 +147,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-m3-error bg-m3-error-container p-4 text-m3-error">
-        Error: {error}
-      </div>
+      <Alert tone="error">Error: {error}</Alert>
     );
   }
 

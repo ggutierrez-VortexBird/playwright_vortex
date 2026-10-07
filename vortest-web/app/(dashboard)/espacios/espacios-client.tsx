@@ -337,7 +337,7 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
             }}
             placeholder="Buscar espacio…"
           />
-          <div className="flex items-center gap-1 rounded-xl border border-m3-outline-variant bg-m3-surface-container p-1">
+          <div className="flex items-center gap-1 rounded-md border border-m3-outline-variant bg-m3-surface-container p-1">
             <button
               onClick={() => setViewMode("grid")}
               className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${

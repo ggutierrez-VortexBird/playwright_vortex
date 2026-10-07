@@ -6,6 +6,7 @@ import { ParentCaseSelect } from "@/components/casos/parent-case-select";
 import { encodeDraftQuery, type GrabacionDraft } from "@/lib/grabador/draft";
 import type { CredencialListItem } from "@/lib/grabador/types";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
+import { Alert } from "@/components/ui/alert";
 
 interface ProyectoOption {
   id: string;
@@ -168,7 +169,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
       className={
         embedded
           ? "w-full"
-          : "w-full max-w-2xl bg-m3-surface-container-lowest border border-m3-surface-variant rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] overflow-hidden"
+          : "w-full max-w-2xl bg-m3-surface-container-lowest border border-m3-surface-variant rounded-md shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] overflow-hidden"
       }
     >
       {/* Header (omitido en modo embebido: el contenedor padre ya muestra título/volver) */}
@@ -421,13 +422,8 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
 
         {/* Error */}
         {error && (
-          <div
-            role="alert"
-            data-testid="form-error"
-            className="rounded-md border border-m3-error-container bg-m3-error-container/40 px-3 py-2 font-body text-body-md text-m3-error"
-          >
-            {error}
-          </div>
+          <Alert tone="error"
+            data-testid="form-error">{error}</Alert>
         )}
       </div>
 

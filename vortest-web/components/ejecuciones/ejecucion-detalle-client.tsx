@@ -411,7 +411,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
             ) : videoArtefacto ? (
               <div className="video">
                 <div className="ann">
-                  {ejecucion.estado === 'fallo' ? 'Fallo · verificación' : 'Paso destacado'}
+                  {ejecucion.estado === 'fallo' ? 'No conforme' : 'Paso destacado'}
                 </div>
                 <video
                   ref={videoRef}
@@ -448,7 +448,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
             ) : (
               <div className="video">
                 <div className="ann">
-                  {ejecucion.estado === 'fallo' ? 'Fallo · verificación' : 'Sin video'}
+                  {ejecucion.estado === 'fallo' ? 'No conforme' : 'Sin video'}
                 </div>
                 <div className="flex items-center justify-center text-white/70 text-sm">
                   No hay video disponible

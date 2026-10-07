@@ -1,4 +1,14 @@
 import { formatDuration, formatFecha } from '@/lib/format'
+import { estadoTone, resultadoEjecucionLabel } from '@/lib/ejecuciones/estado'
+import type { StatusBadgeTone } from '@/components/ui/status-badge'
+
+const COLOR_TONO: Record<StatusBadgeTone, string> = {
+  success: 'text-m3-success',
+  error: 'text-m3-error',
+  warning: 'text-m3-warning',
+  info: 'text-m3-info',
+  neutral: 'text-m3-on-surface',
+}
 
 interface Paso {
   id: string
@@ -24,32 +34,8 @@ export function EjecucionSummary({
   pasos,
 }: Props) {
   const primerPasoFallido = pasos?.find(p => p.estado === 'fallo')
-  const pasoFalloLabel = primerPasoFallido
-    ? `No conforme (paso ${primerPasoFallido.numero})`
-    : 'No conforme'
-
-  const resultadoLabel =
-    estado === 'paso'
-      ? 'Conforme'
-      : estado === 'fallo'
-        ? pasoFalloLabel
-        : estado === 'reparado'
-          ? 'Reparado'
-          : estado === 'corriendo'
-            ? 'Corriendo'
-            : estado === 'pendiente'
-              ? 'Pendiente'
-              : estado === 'errorMotor'
-                ? 'Error motor'
-                : estado
-  const resultadoColorClass =
-    estado === 'paso'
-      ? 'text-m3-on-tertiary-container'
-      : estado === 'fallo'
-        ? 'text-m3-error'
-        : estado === 'reparado'
-          ? 'text-m3-on-secondary-container'
-          : 'text-m3-on-surface'
+  const resultadoLabel = resultadoEjecucionLabel(estado, primerPasoFallido?.numero)
+  const resultadoColorClass = COLOR_TONO[estadoTone(estado)]
 
   return (
     <div className="flex flex-wrap gap-6 border-b border-m3-outline-variant px-5 py-4">

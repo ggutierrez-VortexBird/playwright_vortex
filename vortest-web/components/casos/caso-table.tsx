@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { StatusBadge, type StatusBadgeTone } from "@/components/ui/status-badge";
+import { EstadoBadge } from "@/components/ui/status-badge";
 import type { CasoPruebaListItem } from "@/types/caso";
 import { formatFecha } from "@/lib/format";
+import { Spinner } from "@/components/ui/spinner";
 
 const PAGE_SIZE = 10;
 
@@ -23,46 +24,6 @@ const ORIGEN_LABEL: Record<CasoPruebaListItem["origen"], string> = {
   mixto: "mixto",
 };
 
-function getEstadoBadge(
-  estado: CasoPruebaListItem["estado"],
-  primerPasoFallidoNumero?: number | null,
-) {
-  const map: Record<
-    CasoPruebaListItem["estado"],
-    { label: string; tone: StatusBadgeTone; className?: string }
-  > = {
-    "sin ejecuciones": {
-      label: "Sin ejecutar",
-      tone: "neutral",
-    },
-    paso: {
-      label: "Pasó",
-      tone: "success",
-    },
-    fallo: {
-      label:
-        primerPasoFallidoNumero != null
-          ? `Falló en el paso ${primerPasoFallidoNumero}`
-          : "Falló",
-      tone: "error",
-    },
-    errorMotor: {
-      label: "Error motor",
-      tone: "error",
-    },
-  };
-  // Fallback for unknown estados (e.g. "pendiente", "corriendo") coming from
-  // legacy rows, API/DB drift, or future states not yet mapped. Without this
-  // guard, reading `badge.tone` would throw "Cannot read properties of
-  // undefined".
-  return (
-    map[estado] ?? {
-      label: estado,
-      tone: "neutral" as StatusBadgeTone,
-      className: "border border-m3-outline-variant",
-    }
-  );
-}
 
 export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTableProps) {
   const [page, setPage] = useState(1);
@@ -100,14 +61,10 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
           </thead>
           <tbody className="divide-y divide-m3-outline-variant">
             {casosPagina.map((caso) => {
-              const badge = getEstadoBadge(caso.estado, caso.primerPasoFallidoNumero);
               return (
                 <CasoRow
                   key={caso.id}
                   caso={caso}
-                  badgeTone={badge.tone}
-                  badgeClassName={badge.className}
-                  badgeLabel={badge.label}
                   canEdit={canEdit}
                   onEdit={onEdit}
                   onDelete={onDelete}
@@ -121,14 +78,10 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
       {/* Tarjetas — móvil */}
       <div className="flex flex-col divide-y divide-m3-outline-variant md:hidden">
         {casosPagina.map((caso) => {
-          const badge = getEstadoBadge(caso.estado, caso.primerPasoFallidoNumero);
           return (
             <CasoCard
               key={caso.id}
               caso={caso}
-              badgeTone={badge.tone}
-              badgeClassName={badge.className}
-              badgeLabel={badge.label}
               canEdit={canEdit}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -170,9 +123,6 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false }: CasoTabl
 
 interface CasoRowProps {
   caso: CasoPruebaListItem;
-  badgeTone: StatusBadgeTone;
-  badgeClassName?: string;
-  badgeLabel: string;
   canEdit: boolean;
   onEdit?: (caso: CasoPruebaListItem) => void;
   onDelete?: (caso: CasoPruebaListItem) => void;
@@ -248,10 +198,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
         title={running ? "Lanzando…" : "Ejecutar"}
       >
         {running ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
+          <Spinner size={20} label="Lanzando ejecución" />
         ) : (
           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">play_arrow</span>
         )}
@@ -301,7 +248,7 @@ function AccionesCaso({ caso, canEdit, running, error, onEjecutar, onEdit, onDel
   );
 }
 
-function CasoRow({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoRow({ caso, canEdit, onEdit, onDelete }: CasoRowProps) {
   const { running, error, handleEjecutar } = useEjecutarCaso(caso);
 
   function handleRowClick() {
@@ -347,9 +294,7 @@ function CasoRow({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit,
         {caso.responsableEmail}
       </td>
       <td className="px-5 py-3">
-        <StatusBadge tone={badgeTone} className={badgeClassName}>
-          {badgeLabel}
-        </StatusBadge>
+        <EstadoBadge estado={caso.estado} primerPasoFallido={caso.primerPasoFallidoNumero} />
       </td>
       <td className="px-5 py-3 font-body text-body-sm text-m3-on-surface-variant">
         {formatFecha(caso.fechaUltimaEjecucion, { dia: "numeric" })}
@@ -369,7 +314,7 @@ function CasoRow({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit,
   );
 }
 
-function CasoCard({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit, onDelete }: CasoRowProps) {
+function CasoCard({ caso, canEdit, onEdit, onDelete }: CasoRowProps) {
   const { running, error, handleEjecutar } = useEjecutarCaso(caso);
   const hasEjecucion = !!caso.ultimaEjecucionId;
 
@@ -401,9 +346,7 @@ function CasoCard({ caso, badgeTone, badgeClassName, badgeLabel, canEdit, onEdit
             {caso.nombre}
           </Link>
         </div>
-        <StatusBadge tone={badgeTone} className={`shrink-0 ${badgeClassName ?? ""}`}>
-          {badgeLabel}
-        </StatusBadge>
+        <EstadoBadge estado={caso.estado} primerPasoFallido={caso.primerPasoFallidoNumero} className="shrink-0" />
       </div>
 
       {caso.parentCaseCodigo && (

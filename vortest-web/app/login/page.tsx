@@ -11,7 +11,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-m3-surface p-4">
-      <div className="w-full max-w-sm rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-8 shadow-card">
+      <div className="w-full max-w-sm rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 shadow-card">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="light" />
           <p className="mt-3 font-body text-body-sm text-m3-on-surface-variant">

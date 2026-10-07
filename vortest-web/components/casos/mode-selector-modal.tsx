@@ -162,7 +162,7 @@ export function ModeSelectorModal({
                 type="button"
                 onClick={() => handleCardClick(card)}
                 data-testid={`mode-selector-card-${card.id}`}
-                className="group flex flex-col items-center rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center transition-all hover:border-m3-secondary hover:bg-m3-secondary-fixed/20 focus:outline-none focus-visible:border-m3-secondary focus-visible:bg-m3-secondary-fixed/20 focus-visible:ring-2 focus-visible:ring-m3-secondary"
+                className="group flex flex-col items-center rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center transition-all hover:border-m3-secondary hover:bg-m3-secondary-fixed/20 focus:outline-none focus-visible:border-m3-secondary focus-visible:bg-m3-secondary-fixed/20 focus-visible:ring-2 focus-visible:ring-m3-secondary"
               >
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-m3-surface-container-high transition-all group-hover:scale-105 group-hover:bg-m3-secondary-container">
                   <span aria-hidden="true"

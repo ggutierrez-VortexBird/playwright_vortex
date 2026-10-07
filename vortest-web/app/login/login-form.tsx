@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface LoginFormProps {
   action: (
@@ -110,18 +111,9 @@ export function LoginForm({ action, callbackUrl }: LoginFormProps) {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-m3-primary px-4 py-2.5 font-label text-label-lg font-semibold text-m3-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 transition-opacity duration-200"
-      >
-        {isPending && (
-          <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[18px]">
-            progress_activity
-          </span>
-        )}
-        {isPending ? "Iniciando sesión..." : "Iniciar sesión"}
-      </button>
+      <Button type="submit" loading={isPending} loadingText="Iniciando sesión…" className="mt-1 h-11 w-full text-label-lg">
+        Iniciar sesión
+      </Button>
     </form>
   );
 }

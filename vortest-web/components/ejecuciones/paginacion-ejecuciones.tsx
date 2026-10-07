@@ -39,7 +39,7 @@ export function PaginacionEjecuciones({ paginaActual, totalPaginas, total, q, es
   return (
     <nav
       aria-label="Paginación de ejecuciones"
-      className="flex flex-col items-center justify-between gap-4 rounded-xl border border-m3-outline-variant bg-m3-surface-container px-5 py-3 sm:flex-row"
+      className="flex flex-col items-center justify-between gap-4 rounded-md border border-m3-outline-variant bg-m3-surface-container px-5 py-3 sm:flex-row"
     >
       <p className="font-label text-label-xs text-m3-on-surface-variant">
         Página <span className="font-semibold text-m3-on-surface">{paginaActual}</span> de{' '}

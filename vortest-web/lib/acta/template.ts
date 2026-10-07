@@ -4,17 +4,17 @@
  * Renderiza una página A4 con los datos de la ejecución:
  *   - Encabezado: caso, código, ambiente, navegador, sistema operativo
  *   - Resumen: resultado, duración, inicio/fin, aserciones
- *   - Lista de pasos con estado (conforme / no conforme / reparado)
+ *   - Lista de pasos con estado (conforme / no conforme)
  *   - Tabla de entorno
  *   - Sello "Conforme" o "No conforme" + consecutivo del acta
  *
  * Devuelve HTML listo para `page.setContent(html)` en Playwright.
- * Reusa los tokens del dashboard (--ink, --stamp, --seal, --amber, etc.)
- * vía inline styles para que el PDF sea consistente con el UI.
+ * Etiquetas desde lib/ejecuciones/estado.ts; colores fijos de la marca porque el PDF no lee los tokens CSS.
  */
 
 import type { ActaTemplateInput } from "./types";
 import { formatDuration, formatFecha } from "@/lib/format";
+import { estadoLabel, resultadoEjecucionLabel } from "@/lib/ejecuciones/estado";
 
 /** Escape básico de HTML para evitar inyección desde campos libres. */
 function escapeHtml(value: string | null | undefined): string {
@@ -27,32 +27,18 @@ function escapeHtml(value: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
+const COLOR_ESTADO: Record<string, string> = {
+  paso: "#16753a",
+  fallo: "#b3261e",
+  errorMotor: "#8a5700",
+};
+
 function statusLabel(estado: string): string {
-  switch (estado) {
-    case "paso":
-      return "Conforme";
-    case "fallo":
-      return "No conforme";
-    case "reparado":
-      return "Reparado";
-    case "skipped":
-      return "Omitido";
-    default:
-      return estado;
-  }
+  return estadoLabel(estado, "paso");
 }
 
 function statusColor(estado: string): string {
-  switch (estado) {
-    case "paso":
-      return "#0e6b4f"; // --seal
-    case "fallo":
-      return "#a8322a"; // --stamp
-    case "reparado":
-      return "#a9741a"; // --amber
-    default:
-      return "#3a4b5c"; // --ink-2
-  }
+  return COLOR_ESTADO[estado] ?? "#43575b";
 }
 
 /**
@@ -67,24 +53,8 @@ export function renderActaHTML(input: ActaTemplateInput): string {
   const espacio = proyecto.espacio;
 
   const failedPaso = ejecucion.pasos.find((p) => p.estado === "fallo");
-  const resultadoLabel = ejecucion.estado === "paso"
-    ? "Conforme"
-    : ejecucion.estado === "fallo"
-      ? `No conforme${failedPaso ? ` (paso ${failedPaso.numero})` : ""}`
-      : ejecucion.estado === "reparado"
-        ? "Reparado"
-        : ejecucion.estado === "errorMotor"
-          ? "Error motor"
-          : "Pendiente";
-
-  const resultadoColor =
-    ejecucion.estado === "paso"
-      ? "#0e6b4f"
-      : ejecucion.estado === "fallo"
-        ? "#a8322a"
-        : ejecucion.estado === "reparado"
-          ? "#a9741a"
-          : "#131e2b";
+  const resultadoLabel = resultadoEjecucionLabel(ejecucion.estado, failedPaso?.numero);
+  const resultadoColor = COLOR_ESTADO[ejecucion.estado] ?? "#152427";
 
   return `<!doctype html>
 <html lang="es">
@@ -96,7 +66,7 @@ export function renderActaHTML(input: ActaTemplateInput): string {
   * { box-sizing: border-box; }
   body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    color: #131e2b;
+    color: #152427;
     font-size: 10.5pt;
     line-height: 1.4;
     margin: 0;
@@ -112,7 +82,7 @@ export function renderActaHTML(input: ActaTemplateInput): string {
     border-radius: 3px;
   }
   .header {
-    border-bottom: 2px solid #131e2b;
+    border-bottom: 2px solid #152427;
     padding-bottom: 12px;
     margin-bottom: 16px;
     display: flex;
@@ -121,8 +91,8 @@ export function renderActaHTML(input: ActaTemplateInput): string {
     gap: 12px;
   }
   .header h1 { font-size: 18pt; margin-bottom: 4px; }
-  .header .sub { color: #6b7c8d; font-size: 9pt; }
-  .header .meta { text-align: right; font-size: 9pt; color: #3a4b5c; }
+  .header .sub { color: #6e8286; font-size: 9pt; }
+  .header .meta { text-align: right; font-size: 9pt; color: #43575b; }
   .seal {
     display: inline-block;
     padding: 6px 14px;
@@ -141,20 +111,20 @@ export function renderActaHTML(input: ActaTemplateInput): string {
     gap: 8px;
     margin-bottom: 16px;
     padding: 10px 12px;
-    background: #f5f7f9;
+    background: #f5f8f8;
     border-radius: 4px;
   }
   .stats .k {
     font-size: 8pt;
     text-transform: uppercase;
-    color: #6b7c8d;
+    color: #6e8286;
     letter-spacing: 1px;
     margin-bottom: 2px;
   }
   .stats .v {
     font-size: 11pt;
     font-weight: 600;
-    color: #131e2b;
+    color: #152427;
   }
   .section {
     margin-bottom: 14px;
@@ -164,8 +134,8 @@ export function renderActaHTML(input: ActaTemplateInput): string {
     font-size: 11pt;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #131e2b;
-    border-bottom: 1px solid #d7e0e7;
+    color: #152427;
+    border-bottom: 1px solid #c5d1d3;
     padding-bottom: 4px;
     margin-bottom: 8px;
   }
@@ -177,23 +147,23 @@ export function renderActaHTML(input: ActaTemplateInput): string {
   th, td {
     text-align: left;
     padding: 6px 8px;
-    border-bottom: 1px solid #e7edf1;
+    border-bottom: 1px solid #e3eaea;
     vertical-align: top;
   }
   th {
-    background: #eef2f5;
+    background: #eef3f3;
     font-weight: 600;
     font-size: 9pt;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-  td.num { width: 36px; text-align: right; color: #6b7c8d; }
+  td.num { width: 36px; text-align: right; color: #6e8286; }
   td.estado {
     width: 100px;
     font-weight: 600;
     font-size: 9pt;
   }
-  td.dur { width: 64px; text-align: right; color: #3a4b5c; }
+  td.dur { width: 64px; text-align: right; color: #43575b; }
   .firma {
     margin-top: 32px;
     display: grid;
@@ -202,17 +172,17 @@ export function renderActaHTML(input: ActaTemplateInput): string {
     page-break-inside: avoid;
   }
   .firma .box {
-    border-top: 1px solid #131e2b;
+    border-top: 1px solid #152427;
     padding-top: 4px;
     font-size: 9pt;
-    color: #6b7c8d;
+    color: #6e8286;
   }
   .footer {
     margin-top: 18px;
     padding-top: 8px;
-    border-top: 1px solid #d7e0e7;
+    border-top: 1px solid #c5d1d3;
     font-size: 8pt;
-    color: #6b7c8d;
+    color: #6e8286;
     text-align: center;
   }
 </style>
@@ -296,7 +266,7 @@ export function renderActaHTML(input: ActaTemplateInput): string {
     ejecucion.errorMsg
       ? `<div class="section">
         <h2>Detalle del error</h2>
-        <div style="padding:8px 12px;background:#fbe7e6;border-left:3px solid #a8322a;border-radius:2px;font-family:monospace;font-size:9pt">${escapeHtml(ejecucion.errorMsg)}</div>
+        <div style="padding:8px 12px;background:#fbe7e6;border-left:3px solid #b3261e;border-radius:2px;font-family:monospace;font-size:9pt">${escapeHtml(ejecucion.errorMsg)}</div>
       </div>`
       : ""
   }

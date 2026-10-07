@@ -43,7 +43,7 @@ const TREND_COLORS: Record<string, string> = {
  * Canonical KPI stat card — resolves Issue #17 (media): 4 stat cards identical.
  *
  * Anatomy (comfortable):
- *   rounded-xl shadow-card p-5 bg-m3-surface-container-lowest
+ *   rounded-md shadow-card p-5 bg-m3-surface-container-lowest
  *   accent variant adds border-left 4px
  *   label: font-label text-label-sm title-case uppercase tracking-wide
  *   value: font-headline text-display-md (or text-headline-lg for accent)
@@ -66,7 +66,7 @@ export function KpiTile({
   return (
     <div
       className={cn(
-        "group relative rounded-xl bg-m3-surface-container-lowest shadow-card",
+        "group relative rounded-md bg-m3-surface-container-lowest shadow-card",
         "transition-shadow duration-200",
         "hover:shadow-card-hover",
         density === "compact" && "p-4",

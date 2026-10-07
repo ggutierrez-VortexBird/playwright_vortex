@@ -17,10 +17,9 @@ import { formatFecha } from "@/lib/format";
 const ESTADO_TOKEN: Record<string, string> = {
   paso: "m3-tertiary",
   fallo: "m3-error",
-  reparado: "m3-secondary",
-  corriendo: "m3-primary",
+  corriendo: "m3-info",
+  errorMotor: "m3-warning",
   pendiente: "m3-outline-variant",
-  errorMotor: "m3-outline-variant",
   cancelado: "m3-outline-variant",
 };
 
@@ -101,7 +100,7 @@ export default async function DashboardHomePage() {
       {totalEjecuciones > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Executions by space */}
-          <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
             <h3 className="font-headline text-headline-sm text-m3-on-surface">Ejecuciones por espacio</h3>
             <p className="font-body text-body-sm text-m3-on-surface-variant">Total general</p>
             <div className="mt-2">
@@ -110,7 +109,7 @@ export default async function DashboardHomePage() {
           </div>
 
           {/* Results distribution — Issue #21: use M3 tokens */}
-          <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
+          <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
             <h3 className="font-headline text-headline-sm text-m3-on-surface">Distribución de resultados</h3>
             <p className="font-body text-body-sm text-m3-on-surface-variant">
               {totalEjecuciones} ejecuciones · todos los espacios
@@ -143,7 +142,7 @@ export default async function DashboardHomePage() {
       )}
 
       {/* Recent activity */}
-      <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
+      <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
         <div className="flex items-center justify-between border-b border-m3-outline-variant px-5 py-4">
           <h3 className="font-headline text-headline-md text-m3-on-surface">Actividad reciente</h3>
           <Link

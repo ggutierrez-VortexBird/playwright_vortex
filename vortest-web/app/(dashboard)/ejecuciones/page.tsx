@@ -95,19 +95,19 @@ export default async function EjecucionesPage({ searchParams }: EjecucionesPageP
               {totalPassed > 0 && (
                 <span className="text-m3-success">
                   <span className="font-semibold">{totalPassed}</span>
-                  <span className="text-m3-on-surface-variant ml-1">pasó</span>
+                  <span className="text-m3-on-surface-variant ml-1">{totalPassed === 1 ? 'conforme' : 'conformes'}</span>
                 </span>
               )}
               {totalFailed > 0 && (
                 <span className="text-m3-error">
                   <span className="font-semibold">{totalFailed}</span>
-                  <span className="text-m3-on-surface-variant ml-1">falló</span>
+                  <span className="text-m3-on-surface-variant ml-1">{totalFailed === 1 ? 'no conforme' : 'no conformes'}</span>
                 </span>
               )}
               {totalSkipped > 0 && (
                 <span className="text-m3-on-surface-variant">
                   <span className="font-semibold">{totalSkipped}</span>
-                  <span className="ml-1">omitido</span>
+                  <span className="ml-1">sin resultado</span>
                 </span>
               )}
             </div>

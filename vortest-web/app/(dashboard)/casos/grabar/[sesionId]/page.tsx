@@ -59,7 +59,7 @@ export default async function SesionGrabacionPage({
           title="Sesión de grabación"
           breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Sesión" }]}
         />
-        <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">
+        <div className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center font-body text-body-md text-m3-on-surface-variant shadow-sm">
           Esta sesión no tiene un token activo. Vuelve a iniciar la grabación.
         </div>
       </div>

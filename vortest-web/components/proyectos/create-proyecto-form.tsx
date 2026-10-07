@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 interface EspacioOption {
   id: string;
@@ -160,9 +161,7 @@ export function CreateProyectoForm({ espacioId, espacios, onSuccess, onCancel }:
         <ColorPicker name="color" value={color} onChange={setColor} />
 
         {error && (
-          <div className="rounded-md bg-m3-error-container p-3 text-sm text-m3-error">
-            {error}
-          </div>
+          <Alert tone="error">{error}</Alert>
         )}
 
         <div className="mt-1 flex justify-end gap-3">

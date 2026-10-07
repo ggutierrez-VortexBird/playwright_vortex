@@ -2,8 +2,7 @@
 
 import { Camera } from 'lucide-react'
 import { useCallback, useState, useEffect } from 'react'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { estadoLabel, estadoTone } from '@/lib/ejecuciones/estado'
+import { EstadoBadge } from '@/components/ui/status-badge'
 import { formatDuration } from '@/lib/format'
 
 interface Subaccion {
@@ -97,9 +96,7 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
           <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
             {subaccion.tipo}
           </span>
-          <StatusBadge tone={estadoTone(subaccion.estado, 'paso')} className="px-2 text-label-xs">
-            {estadoLabel(subaccion.estado, 'paso')}
-          </StatusBadge>
+          <EstadoBadge estado={subaccion.estado} contexto="paso" className="text-label-xs" />
           <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
         </button>
 
@@ -158,9 +155,7 @@ export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Prop
       <span className="text-label-xs uppercase tracking-wider text-m3-on-surface-variant/70 border border-m3-outline-variant px-1.5 py-0.5 rounded">
         {subaccion.tipo}
       </span>
-      <StatusBadge tone={estadoTone(subaccion.estado, 'paso')} className="px-2 text-label-xs">
-        {estadoLabel(subaccion.estado, 'paso')}
-      </StatusBadge>
+      <EstadoBadge estado={subaccion.estado} contexto="paso" className="text-label-xs" />
       <span className="text-xs text-m3-on-surface-variant/70 mono">{formatDuration(subaccion.duracionMs, { soloSegundos: true })}</span>
     </div>
   )

@@ -43,7 +43,7 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
       return (
         <div className="flex flex-col gap-6">
           <PageHeader title="Nueva grabación" breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Nueva" }]} />
-          <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center text-m3-on-surface-variant">
+          <div className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center text-m3-on-surface-variant">
             No hay proyectos activos. Crea un proyecto primero.
           </div>
         </div>
@@ -73,7 +73,7 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title="Nueva grabación" breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Nueva" }]} />
-        <div className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center text-m3-on-surface-variant">Proyecto no encontrado.</div>
+        <div className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-6 text-center text-m3-on-surface-variant">Proyecto no encontrado.</div>
       </div>
     );
   }

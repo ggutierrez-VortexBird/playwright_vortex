@@ -1,62 +1,66 @@
 import { forwardRef } from "react";
 import Link, { type LinkProps } from "next/link";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/ui/icon";
+import { Spinner } from "@/components/ui/spinner";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "tonal" | "danger" | "ghost";
 export type ButtonSize = "sm" | "md";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonVisualProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /** Ícono Material Symbols a la izquierda del texto. */
+  icon?: string;
 }
 
-// Común a todas las variantes, incluida `ghost`.
-const BASE = "disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVisualProps {
+  /** Deshabilita el botón, muestra un spinner y, si se pasa, cambia el texto (p. ej. "Guardando…"). */
+  loading?: boolean;
+  loadingText?: string;
+}
 
-// Radio + tipografía del plan aprobado aplican solo a las variantes
-// "sólidas" (primary/secondary/danger); `ghost` es un caso aparte (acciones
-// de fila tipo icono, sin texto ni radio de 12px) y no lleva este bloque.
+const BASE =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap transition-[background-color,color,box-shadow,transform,opacity] duration-fast ease-standard active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 motion-reduce:active:scale-100";
+
 const SOLID_BASE = "rounded-md font-label text-label-md font-semibold";
 
 const VARIANT_CLASSNAMES: Record<ButtonVariant, string> = {
-  // Filled, sin sombra — decisión deliberada del plan aprobado, no un olvido.
-  primary: "bg-m3-primary text-m3-on-primary hover:opacity-90",
-  secondary:
-    "border border-m3-outline-variant bg-transparent text-m3-on-surface hover:bg-m3-surface-container-high",
-  danger: "bg-m3-error text-m3-on-error hover:opacity-90",
-  // Acciones de fila tipo icono — el llamador tiñe el hover por acción
-  // (editar=primary, eliminar=error, etc.) vía className passthrough.
-  ghost: "text-m3-on-surface-variant hover:bg-m3-surface-container-high",
+  primary: "bg-m3-primary text-m3-on-primary hover:bg-m3-primary/90 shadow-sm",
+  secondary: "border border-m3-outline-variant bg-m3-surface-container-lowest text-m3-on-surface hover:bg-m3-surface-container-high",
+  tonal: "bg-m3-primary-fixed text-m3-on-primary-fixed hover:bg-m3-primary-fixed-dim",
+  danger: "bg-m3-error text-m3-on-error hover:bg-m3-error/90",
+  ghost: "rounded-md text-m3-on-surface-variant hover:bg-m3-surface-container-high hover:text-m3-on-surface",
 };
 
 const SIZE_CLASSNAMES: Record<ButtonVariant, Record<ButtonSize, string>> = {
-  primary: { sm: "px-3 py-1.5 text-label-sm", md: "px-4 py-2.5" },
-  secondary: { sm: "px-3 py-1.5 text-label-sm", md: "px-4 py-2.5" },
-  danger: { sm: "px-3 py-1.5 text-label-sm", md: "px-4 py-2.5" },
+  primary: { sm: "h-8 px-3 text-label-sm", md: "h-10 px-4" },
+  secondary: { sm: "h-8 px-3 text-label-sm", md: "h-10 px-4" },
+  tonal: { sm: "h-8 px-3 text-label-sm", md: "h-10 px-4" },
+  danger: { sm: "h-8 px-3 text-label-sm", md: "h-10 px-4" },
   ghost: { sm: "p-1.5", md: "p-2" },
 };
 
-/**
- * Botón compartido para toda la app: cubre acciones primarias, secundarias,
- * destructivas y de fila (ghost/icono). Un solo lugar para el tratamiento
- * visual — variantes y tamaños, nunca clases repetidas por pantalla.
- */
+export function buttonClassName({ variant = "primary", size = "md" }: ButtonVisualProps = {}, className?: string) {
+  return cn(BASE, variant !== "ghost" && SOLID_BASE, VARIANT_CLASSNAMES[variant], SIZE_CLASSNAMES[variant][size], className);
+}
+
+/** Botón único de la app: variantes, tamaños, ícono y estado de carga. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "primary", size = "md", className, ...rest }, ref) => {
-    const isGhost = variant === "ghost";
+  ({ variant = "primary", size = "md", icon, loading = false, loadingText, disabled, className, children, type = "button", ...rest }, ref) => {
+    const iconSize = size === "sm" ? 16 : 18;
     return (
       <button
         ref={ref}
-        className={cn(
-          BASE,
-          !isGhost && SOLID_BASE,
-          VARIANT_CLASSNAMES[variant],
-          SIZE_CLASSNAMES[variant][size],
-          isGhost && "rounded-lg",
-          className
-        )}
+        type={type}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        className={buttonClassName({ variant, size }, className)}
         {...rest}
-      />
+      >
+        {loading ? <Spinner size={iconSize} /> : icon && <Icon name={icon} size={iconSize} />}
+        {loading && loadingText ? loadingText : children}
+      </button>
     );
   }
 );
@@ -65,42 +69,25 @@ Button.displayName = "Button";
 
 export interface ButtonLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">,
-    Pick<LinkProps, "href" | "prefetch" | "replace" | "scroll"> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-}
+    Pick<LinkProps, "href" | "prefetch" | "replace" | "scroll">,
+    ButtonVisualProps {}
 
-/**
- * Variante navegable del botón: mismo tratamiento visual que <Button>, pero
- * renderiza un <Link> de Next.js en vez de un <button>. Existe porque
- * <Button onClick={...}> no puede usarse dentro de un Server Component
- * (React lanza "Event handlers cannot be passed to Client Component props")
- * — para acciones que solo navegan (p. ej. "Ir a casos"), usar <ButtonLink
- * href="..."> evita tener que convertir la página entera a Client Component.
- */
+/** Mismo aspecto que <Button> pero navega: usable desde Server Components. */
 export const ButtonLink = forwardRef<HTMLAnchorElement, ButtonLinkProps>(
-  ({ variant = "primary", size = "md", className, href, prefetch, replace, scroll, ...rest }, ref) => {
-    const isGhost = variant === "ghost";
-    return (
-      <Link
-        ref={ref}
-        href={href}
-        prefetch={prefetch}
-        replace={replace}
-        scroll={scroll}
-        className={cn(
-          BASE,
-          !isGhost && SOLID_BASE,
-          VARIANT_CLASSNAMES[variant],
-          SIZE_CLASSNAMES[variant][size],
-          isGhost && "rounded-lg",
-          "inline-flex items-center justify-center",
-          className
-        )}
-        {...rest}
-      />
-    );
-  }
+  ({ variant = "primary", size = "md", icon, className, href, prefetch, replace, scroll, children, ...rest }, ref) => (
+    <Link
+      ref={ref}
+      href={href}
+      prefetch={prefetch}
+      replace={replace}
+      scroll={scroll}
+      className={buttonClassName({ variant, size }, className)}
+      {...rest}
+    >
+      {icon && <Icon name={icon} size={size === "sm" ? 16 : 18} />}
+      {children}
+    </Link>
+  )
 );
 
 ButtonLink.displayName = "ButtonLink";

@@ -277,7 +277,7 @@ export function CasoDetalleCliente({
 
           <div
             data-testid="script-editor-container"
-            className="flex h-[380px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0f172a] shadow-xl lg:h-[440px]"
+            className="flex h-[380px] flex-col overflow-hidden rounded-md border border-slate-800 bg-[#0f172a] shadow-xl lg:h-[440px]"
           >
             {/* Titlebar + tab del archivo — mismo tratamiento que el editor del grabador */}
             <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">

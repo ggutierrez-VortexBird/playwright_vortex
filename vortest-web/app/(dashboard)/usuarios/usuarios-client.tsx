@@ -13,6 +13,7 @@ import { UsuarioEspaciosDialog } from "@/components/usuarios/usuario-espacios-di
 import { ROL_LABEL, type RolUsuario } from "@/lib/roles";
 import type { UsuarioRow } from "@/types/usuario";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
+import { Alert } from "@/components/ui/alert";
 
 interface UsuariosClientProps {
   initialUsuarios: UsuarioRow[];
@@ -238,7 +239,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
             )}
 
             {error && (
-              <div className="rounded border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">{error}</div>
+              <Alert tone="error">{error}</Alert>
             )}
 
             <div className="mt-1 flex justify-end gap-3">
@@ -381,7 +382,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
           totalPages={totalPages}
           onAnterior={() => setPage((p) => Math.max(1, p - 1))}
           onSiguiente={() => setPage((p) => Math.min(totalPages, p + 1))}
-          className="rounded-2xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm"
+          className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm"
         />
       </div>
 
@@ -443,7 +444,7 @@ function EstadoBadge({ activo }: { activo: boolean }) {
   // "Suspendido" usa tone="neutral", no "error" — suspender una cuenta no es
   // un estado de fallo, es simplemente inactividad (paridad con el tono
   // "neutral" que usa StatusBadge para "sin ejecuciones" en caso-table).
-  return <StatusBadge tone={activo ? "success" : "neutral"}>{activo ? "Activo" : "Suspendido"}</StatusBadge>;
+  return <StatusBadge tone={activo ? "success" : "neutral"} icon={activo ? "check_circle" : "pause_circle"}>{activo ? "Activo" : "Suspendido"}</StatusBadge>;
 }
 
 function RowActions({
@@ -701,7 +702,7 @@ function EditUsuarioDialog({
           </div>
 
           {error && (
-            <div className="rounded border border-m3-error bg-m3-error-container px-3 py-2 text-sm text-m3-error">{error}</div>
+            <Alert tone="error">{error}</Alert>
           )}
 
           <div className="mt-1 flex justify-end gap-3">

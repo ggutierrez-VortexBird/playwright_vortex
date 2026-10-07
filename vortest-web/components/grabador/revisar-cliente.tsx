@@ -29,6 +29,7 @@ import dynamic from "next/dynamic";
 import { findFragileSelectors } from "@/lib/recorder/selector-lint";
 import { parseSpecToSteps, type SpecLineKind } from "@/lib/recorder/parse-spec";
 import { configureVortestEditor, VORTEST_DARK_THEME } from "@/lib/recorder/monaco-setup";
+import { Alert } from "@/components/ui/alert";
 
 const Editor = dynamic(() => import("@monaco-editor/react").then((m) => m.Editor), {
   ssr: false,
@@ -209,7 +210,7 @@ export function RevisarCliente({
   return (
     <div data-testid="revisar-cliente" className="flex flex-col gap-4">
       {/* Tarjeta de metadatos del caso + acciones */}
-      <section className="rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm">
+      <section className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-col gap-2">
@@ -360,20 +361,15 @@ export function RevisarCliente({
       </section>
 
       {errorMsg && (
-        <div
-          role="alert"
-          data-testid="revisar-error"
-          className="rounded-xl border border-m3-error bg-m3-error-container px-4 py-3 font-body text-body-sm text-m3-error"
-        >
-          {errorMsg}
-        </div>
+        <Alert tone="error"
+          data-testid="revisar-error">{errorMsg}</Alert>
       )}
 
       {fragileSelectors.length > 0 && (
         <div
           role="alert"
           data-testid="selectores-fragiles-aviso"
-          className="rounded-xl border border-m3-secondary bg-m3-secondary-container px-4 py-3 font-body text-body-sm text-m3-on-secondary-container"
+          className="rounded-md border border-m3-secondary bg-m3-secondary-container px-4 py-3 font-body text-body-sm text-m3-on-secondary-container"
         >
           <p className="font-medium">
             {fragileSelectors.length === 1
@@ -401,7 +397,7 @@ export function RevisarCliente({
         <div
           role="alert"
           data-testid="sin-spec-aviso"
-          className="rounded-xl border border-m3-outline-variant bg-m3-surface-container px-4 py-3 font-body text-body-sm text-m3-on-surface-variant"
+          className="rounded-md border border-m3-outline-variant bg-m3-surface-container px-4 py-3 font-body text-body-sm text-m3-on-surface-variant"
         >
           El grabador no emitió ningún código. Puedes escribir el script a
           mano aquí abajo, o volver a grabar.
@@ -410,7 +406,7 @@ export function RevisarCliente({
 
       {/* Editor (8 cols) + inspector (4 cols) */}
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
-        <div className="flex h-[420px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0f172a] shadow-xl lg:col-span-8 lg:h-[560px]">
+        <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-slate-800 bg-[#0f172a] shadow-xl lg:col-span-8 lg:h-[560px]">
           {/* Titlebar + tab del archivo */}
           <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
             <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">
@@ -480,7 +476,7 @@ export function RevisarCliente({
 
         {/* Panel inspector */}
         <div className="space-y-4 lg:col-span-4">
-          <div className="overflow-hidden rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
+          <div className="overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
             <div className="flex items-center justify-between border-b border-m3-outline-variant bg-m3-surface-container p-4">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-m3-info" />
@@ -573,7 +569,7 @@ export function RevisarCliente({
             </div>
           </div>
 
-          <div className="space-y-3.5 rounded-xl border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
+          <div className="space-y-3.5 rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-4 shadow-sm">
             <h2 className="flex items-center gap-2 font-headline text-label-lg font-semibold text-m3-on-surface">
               <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-m3-on-surface-variant">tune</span>
               Parámetros de la sesión
