@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 /**
  * /casos/grabar/[sesionId]/revisar — revisión de caso grabado (HU-G8, V2).
  *
@@ -13,6 +14,8 @@ import { getSession } from "@/lib/auth";
 import { RevisarCliente } from "@/components/grabador/revisar-cliente";
 import { PageHeader } from "@/components/ui/page-header";
 
+
+export const metadata: Metadata = { title: "Revisar grabación" };
 interface PageProps {
   params: Promise<{ sesionId: string }>;
   /** `motivo` explica por qué terminó la grabación. Lo agrega el grabador
@@ -69,15 +72,6 @@ export default async function RevisarSesionPage({
       <PageHeader
         title="Revisar grabación"
         breadcrumbs={[{ label: "Grabador", href: "/casos/grabar" }, { label: "Revisar" }]}
-        actions={
-          <a
-            href={`/casos/grabar/${sesion.id}/revisar`}
-            className="inline-flex items-center gap-1.5 rounded bg-m3-primary px-4 py-2 font-label text-label-md font-semibold text-m3-on-primary hover:opacity-90 transition-opacity"
-          >
-            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">save</span>
-            Guardar como caso
-          </a>
-        }
       />
       {avisoMotivo && (
         <div

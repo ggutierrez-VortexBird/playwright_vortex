@@ -1,24 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { ErrorState } from "@/components/ui/error-state";
+import { ErrorBoundaryView } from "@/components/ui/error-boundary-view";
 
-export default function CredencialesError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    console.error("Credenciales page error:", error);
-  }, [error]);
-
-  return (
-    <ErrorState
-      title="Error al cargar credenciales"
-      message={error.message || "Ocurrió un error inesperado."}
-      onRetry={reset}
-    />
-  );
+export default function ErrorDeSeccion({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorBoundaryView title="No pudimos cargar las credenciales" error={error} reset={reset} />;
 }

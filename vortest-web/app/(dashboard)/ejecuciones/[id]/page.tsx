@@ -1,8 +1,18 @@
+import { migasDeProyecto } from '@/lib/migas'
+import { tituloConAcceso } from "@/lib/metadata";
+import { prisma } from "@/lib/db";
+import type { Metadata } from "next";
 import { getEjecucionConPasos } from '@/lib/ejecuciones/queries'
 import { EjecucionDetalleClient } from '@/components/ejecuciones/ejecucion-detalle-client'
 import { notFound, redirect } from 'next/navigation'
 import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from '@/lib/auth'
 
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const ej = await prisma.ejecucion.findUnique({ where: { id }, select: { casoPrueba: { select: { nombre: true, proyectoId: true } } } });
+  return { title: await tituloConAcceso(ej?.casoPrueba.proyectoId, ej ? `Ejecución · ${ej.casoPrueba.nombre}` : undefined, "Ejecución") };
+}
 interface PageProps {
   params: Promise<{ id: string }>
 }
@@ -21,8 +31,15 @@ export default async function EjecucionDetallePage({ params }: PageProps) {
     throw err
   }
 
+  const migas = [
+    ...(await migasDeProyecto(session, ejecucion.casoPrueba.proyecto)),
+    { label: ejecucion.casoPrueba.nombre, href: `/casos/${ejecucion.casoPrueba.id}` },
+    { label: `Ejecución ${id.slice(0, 8)}` },
+  ]
+
   return (
     <EjecucionDetalleClient
+      migas={migas}
       ejecucionId={id}
       initialEjecucion={{
         id: ejecucion.id,

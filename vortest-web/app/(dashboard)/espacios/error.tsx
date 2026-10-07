@@ -1,24 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { ErrorState } from "@/components/ui/error-state";
+import { ErrorBoundaryView } from "@/components/ui/error-boundary-view";
 
-export default function EspaciosError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    console.error("Espacios page error:", error);
-  }, [error]);
-
-  return (
-    <ErrorState
-      title="Error al cargar espacios"
-      message={error.message || "Ocurrió un error inesperado."}
-      onRetry={reset}
-    />
-  );
+export default function ErrorDeSeccion({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorBoundaryView title="No pudimos cargar los espacios" error={error} reset={reset} />;
 }

@@ -1,13 +1,8 @@
 /**
  * POST /api/casos/[id]/ejecutar
  *
- * Ruta legacy duplicada — el flujo recomendado es la Server Action
- * `dispararEjecucion` (lib/ejecuciones/actions.ts), que ya trae el guard
- * anti-concurrencia (`FOR UPDATE NOWAIT`) y el despacho a RabbitMQ. Esta
- * ruta DELEGA en esa misma función en vez de crear su propia `Ejecucion`
- * a mano. Deuda preexistente señalada, no resuelta acá (ver EST-01): seguir
- * teniendo dos entry points para lo mismo (esta ruta HTTP + la Server
- * Action).
+ * Punto de entrada único de la UI para ejecutar un caso (lib/ejecuciones/use-lanzar-ejecucion.ts).
+ * Delega en `dispararEjecucion`, que serializa por caso y publica a RabbitMQ.
  *
  * Auth: requires authenticated session.
  *
@@ -16,7 +11,7 @@
  *   - 401 { error: 'No autenticado' }
  *   - 403 { error: 'Sin permisos' }
  *   - 404 { error: 'not_found' }
- *   - 409 { error: 'caso_inactivo' | 'ejecucion_en_curso' }
+ *   - 409 { error: 'caso_inactivo' } | { error: 'ejecucion_en_curso', ejecucionId }
  */
 
 import { NextResponse } from "next/server";
@@ -56,7 +51,12 @@ export const POST = withAuth<RouteParams>(async (_request, { params }, session) 
     );
   } catch (err) {
     if (err === YA_EXISTE_EJECUCION_EN_CURSO_ERROR) {
-      return NextResponse.json({ error: "ejecucion_en_curso" }, { status: 409 });
+      const enCurso = await prisma.ejecucion.findFirst({
+        where: { casoPruebaId: caso.id, estado: { in: ["pendiente", "corriendo"] } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      return NextResponse.json({ error: "ejecucion_en_curso", ejecucionId: enCurso?.id }, { status: 409 });
     }
     throw err;
   }

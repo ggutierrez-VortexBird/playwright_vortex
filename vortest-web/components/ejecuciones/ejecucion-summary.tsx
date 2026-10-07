@@ -1,6 +1,7 @@
 import { formatDuration, formatFecha } from '@/lib/format'
 import { estadoTone, resultadoEjecucionLabel } from '@/lib/ejecuciones/estado'
 import type { StatusBadgeTone } from '@/components/ui/status-badge'
+import { TiempoTranscurrido } from './tiempo-transcurrido'
 
 const COLOR_TONO: Record<StatusBadgeTone, string> = {
   success: 'text-m3-success',
@@ -51,8 +52,15 @@ export function EjecucionSummary({
         <div className="font-label text-label-xs uppercase tracking-wide text-m3-on-surface-variant">
           Duración
         </div>
-        <div className="mt-1 font-body text-headline-sm font-semibold text-m3-on-surface">
-          {formatDuration(duracionMs)}
+        <div className="mt-1 font-body text-headline-sm font-semibold tabular-nums text-m3-on-surface">
+          {estado === 'corriendo' && inicioAt ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-m3-info motion-reduce:animate-none" aria-hidden="true" />
+              <TiempoTranscurrido desde={inicioAt} />
+            </span>
+          ) : (
+            formatDuration(duracionMs)
+          )}
         </div>
       </div>
       <div>

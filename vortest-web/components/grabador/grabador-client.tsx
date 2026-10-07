@@ -25,6 +25,8 @@ import { RecordingInstructions } from "@/components/grabador/recording-instructi
 import { RecordingGuide } from "@/components/grabador/recording-guide";
 import { parseSpecToSteps, type SpecLineKind } from "@/lib/recorder/parse-spec";
 import { LOCALE, TIME_ZONE } from "@/lib/format";
+import { PasosEnVivo } from "@/components/grabador/pasos-en-vivo";
+import { useToast } from "@/components/ui/toast";
 
 export interface GrabadorClientProps {
   wsUrl: string;
@@ -45,6 +47,7 @@ export function GrabadorClient({
   startedAt,
   titulo,
 }: GrabadorClientProps) {
+  const toast = useToast();
   const router = useRouter();
   const [connState, setConnState] = useState<ConnState>("connecting");
   const [spec, setSpec] = useState<string>("");
@@ -126,7 +129,7 @@ export function GrabadorClient({
       if (ev.code === 4004) {
         setConnState("error");
         setErrorMsg(
-          "La sesión no se encuentra activa en el recorder-worker.",
+          "La grabación ya no está activa en el grabador. Vuelve a iniciarla.",
         );
         return;
       }
@@ -172,12 +175,16 @@ export function GrabadorClient({
     // el spec.ts sin guardarlo. Pero para "descartar" lo correcto es
     // pedir al server que marque la sesión como 'descartada'.
     try {
-      await fetch(`/api/grabador/sesiones/${sesionId}/descartar`, {
-        method: "POST",
-      });
+      const res = await fetch(`/api/grabador/sesiones/${sesionId}/descartar`, { method: "POST" });
+      if (!res.ok && res.status !== 404) throw new Error(String(res.status));
     } catch {
-      /* ignore — navegamos igual */
+      // Sin confirmación del servidor no se sale: la sesión seguiría viva y aparecería como recuperable.
+      descartandoRef.current = false;
+      setStopping(false);
+      toast({ tone: "error", title: "No se pudo descartar la grabación", description: "La sesión sigue abierta. Intenta de nuevo." });
+      return;
     }
+    toast({ tone: "neutral", title: "Grabación descartada" });
     sendWsMessage({ type: "stop" });
     if (wsRef.current) wsRef.current.close(1000, "discarded");
     router.push(`/casos`);
@@ -225,6 +232,7 @@ export function GrabadorClient({
           pageUrl={currentUrl}
           onNavigate={handleNavigateFromChrome}
           disabled={!isLive}
+          soloLectura
         />
       </div>
 
@@ -241,7 +249,8 @@ export function GrabadorClient({
             kinds={kinds}
           />
         </div>
-        <div className="lg:col-span-4">
+        <div className="flex flex-col gap-6 lg:col-span-4">
+          <PasosEnVivo pasos={steps} grabando={isLive} />
           <RecordingGuide connState={connState} />
         </div>
       </div>

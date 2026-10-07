@@ -1,25 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { ErrorState } from "@/components/ui/error-state";
+import { ErrorBoundaryView } from "@/components/ui/error-boundary-view";
 
-export default function CasosError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    // Log error to monitoring service
-    console.error("Casos page error:", error);
-  }, [error]);
-
-  return (
-    <ErrorState
-      title="Error al cargar casos"
-      message={error.message || "Ocurrió un error inesperado."}
-      onRetry={reset}
-    />
-  );
+export default function ErrorDeSeccion({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorBoundaryView title="No pudimos cargar los casos" error={error} reset={reset} />;
 }

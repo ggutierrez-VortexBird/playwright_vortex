@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession, getUsuarioActual, requireProyectoAccess, scopeProyectoWhere, FORBIDDEN_ERROR } from "@/lib/auth";
@@ -5,6 +6,8 @@ import { NuevaGrabacionForm } from "@/components/grabador/nueva-grabacion-form";
 import type { CredencialListItem } from "@/lib/grabador/types";
 import { PageHeader } from "@/components/ui/page-header";
 
+
+export const metadata: Metadata = { title: "Nueva grabación" };
 interface PageProps {
   searchParams: Promise<{ proyectoId?: string }>;
 }

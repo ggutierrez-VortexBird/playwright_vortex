@@ -1,9 +1,10 @@
 'use client'
 
 import { Camera } from 'lucide-react'
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback } from 'react'
 import { EstadoBadge } from '@/components/ui/status-badge'
 import { formatDuration } from '@/lib/format'
+import { VisorEvidencia } from './visor-evidencia'
 
 interface Subaccion {
   id: string
@@ -26,35 +27,7 @@ interface Props {
 }
 
 function SafeArtefactoImage({ src, alt, borderClass }: { src: string; alt: string; borderClass: string }) {
-  const [error, setError] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  // Reset error and loading states when src changes
-  useEffect(() => {
-    setError(false)
-    setLoading(true)
-  }, [src])
-
-  return (
-    <div className={`aspect-video bg-m3-surface-container-high rounded-lg ${borderClass} overflow-hidden shadow-sm relative`}>
-      {error ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <span className="text-xs text-m3-on-surface-variant">Evidencia no disponible</span>
-        </div>
-      ) : (
-        <img
-          src={src}
-          alt={alt}
-          className={`object-cover w-full h-full ${loading ? 'hidden' : ''}`}
-          onLoad={() => setLoading(false)}
-          onError={() => {
-            setError(true)
-            setLoading(false)
-          }}
-        />
-      )}
-    </div>
-  )
+  return <VisorEvidencia src={src} alt={alt} titulo={alt} className={borderClass} />
 }
 
 export function PasoSubaccionItem({ subaccion, expanded, onToggle, isNew }: Props) {

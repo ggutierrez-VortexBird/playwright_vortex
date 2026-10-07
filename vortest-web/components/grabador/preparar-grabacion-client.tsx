@@ -97,7 +97,7 @@ export function PrepararGrabacionClient({ draft }: PrepararGrabacionClientProps)
           onIniciar={handleIniciar}
           iniciando={loading}
         />
-        <BrowserChrome pageUrl={draft.urlInicial} onNavigate={() => {}} disabled />
+        <BrowserChrome pageUrl={draft.urlInicial} onNavigate={() => {}} disabled soloLectura />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

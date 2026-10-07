@@ -15,12 +15,12 @@ const SIZES: Record<"light" | "dark", { width: number; height: number }> = {
 export function Logo({ variant = "light", className }: LogoProps) {
   const { width, height } = SIZES[variant];
   if (variant === "dark") {
-    return <Image src="/logo-oscuro.png" alt="vorTest" width={width} height={height} priority className={className} />;
+    return <Image src="/logo-oscuro.png" alt="VorTest" width={width} height={height} priority className={className} />;
   }
   return (
     <>
-      <Image src="/logo.png" alt="vorTest" width={width} height={height} priority className={cn("solo-tema-claro", className)} />
-      <Image src="/logo-oscuro.png" alt="vorTest" width={width} height={height} priority className={cn("solo-tema-oscuro", className)} />
+      <Image src="/logo.png" alt="VorTest" width={width} height={height} priority className={cn("solo-tema-claro", className)} />
+      <Image src="/logo-oscuro.png" alt="" aria-hidden="true" width={width} height={height} priority className={cn("solo-tema-oscuro", className)} />
     </>
   );
 }

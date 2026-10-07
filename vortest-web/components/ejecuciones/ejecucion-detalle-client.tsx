@@ -1,22 +1,27 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { PageHeader } from '@/components/ui/page-header'
-import { useBreadcrumbExtra } from '@/components/breadcrumb-context'
-import { Button } from '@/components/ui/button'
+import { useBreadcrumbExtra, type BreadcrumbSegment } from '@/components/breadcrumb-context'
+import { Alert } from '@/components/ui/alert'
+import { EstadoBadge } from '@/components/ui/status-badge'
+import { useToast } from '@/components/ui/toast'
 import { PasoAccordionList } from './paso-accordion-list'
 import { EntornoDetails } from './entorno-details'
 import { AsercionesResumen } from './aserciones-resumen'
 import { ErrorMotorBadge } from './error-motor-badge'
-import { EjecucionStatus } from './ejecucion-status'
 import { EjecucionSummary } from './ejecucion-summary'
 import { DetenerButton } from './detener-button'
 import { ReRunButton } from './re-run-button'
 import { OrigenChip } from './origen-chip'
 import { VideoChapterBar } from './video-chapter-bar'
 import { GenerarActaButton } from './generar-acta-button'
+import { VisorEvidencia } from './visor-evidencia'
 import { formatFecha } from '@/lib/format'
-import { estadoLabel } from '@/lib/ejecuciones/estado'
+import { estadoVisual, estaEnCurso, resultadoEjecucionLabel } from '@/lib/ejecuciones/estado'
+import { useEjecucionEnVivo } from '@/lib/ejecuciones/use-ejecucion-en-vivo'
+import { formatDuration } from '@/lib/format'
 
 interface Subaccion {
   id: string
@@ -90,6 +95,15 @@ interface Ejecucion {
 interface Props {
   ejecucionId: string
   initialEjecucion: Ejecucion
+  /** Ruta completa Espacio › Proyecto › Caso › Ejecución, armada en el servidor. */
+  migas?: BreadcrumbSegment[]
+}
+
+const TIPO_ARTEFACTO: Record<string, string> = {
+  video: 'Video',
+  screenshot: 'Captura',
+  trace: 'Traza de Playwright',
+  log: 'Registro',
 }
 
 function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
@@ -122,7 +136,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
             {artefacto.nombre}
           </div>
           <div className="font-label text-label-xs text-m3-on-surface-variant">
-            {artefacto.tipo} · {sizeLabel} · Abrir en el visor de trazas
+            {TIPO_ARTEFACTO[artefacto.tipo] ?? 'Archivo'} · {sizeLabel} · Abrir en el visor de trazas
           </div>
         </div>
         <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">
@@ -147,7 +161,7 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
           {artefacto.nombre}
         </div>
         <div className="font-label text-label-xs text-m3-on-surface-variant">
-          {artefacto.tipo} · {sizeLabel}
+          {TIPO_ARTEFACTO[artefacto.tipo] ?? 'Archivo'} · {sizeLabel}
         </div>
       </div>
       <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-m3-on-surface-variant">
@@ -157,9 +171,10 @@ function ArtefactoCard({ artefacto }: { artefacto: Artefacto }) {
   )
 }
 
-export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props) {
-  const [ejecucion, setEjecucion] = useState<Ejecucion>(initialEjecucion)
+export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }: Props) {
+  const { ejecucion, conexion, refrescar } = useEjecucionEnVivo<Ejecucion>(ejecucionId, initialEjecucion)
   const expandedPasoIdRef = useRef<string | null>(null)
+  const toast = useToast()
   // HU-G18 — ref al <video> para que VideoChapterBar pueda hacer seek.
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [videoDurationMs, setVideoDurationMs] = useState(0)
@@ -169,55 +184,48 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
     setVideoDurationMs(Math.round((v.duration || 0) * 1000))
   }, [])
 
-  const poll = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/ejecuciones/${ejecucionId}`)
-      if (!res.ok) return
-      const data: Ejecucion = await res.json()
-
-      // Preserve expanded paso if it still exists in new data
-      const ids = new Set(data.pasos.map((p) => p.id))
-      if (expandedPasoIdRef.current && !ids.has(expandedPasoIdRef.current)) {
-        expandedPasoIdRef.current = data.pasos[0]?.id ?? null
-      }
-
-      setEjecucion(data)
-    } catch {
-      // ignore polling errors
-    }
-  }, [ejecucionId])
-
   useEffect(() => {
-    poll()
-    const interval = setInterval(poll, 2000)
-    return () => clearInterval(interval)
-  }, [poll])
+    const ids = new Set(ejecucion.pasos.map((p) => p.id))
+    if (expandedPasoIdRef.current && !ids.has(expandedPasoIdRef.current)) {
+      expandedPasoIdRef.current = ejecucion.pasos[0]?.id ?? null
+    }
+  }, [ejecucion.pasos])
+
+  // Aviso al terminar (toast + región viva) y título de pestaña con el estado, útil con la pestaña en segundo plano.
+  const estadoPrevio = useRef(initialEjecucion.estado)
+  useEffect(() => {
+    const visual = estadoVisual(ejecucion.estado)
+    document.title = `${visual.label} · ${ejecucion.casoPrueba.nombre} · vorTest`
+    const antes = estadoPrevio.current
+    estadoPrevio.current = ejecucion.estado
+    if (!estaEnCurso(antes) || estaEnCurso(ejecucion.estado) || ejecucion.estado === 'cancelado') return
+    const fallido = ejecucion.pasos.find((p) => p.estado === 'fallo')?.numero
+    toast({
+      tone: visual.tone,
+      title: `Ejecución terminada: ${resultadoEjecucionLabel(ejecucion.estado, fallido)}`,
+      description: ejecucion.duracionMs != null ? `Duró ${formatDuration(ejecucion.duracionMs)}. Ya puedes generar el acta.` : undefined,
+      duration: 10000,
+    })
+  }, [ejecucion.estado, ejecucion.casoPrueba.nombre, ejecucion.duracionMs, ejecucion.pasos, toast])
 
   const caso = ejecucion.casoPrueba
 
   const { setExtra } = useBreadcrumbExtra()
   useEffect(() => {
-    setExtra([{ label: caso.nombre }, { label: ejecucionId.slice(0, 8) }])
+    setExtra(migas ?? [{ label: caso.nombre }, { label: ejecucionId.slice(0, 8) }], { reemplazarBase: Boolean(migas) })
     return () => setExtra([])
-  }, [caso.nombre, ejecucionId, setExtra])
+  }, [caso.nombre, ejecucionId, setExtra, migas])
 
   const isRunning = ejecucion.estado === 'corriendo'
+  const enCurso = estaEnCurso(ejecucion.estado)
   const isFailed = ejecucion.estado === 'fallo'
-  const canReRun = ['paso', 'fallo', 'reparado', 'errorMotor', 'cancelado'].includes(
-    ejecucion.estado
-  )
+  const canReRun = !enCurso
 
   const videoArtefacto = ejecucion.artefactos.find((a) => a.tipo === 'video')
-  const screenshotArtefactos = ejecucion.artefactos.filter((a) => a.tipo === 'screenshot')
-  const traceArtefactos = ejecucion.artefactos.filter((a) => a.tipo === 'trace')
-  const otherArtefactos = ejecucion.artefactos.filter(
-    (a) => a.tipo !== 'video' && a.tipo !== 'screenshot' && a.tipo !== 'trace'
-  )
   const totalDuracionMs = ejecucion.pasos.reduce((sum, p) => sum + (p.duracionMs ?? 0), 0)
 
   // First error for 200px visibility (PRD Criterio #6)
   const primerPasoFallido = ejecucion.pasos.find((p) => p.estado === 'fallo')
-  const primerError = primerPasoFallido ?? (ejecucion.errorMsg ? null : null)
   const errorMsg =
     primerPasoFallido?.errorMsg ?? ejecucion.errorMsg ?? null
 
@@ -234,6 +242,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         title={caso.nombre}
         subtitle={
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <EstadoBadge estado={ejecucion.estado} primerPasoFallido={primerPasoFallido?.numero} />
             <span className="font-mono-code text-label-xs text-m3-on-surface-variant">
               Ejecución #{ejecucionId.slice(0, 8)}
             </span>
@@ -248,17 +257,11 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
             </span>
           </div>
         }
-        badge={
-          isRunning
-            ? { value: estadoLabel(ejecucion.estado), label: '' }
-            : isFailed
-              ? { value: estadoLabel(ejecucion.estado), label: '' }
-              : undefined
-        }
         actions={
-          <>
+          <div className="flex flex-wrap items-start justify-end gap-2">
+            <DetenerButton ejecucionId={ejecucion.id} visible={enCurso} onDetenida={refrescar} />
             {canReRun && <ReRunButton casoPruebaId={ejecucion.casoPruebaId} />}
-            {!isRunning && ejecucion.estado !== 'pendiente' && (
+            {!enCurso && (
               <GenerarActaButton
                 ejecucionId={ejecucion.id}
                 initialActa={
@@ -273,9 +276,29 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
                 }
               />
             )}
-          </>
+          </div>
         }
       />
+
+      {conexion === 'reintentando' && (
+        <Alert tone="warning" title="Se perdió la conexión con el servidor">
+          Seguimos intentando; el estado que ves puede estar desactualizado.
+        </Alert>
+      )}
+      {conexion === 'sesion-vencida' && (
+        <Alert
+          tone="warning"
+          title="Tu sesión venció"
+          action={<Link href={`/login?from=/ejecuciones/${ejecucionId}`} className="font-label text-label-md font-semibold underline">Iniciar sesión</Link>}
+        >
+          La ejecución sigue en el motor; vuelve a entrar para ver el resultado.
+        </Alert>
+      )}
+      {ejecucion.estado === 'pendiente' && (
+        <Alert tone="info" title="En cola">
+          Esperando un motor libre. Empieza sola; puedes cerrar esta página y volver luego.
+        </Alert>
+      )}
 
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -319,10 +342,11 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
                   {primerPasoFallido?.subacciones
                     ?.find((s) => s.capturaActual)
                     ?.capturaActual && (
-                    <img
+                    <VisorEvidencia
                       src={`/api/artefactos/${primerPasoFallido.subacciones.find((s) => s.capturaActual)!.capturaActual!.id}`}
                       alt="Captura del momento del fallo"
-                      className="mt-3 max-h-48 rounded border border-m3-error/30 object-contain"
+                      titulo={`Captura del fallo · paso ${primerPasoFallido.numero}`}
+                      className="mt-3 max-w-md"
                     />
                   )}
                 </div>
@@ -379,21 +403,10 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion }: Props)
         <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-[90px] self-start w-full">
           {/* Status chip row */}
           <div className="flex flex-wrap items-center gap-2">
-            {isRunning && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-m3-secondary/30 bg-m3-secondary-container/25 px-2.5 py-1 font-label text-label-sm font-semibold uppercase tracking-wide text-m3-on-secondary-container">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-m3-secondary" aria-hidden="true" />
-                Corriendo
-              </span>
-            )}
-            {!isRunning && <EjecucionStatus estado={ejecucion.estado} pasos={ejecucion.pasos} />}
             {caso.origen && <OrigenChip origen={caso.origen} />}
             {ejecucion.estado === 'errorMotor' && (
               <ErrorMotorBadge message={ejecucion.errorMsg ?? ''} />
             )}
-            <DetenerButton
-              ejecucionId={ejecucion.id}
-              visible={ejecucion.estado === 'pendiente' || ejecucion.estado === 'corriendo'}
-            />
           </div>
 
           {/* Video */}

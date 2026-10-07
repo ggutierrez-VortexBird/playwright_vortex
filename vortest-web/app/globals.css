@@ -346,15 +346,29 @@ dialog[open] {
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .solo-tema-claro {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   :root:not([data-theme="light"]) .solo-tema-oscuro {
     display: revert;
   }
 }
 :root[data-theme="dark"] .solo-tema-claro {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 :root[data-theme="dark"] .solo-tema-oscuro {
   display: revert;
+}
+
+.material-symbols-outlined[data-icon]::before {
+  content: attr(data-icon);
 }

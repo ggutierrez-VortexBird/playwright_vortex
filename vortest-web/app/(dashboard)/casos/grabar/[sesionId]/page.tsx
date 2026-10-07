@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 /**
  * Server Component — SesionGrabacionPage (V2 — Pivot playwright-codegen).
  *
@@ -13,6 +14,8 @@ import { getSession } from "@/lib/auth";
 import { GrabadorClient } from "@/components/grabador/grabador-client";
 import { PageHeader } from "@/components/ui/page-header";
 
+
+export const metadata: Metadata = { title: "Grabando" };
 interface PageProps {
   params: Promise<{ sesionId: string }>;
   searchParams: Promise<{ token?: string; wsUrl?: string }>;

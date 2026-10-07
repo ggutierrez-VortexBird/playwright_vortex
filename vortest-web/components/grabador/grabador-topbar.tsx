@@ -122,7 +122,7 @@ export function GrabadorTopbar({
 
   const dotClass =
     connState === "live"
-      ? "bg-m3-error animate-pulse"
+      ? "bg-red-500 animate-pulse"
       : connState === "connecting" || connState === "reconnecting"
         ? "bg-amber-500"
         : "bg-slate-500";

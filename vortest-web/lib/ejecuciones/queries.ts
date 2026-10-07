@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db'
-import { Prisma } from '@prisma/client'
+import { Prisma, type EjecucionEstado } from '@prisma/client'
 import { scopeProyectoWhere } from '@/lib/auth'
 import type { UsuarioActual } from '@/lib/auth'
+import { FILTROS_ESTADO, esFiltroEstado } from './estado'
 
 export async function getEjecucionConPasos(id: string) {
   return prisma.ejecucion.findUnique({
@@ -35,6 +36,33 @@ export async function getEjecucionConPasos(id: string) {
   })
 }
 
+function whereListado(usuario: UsuarioActual | undefined, proyectoId?: string, q?: string): Prisma.EjecucionWhereInput {
+  const where: Prisma.EjecucionWhereInput = {}
+  if (proyectoId) {
+    where.casoPrueba = { proyectoId }
+  } else if (usuario) {
+    where.casoPrueba = { proyecto: scopeProyectoWhere(usuario) }
+  }
+  if (q) {
+    where.OR = [
+      { casoPrueba: { nombre: { contains: q, mode: 'insensitive' } } },
+      { casoPrueba: { codigo: { contains: q, mode: 'insensitive' } } },
+    ]
+  }
+  return where
+}
+
+/** Totales reales por estado (toda la consulta, no sólo la página visible), con el mismo alcance y búsqueda que el listado. */
+export async function contarEjecucionesPorEstado(usuario?: UsuarioActual | null, q?: string) {
+  if (usuario === null) return {} as Record<string, number>
+  const filas = await prisma.ejecucion.groupBy({
+    by: ['estado'],
+    where: whereListado(usuario, undefined, q),
+    _count: { _all: true },
+  })
+  return Object.fromEntries(filas.map((f) => [f.estado, f._count._all])) as Record<string, number>
+}
+
 export async function listEjecuciones(
   proyectoId?: string,
   usuario?: UsuarioActual | null,
@@ -47,21 +75,9 @@ export async function listEjecuciones(
   if (usuario === null) return { ejecuciones: [], hasNextPage: false, total: 0 }
   const skip = (page - 1) * pageSize
 
-  const where: Prisma.EjecucionWhereInput = {}
-  if (proyectoId) {
-    where.casoPrueba = { proyectoId }
-  } else if (usuario) {
-    where.casoPrueba = { proyecto: scopeProyectoWhere(usuario) }
-  }
-
-  if (q) {
-    where.OR = [
-      { casoPrueba: { nombre: { contains: q, mode: 'insensitive' } } },
-      { casoPrueba: { codigo: { contains: q, mode: 'insensitive' } } },
-    ]
-  }
-  if (estado && estado !== 'todas') {
-    where.estado = estado as Prisma.EjecucionWhereInput['estado']
+  const where = whereListado(usuario, proyectoId, q)
+  if (esFiltroEstado(estado)) {
+    where.estado = { in: [...FILTROS_ESTADO[estado]] as EjecucionEstado[] }
   }
 
   const [ejecuciones, total] = await Promise.all([prisma.ejecucion.findMany({

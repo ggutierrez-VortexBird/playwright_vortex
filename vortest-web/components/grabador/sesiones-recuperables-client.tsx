@@ -187,6 +187,7 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                         onClick={() => handleDescartar(s)}
                         disabled={busyId === s.id}
                         data-testid="sesion-descartar-button"
+                        aria-label={`Descartar la sesión ${s.nombre}`}
                         className="rounded p-1.5 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
                         title="Descartar sesión"
                       >
@@ -240,6 +241,7 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
                   onClick={() => handleDescartar(s)}
                   disabled={busyId === s.id}
                   data-testid="sesion-descartar-button-mobile"
+                  aria-label={`Descartar la sesión ${s.nombre}`}
                   className="rounded p-2 text-m3-on-surface-variant transition-colors hover:bg-m3-error-container/20 hover:text-m3-error"
                   title="Descartar sesión"
                 >

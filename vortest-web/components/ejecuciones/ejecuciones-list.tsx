@@ -26,6 +26,8 @@ interface EjecucionesListProps {
   estado?: string
   /** La página de /ejecuciones agrupa por proyecto y pinta un único paginador numerado global. */
   mostrarPaginacion?: boolean
+  /** /ejecuciones tiene un buscador único en el encabezado; ahí no se muestra el de cada grupo. */
+  mostrarBuscador?: boolean
 }
 
 function buildUrl(page: number, q?: string, estado?: string) {
@@ -37,7 +39,7 @@ function buildUrl(page: number, q?: string, estado?: string) {
   return `/ejecuciones${qs ? `?${qs}` : ''}`
 }
 
-export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, estado, mostrarPaginacion = true }: EjecucionesListProps) {
+export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, estado, mostrarPaginacion = true, mostrarBuscador = true }: EjecucionesListProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState(q ?? '')
 
@@ -65,7 +67,7 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
 
   return (
     <div className="overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
-      {/* Table header with search */}
+      {mostrarBuscador && (
       <div className="flex items-center gap-3 border-b border-m3-outline-variant bg-m3-surface-container px-4 py-2.5">
         <SectionSearch
           value={searchQuery}
@@ -77,6 +79,7 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
           {totalCount} resultado{totalCount !== 1 ? 's' : ''}
         </span>
       </div>
+      )}
 
       {/* Table column headers (desktop) */}
       <div className="hidden md:grid md:grid-cols-12 border-b border-m3-outline-variant bg-m3-surface-container-low px-5 py-2 gap-4 font-label text-label-xs text-m3-on-surface-variant uppercase tracking-wide">

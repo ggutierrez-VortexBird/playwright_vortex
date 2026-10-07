@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
@@ -7,6 +8,8 @@ import { parseSpecToSteps } from "@/lib/recorder/parse-spec";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
+
+export const metadata: Metadata = { title: "Grabador" };
 /**
  * HU-GR-1 — Página /casos/grabar
  *

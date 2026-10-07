@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Button, buttonClassName } from '@/components/ui/button'
+import { Icon } from '@/components/ui/icon'
+import { useToast } from '@/components/ui/toast'
 
 interface Acta {
   id: string
@@ -11,90 +14,70 @@ interface Acta {
 
 interface Props {
   ejecucionId: string
-  /** Acta ya generada (si existe) — la precargamos para mostrar link directo. */
+  /** Acta ya generada (si existe): se muestra directo el enlace para abrirla. */
   initialActa?: Acta | null
-  /** Estados en los que no se permite generar acta. */
-  bloqueadoEstados?: string[]
 }
 
-/**
- * HU-G19 — Botón "Generar acta de evidencia" + link de descarga.
- *
- * - Estados terminales (paso/fallo/reparado/errorMotor/cancelado) → habilitado.
- * - Estados no terminales (corriendo/pendiente) → deshabilitado con tooltip.
- * - Si ya existe acta previa → muestra "Descargar acta" inmediatamente.
- * - POST → render server-side → recibe downloadUrl y muestra link.
- */
-export function GenerarActaButton({ ejecucionId, initialActa, bloqueadoEstados }: Props) {
+/** HU-G19 — Genera el acta de evidencia (PDF) y la deja a un clic; si ya existe, enlaza directo. */
+export function GenerarActaButton({ ejecucionId, initialActa }: Props) {
+  const toast = useToast()
   const [acta, setActa] = useState<Acta | null>(initialActa ?? null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const bloqueado =
-    bloqueadoEstados?.length && bloqueadoEstados.length > 0
-      ? false
-      : false // el caller pasa la lista de permitidos si quiere
 
   async function handleGenerar() {
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch(`/api/ejecuciones/${ejecucionId}/acta`, {
-        method: 'POST',
-      })
+      const res = await fetch(`/api/ejecuciones/${ejecucionId}/acta`, { method: 'POST' })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.message ?? `Error ${res.status}`)
+        throw new Error(body.message ?? `El servidor respondió ${res.status}`)
       }
       const data = (await res.json()) as Acta & { ok: boolean }
-      setActa({
-        id: data.id,
-        consecutivo: data.consecutivo,
-        pdfPath: data.pdfPath,
-        downloadUrl: data.downloadUrl,
+      const nueva = { id: data.id, consecutivo: data.consecutivo, pdfPath: data.pdfPath, downloadUrl: data.downloadUrl }
+      setActa(nueva)
+      toast({
+        tone: 'success',
+        title: `Acta ${nueva.consecutivo} lista`,
+        action: { label: 'Abrir acta', href: nueva.downloadUrl },
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al generar el acta')
+      setError(err instanceof Error ? err.message : 'No se pudo generar el acta')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="flex items-center gap-2" data-testid="generar-acta-wrap">
+    <div className="flex flex-col items-end gap-1" data-testid="generar-acta-wrap">
       {acta ? (
         <a
           href={acta.downloadUrl}
           target="_blank"
           rel="noopener noreferrer"
           data-testid="acta-download-link"
-          className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
-          title={`Acta ${acta.consecutivo}`}
+          className={buttonClassName({ variant: 'primary' })}
+          title="Abre el PDF en una pestaña nueva"
         >
-          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">description</span>
-          Descargar acta ({acta.consecutivo})
+          <Icon name="picture_as_pdf" size={18} />
+          Acta {acta.consecutivo}
         </a>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          icon="picture_as_pdf"
           onClick={handleGenerar}
-          disabled={busy || bloqueado}
+          loading={busy}
+          loadingText="Generando acta…"
           data-testid="generar-acta-button"
-          className="rounded border border-m3-outline-variant px-4 py-2 font-label text-label-md text-m3-on-surface hover:bg-m3-surface-container-high transition-colors"
         >
-          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
-            {busy ? 'hourglass_top' : 'picture_as_pdf'}
-          </span>
-          {busy ? 'Generando acta…' : 'Generar acta de evidencia'}
-        </button>
+          Generar acta de evidencia
+        </Button>
       )}
       {error && (
-        <span
-          role="alert"
-          data-testid="generar-acta-error"
-          className="text-label-xs text-m3-error font-body"
-        >
-          {error}
+        <span role="alert" data-testid="generar-acta-error" className="max-w-xs text-right font-body text-body-xs text-m3-error">
+          No se pudo generar el acta: {error}
         </span>
       )}
     </div>

@@ -19,14 +19,14 @@ function claveRateLimit(email: string): string {
   return createHash("sha256").update(email.toLowerCase()).digest("hex");
 }
 
-// Un solo INSERT … ON CONFLICT: dos intentos simultáneos ya no se pisan el contador.
-async function registrarIntentoFallido(clave: string, cutoff: Date): Promise<void> {
-  await prisma.$executeRaw`
-    INSERT INTO "IntentoLogin" ("id", "clave", "intentos", "ventanaAt")
-    VALUES (gen_random_uuid()::text, ${clave}, 1, NOW())
-    ON CONFLICT ("clave") DO UPDATE SET
-      "intentos" = CASE WHEN "IntentoLogin"."ventanaAt" < ${cutoff} THEN 1 ELSE "IntentoLogin"."intentos" + 1 END,
-      "ventanaAt" = NOW()`;
+// upsert nativo + increment en SQL: dos intentos simultáneos suman los dos, ya no se pisan con un read-modify-write.
+async function registrarIntentoFallido(clave: string, ventanaVencida: boolean): Promise<void> {
+  const ahora = new Date();
+  await prisma.intentoLogin.upsert({
+    where: { clave },
+    create: { clave, intentos: 1, ventanaAt: ahora },
+    update: ventanaVencida ? { intentos: 1, ventanaAt: ahora } : { intentos: { increment: 1 }, ventanaAt: ahora },
+  });
 }
 
 function esRutaInterna(ruta: string): boolean {
@@ -54,14 +54,14 @@ export async function iniciarSesion(
     return { error: "Demasiados intentos. Espera unos minutos antes de reintentar." };
   }
 
-  const usuario = await prisma.usuario.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
+  const usuario = await prisma.usuario.findUnique({
+    where: { email },
   });
 
   // SEG-06: mensaje único, sin distinguir "no existe" vs "contraseña mal"
   const ok = await verifyPassword(password, usuario?.passwordHash ?? DUMMY_HASH);
   if (!usuario || !ok) {
-    await registrarIntentoFallido(clave, cutoff);
+    await registrarIntentoFallido(clave, !intento || intento.ventanaAt < cutoff);
     return { error: "Credenciales inválidas" };
   }
 

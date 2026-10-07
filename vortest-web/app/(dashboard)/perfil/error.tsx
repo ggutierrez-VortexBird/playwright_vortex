@@ -1,24 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { ErrorState } from "@/components/ui/error-state";
+import { ErrorBoundaryView } from "@/components/ui/error-boundary-view";
 
-export default function PerfilError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    console.error("Perfil page error:", error);
-  }, [error]);
-
-  return (
-    <ErrorState
-      title="Error al cargar el perfil"
-      message={error.message || "Ocurrió un error inesperado."}
-      onRetry={reset}
-    />
-  );
+export default function ErrorDeSeccion({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorBoundaryView title="No pudimos cargar tu perfil" error={error} reset={reset} />;
 }

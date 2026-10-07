@@ -12,10 +12,10 @@ interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const TONE_CLASSNAMES: Record<StatusBadgeTone, string> = {
-  success: "bg-m3-success-container text-m3-on-success-container",
-  error: "bg-m3-error-container text-m3-on-error-container",
+  success: "bg-m3-success-container text-m3-success",
+  error: "bg-m3-danger-container text-m3-error",
   warning: "bg-m3-warning-container text-m3-on-warning-container",
-  info: "bg-m3-info-container text-m3-on-info-container",
+  info: "bg-m3-info-container text-m3-info",
   neutral: "bg-m3-surface-container-high text-m3-on-surface-variant ring-1 ring-inset ring-m3-outline-variant",
 };
 

@@ -54,3 +54,26 @@ export function resultadoEjecucionLabel(estado: string, primerPasoFallido?: numb
 export function estaEnCurso(estado: string): boolean {
   return (ESTADOS_EN_CURSO as readonly string[]).includes(estado)
 }
+
+/** Filtros del listado de ejecuciones; "en_curso" agrupa pendiente y corriendo. */
+export const FILTROS_ESTADO = {
+  paso: ['paso'],
+  fallo: ['fallo'],
+  en_curso: ['pendiente', 'corriendo'],
+  errorMotor: ['errorMotor'],
+  cancelado: ['cancelado'],
+} as const
+
+export type FiltroEstado = keyof typeof FILTROS_ESTADO
+
+export const ETIQUETA_FILTRO: Record<FiltroEstado, string> = {
+  paso: 'Conformes',
+  fallo: 'No conformes',
+  en_curso: 'En curso',
+  errorMotor: 'Error del motor',
+  cancelado: 'Canceladas',
+}
+
+export function esFiltroEstado(valor: string | undefined | null): valor is FiltroEstado {
+  return !!valor && Object.prototype.hasOwnProperty.call(FILTROS_ESTADO, valor)
+}

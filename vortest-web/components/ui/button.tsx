@@ -21,7 +21,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap transition-[background-color,color,box-shadow,transform,opacity] duration-fast ease-standard active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 motion-reduce:active:scale-100";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap transition-[background-color,color,box-shadow,transform,opacity] duration-fast ease-standard active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:active:scale-100";
 
 const SOLID_BASE = "rounded-md font-label text-label-md font-semibold";
 

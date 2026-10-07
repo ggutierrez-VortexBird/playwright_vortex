@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { decodeDraft } from "@/lib/grabador/draft";
 import { PrepararGrabacionClient } from "@/components/grabador/preparar-grabacion-client";
 import { PageHeader } from "@/components/ui/page-header";
 
+
+export const metadata: Metadata = { title: "Preparar grabación" };
 interface PageProps {
   searchParams: Promise<Record<string, string | undefined>>;
 }

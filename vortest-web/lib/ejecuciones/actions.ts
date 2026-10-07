@@ -30,41 +30,22 @@ export async function dispararEjecucion(casoPruebaId: string) {
   // 2. Requiere superadmin, admin del espacio del proyecto, o tester con acceso
   await requireProyectoAccess(session, caso.proyectoId)
 
-  // 3. Atomic check + create using $transaction with FOR UPDATE NOWAIT
-  // Bug 3 fix: race condition between check and create is now prevented.
-  // ESTE BLOQUE NO CAMBIA respecto a la versión pre-motor: sigue siendo
-  // sobre evitar duplicar ejecuciones del mismo caso, sin relación con la cola.
-  let ejecucion: { id: string; estado: string }
-  try {
-    ejecucion = await prisma.$transaction(async (tx) => {
-      // Lock por caso + conteo en la misma transacción: el FOR UPDATE anterior ignoraba sus filas y dejaba ejecutar el mismo caso dos veces.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${casoPruebaId}))`
-      const enCurso = await tx.ejecucion.count({
-        where: { casoPruebaId, estado: { in: ['pendiente', 'corriendo'] } },
-      })
-      if (enCurso > 0) throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR
-
-      // No lock held — create the execution
-      return tx.ejecucion.create({
-        data: {
-          casoPruebaId,
-          estado: 'pendiente',
-        },
-      })
+  // 3. Chequeo + alta atómicos: nunca dos ejecuciones en curso del mismo caso.
+  const ejecucion: { id: string; estado: string } = await prisma.$transaction(async (tx) => {
+    // Lock por caso + conteo en la misma transacción: el FOR UPDATE anterior ignoraba sus filas y dejaba ejecutar el mismo caso dos veces.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${casoPruebaId}))`
+    const enCurso = await tx.ejecucion.count({
+      where: { casoPruebaId, estado: { in: ['pendiente', 'corriendo'] } },
     })
-  } catch (error: unknown) {
-    // Check if it's the P2024 "could not obtain lock" error from Postgres
-    if (
-      error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      (error as { code?: string }).code === 'P2024'
-    ) {
-      throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR
-    }
-    // Re-throw any other error
-    throw error
-  }
+    if (enCurso > 0) throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR
+
+    return tx.ejecucion.create({
+      data: {
+        casoPruebaId,
+        estado: 'pendiente',
+      },
+    })
+  })
 
   // 4. Despacho — motor Fase 1 (RabbitMQ), dirigido por eventos, no polling.
   //

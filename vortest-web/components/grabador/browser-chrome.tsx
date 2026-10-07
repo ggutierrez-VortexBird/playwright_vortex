@@ -24,12 +24,15 @@ export interface BrowserChromeProps {
   onNavigate: (url: string) => void;
   /** Disabled cuando la sesión no está live. */
   disabled: boolean;
+  /** La navegación real ocurre en la ventana del grabador: sólo se muestra la URL actual, sin controles simulados. */
+  soloLectura?: boolean;
 }
 
 export function BrowserChrome({
   pageUrl,
   onNavigate,
   disabled,
+  soloLectura = false,
 }: BrowserChromeProps) {
   const [draft, setDraft] = useState(pageUrl);
   const [copied, setCopied] = useState(false);
@@ -65,11 +68,12 @@ export function BrowserChrome({
       data-testid="browser-chrome"
       className="flex items-center gap-3 border-b border-m3-outline-variant bg-m3-surface-container-lowest px-4 py-2.5"
     >
+      {!soloLectura && (
       <div className="flex items-center gap-1 text-m3-on-surface-variant">
         <button
           data-testid="bc-back"
           disabled
-          title="Atrás (no soportado en headless de Playwright)"
+          title="Atrás (no disponible)"
           className="rounded p-1 opacity-40"
         >
           <span aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -91,8 +95,9 @@ export function BrowserChrome({
           <span aria-hidden="true" className="material-symbols-outlined text-[18px]">refresh</span>
         </button>
       </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="min-w-0 flex-1" data-testid="bc-form">
+      <form id="bc-form" onSubmit={handleSubmit} className="min-w-0 flex-1" data-testid="bc-form">
         <div className="flex items-center gap-2 rounded-lg border border-m3-outline-variant bg-m3-surface-container px-3 py-1.5 transition focus-within:border-m3-secondary focus-within:ring-1 focus-within:ring-m3-secondary">
           <span aria-hidden="true" className="material-symbols-outlined shrink-0 text-[16px] text-m3-success">
             {isSecure ? "lock" : "lock_open"}
@@ -103,13 +108,18 @@ export function BrowserChrome({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="https://app.ejemplo.com"
-            disabled={disabled}
+            disabled={disabled && !soloLectura}
+            readOnly={soloLectura}
+            aria-label={soloLectura ? "URL actual en la ventana del grabador" : "URL"}
             className="w-full bg-transparent font-mono-code text-body-sm text-m3-on-surface placeholder:text-m3-on-surface-variant focus:outline-none disabled:opacity-50"
           />
         </div>
       </form>
 
       <div className="flex shrink-0 items-center gap-1">
+        {soloLectura ? (
+          <span className="hidden font-body text-body-xs text-m3-on-surface-variant lg:inline">Navega en la ventana del grabador</span>
+        ) : (
         <button
           data-testid="bc-go"
           type="submit"
@@ -119,6 +129,7 @@ export function BrowserChrome({
         >
           Ir
         </button>
+        )}
         <button
           type="button"
           onClick={handleCopy}

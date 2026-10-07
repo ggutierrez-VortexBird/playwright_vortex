@@ -1,15 +1,7 @@
-'use client'
+"use client";
 
-import { ErrorState } from "@/components/ui/error-state"
+import { ErrorBoundaryView } from "@/components/ui/error-boundary-view";
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string }
-  reset: () => void
-}) {
-  return (
-    <ErrorState title="Error al cargar ejecuciones" message={error.message} onRetry={reset} />
-  )
+export default function ErrorDeSeccion({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorBoundaryView title="No pudimos cargar las ejecuciones" error={error} reset={reset} />;
 }
