@@ -2,6 +2,8 @@
 
 vorTest separa **quién decide** (la web, con la base de datos) de **quién ejecuta** (el motor, sin base de datos). Se comunican sólo por cuatro canales, todos explícitos.
 
+> Tabla de componentes con tecnología, versión e imagen Docker: [componentes.md](./componentes.md).
+
 ## Servicios
 
 ```mermaid

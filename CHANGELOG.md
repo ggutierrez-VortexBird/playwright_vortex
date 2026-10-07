@@ -14,7 +14,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - **Migas** Espacio › Proyecto › Caso › Ejecución y título propio en cada pestaña [UX-06, UX-07].
 - **Tabla de casos** ordenable y con columna Proyecto [UX-10].
 - Avisos (toasts) al crear, guardar y eliminar en todas las pantallas [UX-11].
-- Documentación en [`docs/`](./docs): arquitectura, modelo de datos, API, sistema de diseño y guía de contribución [DOC-01].
+- Documentación en [`docs/`](./docs): componentes y tecnologías (versiones e imágenes Docker), arquitectura, modelo de datos, API, sistema de diseño y guía de contribución [DOC-01].
 
 ### Cambiado
 - **Identidad**: la paleta sale del logo (teal `#135C65` y ámbar `#EEAA0B`); los títulos van en tinta y el teal queda para lo accionable. Tokens en un solo archivo (`app/tokens.css`) [UI-01, UI-02].
@@ -67,13 +67,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - **Credenciales**: eliminar una credencial hace que los casos grabados con ella se ejecuten sin esa sesión; la confirmación lo advierte con el número de casos afectados.
 - **Integridad de artefactos**: una subida cuyo SHA-256 o tamaño no coincide se rechaza (antes se guardaba).
 
-### Tests que este trabajo deja obsoletos (no se modificaron tests)
-Comparado contra la base (`44eb443`): 89 tests ya fallaban antes; estos 15 empiezan a fallar por cambios deliberados y documentan el comportamiento anterior:
-- `detener-button.test.tsx` (8): esperan `window.confirm`, reemplazado por `ConfirmDialog` [UX-03].
-- `lib/ejecuciones/actions.test.ts` (2): esperan `FOR UPDATE NOWAIT` / P2024, el mecanismo que permitía la doble ejecución [BUG-01].
-- `upload/route.test.ts` (3): mandan hashes ficticios que ahora se rechazan por integridad [BUG-02, BUG-10].
-- `caso-table.test.tsx` (1): espera la etiqueta "Pasó"; ahora es "Conforme" [UI-04].
-- `parametros/[paramId]/route.test.ts` (1): su título dice "retorna 403" pero espera que la ruta lance (lo que producía un 500); ahora devuelve 403 [BUG-13].
+### Tests
+Todos los tests pasan: `vortest-web` 960/960 (122 suites, sin errores de TypeScript) y `vortest-engine` 44/44. Había 89 fallos previos y este trabajo dejó otros 15 obsoletos; se corrigieron todos:
+- Mocks del usuario (`findUnique` → `findFirst`, `getUsuarioActual` en `withAuth`): 55 tests de autorización y rutas.
+- `DetenerButton` reescrito para el diálogo de confirmación y los avisos (11 tests).
+- `dispararEjecucion`: lock por caso y conteo en vez de `FOR UPDATE NOWAIT`; el 409 devuelve la ejecución en curso.
+- Subida de artefactos: hash y tamaño reales (más 2 tests nuevos: hash incorrecto y formato inválido).
+- Cola RabbitMQ: test reescrito para `amqp-connection-manager`, más el límite de 5 reintentos.
+- Etiquetas "Conforme" / "No conforme · paso N", redirección a `/api/logout`, `updateCaso` que ya no borra el caso padre, IDOR que responde 403 en vez de lanzar.
+- Motor: `runner.spec.ts` no compilaba (propiedad `hasUnhealedFailure` de la auto-reparación) ni cargaba (`@nestjs/common` es ESM) y sus fixtures no llevaban el prefijo `__VORTEST__`.
 
 ## [Fase 1] — Separación del motor (rama `feature/separacion-monolito`)
 

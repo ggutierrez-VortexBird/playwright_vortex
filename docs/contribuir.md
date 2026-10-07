@@ -19,7 +19,7 @@ cd vortest-engine && npm install && npm run typecheck && npm run lint && npm tes
 ## Antes de abrir un PR
 
 - `npm run typecheck` y `npm run lint` sin errores en el proyecto que tocaste (las advertencias se pueden quedar, los errores no).
-- `npm test`: hay tests en rojo que ya estaban así; comparar contra la rama base y no sumar fallos nuevos. Si un cambio deliberado deja obsoleto un test, decirlo en el PR con el motivo.
+- `npm test` en verde en ambos proyectos. Si un cambio deliberado deja obsoleto un test, se actualiza en el mismo PR explicando el motivo.
 - Si cambiaste la interfaz, revisarla en tema claro y oscuro, en escritorio y a 390 px de ancho, y sólo con teclado.
 - Si tocaste la base: migración versionada en `vortest-web/prisma/migrations/` (ver [modelo de datos](./modelo-de-datos.md#migraciones)). Nunca una migración que pierda datos sin aprobación explícita.
 - Commits pequeños con [Conventional Commits](https://www.conventionalcommits.org/es/): `feat`, `fix`, `refactor`, `docs`, `style`, `perf`, `test`, `chore`. Un bloque lógico por commit.

@@ -138,7 +138,7 @@ Estado: ⏳ pendiente · ✅ resuelto · 🟡 parcial (con lo que falta) · ➖ 
 
 | ID | Sev | Hallazgo | Evidencia | Solución | Estado |
 |---|---|---|---|---|---|
-| DOC-01 | A | La documentación de `documentacion/` es anterior al split y describe el monolito. No hay `docs/` en el repo del código. | `documentacion/*.md` (2026-09-14) | `docs/` con arquitectura, modelo de datos, API, sistema de diseño y contribución. | ✅ `docs/` (arquitectura, modelo de datos, API, sistema de diseño, contribución). |
+| DOC-01 | A | La documentación de `documentacion/` es anterior al split y describe el monolito. No hay `docs/` en el repo del código. | `documentacion/*.md` (2026-09-14) | `docs/` con arquitectura, modelo de datos, API, sistema de diseño y contribución. | ✅ `docs/` (componentes y tecnologías, arquitectura, modelo de datos, API, sistema de diseño, contribución). |
 | DOC-02 | M | `.env.example` incompletos: faltan `CREDENCIALES_ENCRYPTION_KEY`, `PLAYWRIGHT_LOCALE`, `PLAYWRIGHT_TIMEZONE`; sobran variables que nadie lee. | `.env.example` | Alinear con el código. | ✅ `.env.example` alineados con el código. |
 | DOC-03 | M | `vortest-web/CLAUDE.md` afirma cosas falsas (archivos "borrados" que existen, auto-reparación inyectada). | `vortest-web/CLAUDE.md` | Corregir. | ✅ Corregidos los `CLAUDE.md` de web y motor. |
 | DOC-04 | B | Sin `CHANGELOG.md` en el repo del código. | — | Crearlo. | ✅ `CHANGELOG.md`. |
@@ -169,6 +169,6 @@ Rama `feature/auditoria-ux`. De 74 hallazgos: **69 resueltos**, **3 parciales** 
 | Teclado | Saltar al contenido, Escape en menús y modales, cajón móvil `inert`, foco al primer error. |
 | Lint | 0 errores en `vortest-web` y `vortest-engine`. |
 | Tipos | 0 errores en el código de la app (los de `__tests__` son previos y no se tocaron). |
-| Tests | Base `44eb443`: 89 fallos previos. Ahora: 15 más, todos por cambios deliberados y listados en el CHANGELOG; ningún otro test cambió de estado. |
+| Tests | `vortest-web` 960/960 y `vortest-engine` 44/44 (en la base `44eb443` fallaban 89). Detalle en el CHANGELOG. |
 | En vivo | Ejecutar (y doble clic), seguir, detener, generar acta en paralelo, filtros, credenciales, formularios, 404, CSP sin violaciones (Monaco, video, visor de trazas). |
 | Escritorio y móvil | Revisado a 1440 y 390 px, en claro y oscuro. |

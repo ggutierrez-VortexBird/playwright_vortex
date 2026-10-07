@@ -20,6 +20,8 @@ El repositorio tiene **dos proyectos Node independientes** (sin workspaces: cada
 | [`vortest-web/`](./vortest-web) | Dashboard Next.js 16: interfaz, API, base de datos (Prisma + PostgreSQL), grabador y consumidor de eventos. |
 | [`vortest-engine/`](./vortest-engine) | Motor de ejecución NestJS: recibe trabajos por RabbitMQ, corre `playwright test` y sube los artefactos. No toca la base de datos. |
 
+**Componentes, tecnologías, versiones e imágenes Docker:** [`docs/componentes.md`](./docs/componentes.md).
+
 Arquitectura, modelo de datos, API, sistema de diseño y guía de contribución: [`docs/`](./docs).
 
 ## Empezar en local
