@@ -1,23 +1,4 @@
-/**
- * PATCH /api/casos/[id]/parametros/[paramId]
- *
- * Actualiza el valor por defecto de un ParametroGrabacion (HU-G12).
- *
- * Body (JSON):
- *   { valorDefecto: string | null }
- *
- * Reglas:
- *   - El parametro debe pertenecer al caso dado (no cross-case writes).
- *   - Los parametros con origen='credencial' NO son editables
- *     (responde 403 { error: 'forbidden', message: 'credencial' }).
- *
- * Responses:
- *   - 200 { parametro: ParametroConEnUso } OK
- *   - 400 { error: 'validation', message }
- *   - 401 { error: 'No autenticado' }
- *   - 403 { error: 'forbidden', message: 'credencial' }
- *   - 404 { error: 'not_found' }
- */
+/** PATCH: actualiza el valor por defecto de un parámetro (los de credencial no son editables). */
 
 import { NextResponse } from "next/server";
 import { getSession, requireProyectoAccess } from "@/lib/auth";
@@ -64,7 +45,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Verify caso exists and user has access before attempting update.
+  // Verifica que el caso exista y haya acceso.
   const caso = await prisma.casoPrueba.findUnique({
     where: { id: casoPruebaId },
     select: { id: true, proyectoId: true },
@@ -78,7 +59,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return mapErrorToResponse(err);
   }
 
-  // Pre-check to differentiate 404 (not found) vs 403 (credencial).
+  // Distingue 404 de 403 (credencial).
   const existing = await prisma.parametroGrabacion.findFirst({
     where: { id: paramId, casoPruebaId },
     select: { id: true, origen: true },

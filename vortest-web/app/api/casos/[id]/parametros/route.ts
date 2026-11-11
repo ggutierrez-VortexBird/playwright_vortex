@@ -1,18 +1,4 @@
-/**
- * GET /api/casos/[id]/parametros
- *
- * Lista los ParametroGrabacion asociados a un CasoPrueba, con el flag
- * `enUso` recalculado a partir de los pasos actuales (HU-G12).
- *
- * Auth: requiere sesión autenticada (cualquier rol). El caso debe
- * existir; los params de credencial se devuelven con `valorDefecto=null`
- * para no exponer el plaintext.
- *
- * Responses:
- *   - 200 { parametros: ParametroConEnUso[] }
- *   - 401 { error: 'No autenticado' }
- *   - 404 { error: 'not_found' }
- */
+/** GET: lista los parámetros del caso con `enUso` recalculado (credenciales sin valor). */
 
 import { NextResponse } from "next/server";
 import { getSession, requireProyectoAccess } from "@/lib/auth";

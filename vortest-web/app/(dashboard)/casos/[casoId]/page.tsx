@@ -1,23 +1,7 @@
 import { migasDeProyecto } from "@/lib/migas";
 import { tituloConAcceso } from "@/lib/metadata";
 import type { Metadata } from "next";
-/**
- * /casos/[casoId] — vista del caso guardado (HU-G16 + HU-G12 + HU-G13).
- *
- * Server Component:
- *   1. Auth + ownership via CasoPrueba (responsableId).
- *   2. Load caso + params + pasos from DB.
- *   3. Render the script preview + "Ejecutar" button + CSV upload UI.
- *
- * Esta página es el redirect target del botón "Guardar" en HU-G16.
- * El detalle completo (HU-2.x ya lo cubre en /casos/[id] listado);
- * acá mostramos:
- *   - Header: codigo + nombre + origen
- *   - Script block (preformatted)
- *   - Panel de parámetros editable (HU-G12) con "sin uso" derivado
- *   - Botón "Ejecutar" → POST /api/casos/[id]/ejecutar
- *   - Subir CSV data-driven (HU-G13)
- */
+/** Vista del caso guardado: script, parámetros y subida de CSV. */
 
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -32,9 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ casoId: s
 }
 interface PageProps {
   params: Promise<{ casoId: string }>;
-  /** `editarScript=1` abre el editor de una — llega desde la acción
-   *  "Script" de la tabla de Casos, para no tener que entrar al detalle
-   *  y después buscar el botón. */
+  /** Con `editarScript=1` abre el editor directamente. */
   searchParams?: Promise<{ editarScript?: string }>;
 }
 
@@ -65,7 +47,6 @@ export default async function CasoDetallePage({ params, searchParams }: PageProp
         orderBy: { nombre: "asc" },
         select: { id: true, nombre: true, valorDefecto: true, origen: true },
       },
-      // Para HU-G12: calcular enUso desde los pasos.
       pasosGrabados: {
         orderBy: { numero: "asc" },
         select: { descripcion: true, valor: true },
@@ -84,7 +65,7 @@ export default async function CasoDetallePage({ params, searchParams }: PageProp
     throw err;
   }
 
-  // HU-G12: calcular enUso dinámicamente.
+  // Calcula enUso a partir de los pasos.
   const parametrosConEnUso = caso.parametros.map((p) => {
     const token = `{{${p.nombre}}}`;
     const enUso = caso.pasosGrabados.some(

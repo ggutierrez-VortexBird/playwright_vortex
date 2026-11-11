@@ -1,16 +1,4 @@
-/**
- * Tests de POST /api/grabador/sesiones/[id]/guardar.
- *
- * Cubre lo agregado sobre el comportamiento V2 original:
- *   - Guardar con el script tal cual lo escribió el grabador (comportamiento
- *     previo, sin cambios).
- *   - Guardar con un script editado a mano en la pantalla de revisión — el
- *     texto editado gana sobre el specCode crudo.
- *   - "Guardar y ejecutar": encola una Ejecucion y redirige a
- *     /ejecuciones/[id] en vez de /casos/[id].
- *   - Si encolar la ejecución falla, el caso queda guardado igual — no se
- *     pierde el guardado por un fallo aparte.
- */
+// POST /api/grabador/sesiones/[id]/guardar: guardar tal cual, con script editado y "guardar y ejecutar".
 
 import { POST } from "@/app/api/grabador/sesiones/[id]/guardar/route";
 import { getSession, requireProyectoAccess } from "@/lib/auth";

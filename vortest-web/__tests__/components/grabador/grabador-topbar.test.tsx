@@ -1,10 +1,3 @@
-/**
- * GrabadorTopbar — tests del behavior del usuario:
- *  - Estado de conexión mapeado a label correcto
- *  - Botón Detener llama onDetener, deshabilitado en stopping
- *  - Botón Descartar pide confirmación y luego llama onDescartar
- *  - Timer de 3s revierte la confirmación
- */
 import { render, cleanup, act, screen, fireEvent } from "@testing-library/react";
 import { GrabadorTopbar } from "@/components/grabador/grabador-topbar";
 

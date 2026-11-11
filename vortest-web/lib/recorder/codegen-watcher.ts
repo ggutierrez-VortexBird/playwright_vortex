@@ -1,62 +1,32 @@
-/**
- * codegen-watcher.ts — chokidar.watch sobre el .spec.ts que escribe
- * `npx playwright codegen`.
- *
- * Pivot V2 (ACTA-Plan-Pivot-Playwright-Codegen): el QA interactua con
- * Chromium abierto por Playwright. Cada acción que dispara el inspector
- * (click, fill, hover, alt+click assertion, snapshot) result en que
- * Playwright codegen EMITE una línea al .spec.ts. Eso es lo que el
- * usuario quiere: el script EXACTO de Playwright, sin decoración.
- *
- * Esta pieza vigila el archivo y emite `{content, version, changedAt}`
- * cada vez que cambia. El caller (recorder-worker) persiste y hace
- * broadcast WS a los clientes conectados.
- *
- * Política:
- *   - chokidar hace debounce pequeño (50ms) — Playwright escribe en
- *     rafagas (varias líneas por click, ej. click en custom widget).
- *   - El primer `add` se ignora (es nuestro seed vacío, no algo del QA).
- *   - Si el archivo se borra (Playwright lo recrea), watcher re-observe.
- *   - onError loggea y NO mata el watcher — archivos transitorios en
- *     Windows pueden dar EPERM un instante y re-estabilizarse.
- */
+// Vigila el .spec.ts de `playwright codegen` y emite {content, version, changedAt} en cada cambio; onError no mata el watcher (EPERM transitorio en Windows).
 
 import { watch, type FSWatcher } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
 export interface SpecUpdateEvent {
-  /** Path absoluto del .spec.ts. */
+  /** Ruta absoluta del .spec.ts. */
   path: string;
-  /** Contenido completo del archivo en el momento del cambio. */
+  /** Contenido completo del archivo al momento del cambio. */
   content: string;
-  /** Bytes (size) — útil para evitar re-procesar el mismo contenido. */
+  /** Tamaño en bytes; sirve para no reprocesar el mismo contenido. */
   bytes: number;
-  /** ISO8601 timestamp del evento. */
+  /** Marca de tiempo ISO8601 del evento. */
   changedAt: string;
 }
 
 export interface CodegenWatcherOptions {
-  /** Path absoluto del .spec.ts. */
+  /** Ruta absoluta del .spec.ts. */
   specPath: string;
   /** Handler invocado en cada cambio. */
   onUpdate: (event: SpecUpdateEvent) => void;
-  /** Handler invocado si la sesión muere (ej. el archivo fue borrado
-   *  y no reapareció en 5s). Llamado una sola vez. */
+  /** Se invoca una sola vez si la sesión muere (ej. el archivo se borró y no reapareció en 5s). */
   onGone?: () => void;
-  /** Debounce en ms. Default 50ms. */
+  /** Debounce en ms (por defecto 50). */
   debounceMs?: number;
 }
 
-/**
- * Vigila `specPath` y emite `onUpdate` cuando cambia.
- * Retorna una función `close()` que detiene la vigilancia.
- *
- * Implementación: usa `fs.watch` (más rápido que chokidar y no requiere
- * deps). chokidar lo teníamos como dep transitiva pero si no lo
- * necesitamos para esto, evitamos el overhead. Si el archivo NO existe
- * todavía, hace poll cada 200ms hasta que aparezca.
- */
+/** Vigila `specPath` con `fs.watch` y emite `onUpdate`; si el archivo no existe aún, reintenta cada 200ms. Devuelve `close()`. */
 export function watchCodegenSpec(
   options: CodegenWatcherOptions,
 ): { close: () => void; isActive: () => boolean } {

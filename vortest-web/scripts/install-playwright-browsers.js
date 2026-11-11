@@ -1,21 +1,11 @@
 #!/usr/bin/env node
-/**
- * Postinstall script: ensures Playwright Chromium browser is installed.
- *
- * This runs automatically after `npm install` so users don't have to manually
- * run `npx playwright install`. It is idempotent: if browsers are already
- * installed, it's a no-op (instant).
- *
- * It only installs Chromium (not Firefox/WebKit) because that's what the
- * ACTA worker uses for executing test cases. Other browsers can be installed
- * manually with `npx playwright install firefox` if needed.
- */
+// Postinstall: instala Chromium de Playwright si falta; idempotente.
 
 const { execSync } = require("node:child_process");
 
 function isChromiumInstalled() {
   try {
-    // Ask Playwright where it expects the browser binary to be
+    // Pregunta a Playwright dónde espera el binario del navegador
     const result = execSync("node -e \"const {chromium}=require('@playwright/test'); console.log(chromium.executablePath());\"", {
       stdio: ["ignore", "pipe", "ignore"],
     }).toString().trim();
@@ -31,7 +21,7 @@ function installChromium() {
   try {
     execSync("npx playwright install chromium", {
       stdio: "inherit",
-      // Skip dep installation on Linux (would require sudo); on Windows/macOS it just downloads
+      // En Linux se omiten las dependencias (requerirían sudo); en Windows/macOS solo descarga
       env: { ...process.env, PLAYWRIGHT_SKIP_BROWSER_GC: "1" },
     });
     console.log("[postinstall] Chromium installed successfully.");
@@ -42,7 +32,7 @@ function installChromium() {
 }
 
 if (isChromiumInstalled()) {
-  // Silent: already installed, nothing to do
+  // Silencioso: ya instalado, nada que hacer
   process.exit(0);
 }
 

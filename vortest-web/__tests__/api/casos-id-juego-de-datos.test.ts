@@ -1,16 +1,4 @@
-/**
- * Tests for /api/casos/[id]/juego-de-datos (HU-G13).
- *
- * Verifies:
- *   - GET returns 401 when not authenticated.
- *   - GET returns 404 when caso does not exist.
- *   - GET returns existing juegos ordered by createdAt desc.
- *   - POST requires auth + multipart/form-data.
- *   - POST rejects empty archivo.
- *   - POST validates against caso's ParametroGrabacion names.
- *   - POST creates a JuegoDeDatos and returns preview.
- *   - POST replaces previous JuegoDeDatos (1-a-1 MVP).
- */
+// Pruebas de /api/casos/[id]/juego-de-datos: auth, validación contra los parámetros del caso y reemplazo del juego previo.
 
 jest.mock("next/server", () => ({
   NextResponse: {
@@ -52,11 +40,10 @@ const mockJuegoFindMany = prisma.juegoDeDatos.findMany as unknown as jest.Mock;
 const mockJuegoCreate = prisma.juegoDeDatos.create as unknown as jest.Mock;
 const mockJuegoDeleteMany = prisma.juegoDeDatos.deleteMany as unknown as jest.Mock;
 
-// Polyfill File.prototype.text — jsdom doesn't include it.
+// Polyfill de File.prototype.text: jsdom no lo incluye.
 if (!File.prototype.text) {
   Object.defineProperty(File.prototype, "text", {
     value: function (this: File & { __text?: string }) {
-      // Stored text fallback (jsdom has no real Blob backing).
       if (this.__text !== undefined) return Promise.resolve(this.__text);
       return Promise.resolve("");
     },
@@ -84,7 +71,6 @@ function makeCsvFile(text: string, name = "data.csv"): File {
   const file = new File([text], name, { type: "text/csv" }) as File & {
     __text?: string;
   };
-  // Store the text so the File.prototype.text polyfill can return it.
   file.__text = text;
   return file;
 }

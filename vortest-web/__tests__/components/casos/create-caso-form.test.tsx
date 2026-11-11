@@ -156,7 +156,7 @@ describe("CreateCasoForm", () => {
 
     const file = new File(["test content"], "login.spec.ts", { type: "text/typescript" });
     fireEvent.change(screen.getByTestId("script-file-input"), { target: { files: [file] } });
-    // Leave responsable unselected
+    // Responsable sin seleccionar
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));
 
@@ -170,7 +170,7 @@ describe("CreateCasoForm", () => {
 
     fireEvent.change(screen.getByLabelText(/código/i), { target: { value: "CP-01" } });
     fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Caso de login" } });
-    // Leave script file unselected
+    // Archivo de script sin seleccionar
     fireEvent.change(screen.getByTestId("responsable-select"), { target: { value: "user-1" } });
 
     fireEvent.click(screen.getByRole("button", { name: /crear caso/i }));

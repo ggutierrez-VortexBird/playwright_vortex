@@ -1,24 +1,4 @@
-// lib/queue/rabbitmq.ts
-// Único módulo de vortest-web que sabe que RabbitMQ existe. Lo usan dos
-// procesos distintos que comparten este código fuente (pero NO memoria en
-// runtime): el proceso Next.js (dispararEjecucion publica a `engine.execute`)
-// y scripts/execution-consumer.ts (consume `engine.events` y también
-// publica a `engine.execute` para el job del hijo en el encadenamiento
-// padre/hijo — ver lib/ejecuciones/actions.ts).
-//
-// GOTCHA no obvio (verificado leyendo node_modules/@nestjs/microservices):
-// vortest-engine consume `engine.execute` con un @EventPattern('engine.execute')
-// sobre un ClientProxy de NestJS (Transport.RMQ). Nest NO publica el payload
-// "crudo" a la cola — lo envuelve como `{ pattern: <queue>, data: <payload> }`
-// (ver ClientProxy.emit() -> dispatchEvent() -> RmqRecordSerializer). Su
-// IncomingRequestDeserializer del lado consumidor solo enruta correctamente
-// si encuentra ese sobre; si publicáramos el ExecuteJobMessage "pelado", Nest
-// lo trata como mensaje "externo", no encuentra pattern, y lo descarta con un
-// nack sin reintento ("no event handler found"). Por eso publishExecuteJob
-// envuelve el mensaje exactamente así. Simétricamente, lo que vortest-engine
-// publica a `engine.events` vía su propio ClientProxy también llega envuelto
-// — por eso consumeEngineEvents desenvuelve `.data` antes de entregar el
-// EngineEvent real al caller.
+// Único módulo que conoce RabbitMQ; Nest envuelve los mensajes como `{ pattern, data }`, por eso se envuelve al publicar y se desenvuelve `.data` al consumir.
 import amqp, { type AmqpConnectionManager, type ChannelWrapper } from 'amqp-connection-manager'
 import type { ConfirmChannel, ConsumeMessage } from 'amqplib'
 import { createHash } from 'node:crypto'
@@ -33,16 +13,7 @@ import {
 export const EXECUTE_QUEUE = 'engine.execute'
 export const EVENTS_QUEUE = 'engine.events'
 
-/**
- * Argumentos de la cola `engine.execute`: quorum + límite de
- * entregas + dead-letter exchange, para que un mensaje "veneno" termine en la
- * DLQ en vez de reencolarse para siempre. vortest-engine declara la cola con
- * EXACTAMENTE los mismos argumentos.
- *
- * ADVERTENCIA: RabbitMQ rechaza redeclarar una cola existente con argumentos
- * distintos (406 PRECONDITION_FAILED): hay que borrar la cola `engine.execute`
- * existente antes de desplegar este cambio. `engine.events` NO cambia.
- */
+/** Argumentos de `engine.execute` (quorum, delivery-limit, DLX); deben coincidir con los del motor o RabbitMQ rechaza con 406 PRECONDITION_FAILED. */
 export const ENGINE_EXECUTE_QUEUE_OPTIONS = {
   durable: true,
   arguments: {
@@ -64,10 +35,7 @@ function wrapNestEvent<T>(pattern: string, data: T): NestEventEnvelope<T> {
   return { pattern, data }
 }
 
-// amqp-connection-manager: reconecta solo con backoff y vuelve a
-// ejecutar el `setup` de cada canal (re-asegura colas y re-registra el
-// consumidor) tras cada reconexión. Cacheado en globalThis (mismo patrón que
-// lib/db.ts) para sobrevivir al hot-reload de `next dev`.
+// amqp-connection-manager reconecta solo y re-ejecuta el `setup`; cacheado en globalThis para sobrevivir al hot-reload.
 const globalForRabbit = globalThis as unknown as {
   __vortestRabbitConn?: AmqpConnectionManager
   __vortestRabbitPublishChannel?: ChannelWrapper
@@ -117,14 +85,7 @@ function getPublishChannel(): ChannelWrapper {
   return globalForRabbit.__vortestRabbitPublishChannel
 }
 
-/**
- * Publica un job a `engine.execute`. Usado por `dispararEjecucion` (caso sin
- * padre pendiente, o el propio caso padre) y por `execution-consumer.ts`
- * (el job del hijo, una vez que el padre terminó 'paso').
- *
- * Si no hay conexión, el mensaje espera en memoria hasta `PUBLISH_TIMEOUT_MS`
- * y luego la promesa rechaza (el llamador marca la ejecución como errorMotor).
- */
+/** Publica un job a `engine.execute`; sin conexión espera hasta `PUBLISH_TIMEOUT_MS` y luego rechaza. */
 export async function publishExecuteJob(message: ExecuteJobMessage): Promise<void> {
   const channel = getPublishChannel()
   const envelope = wrapNestEvent(EXECUTE_QUEUE, message)
@@ -133,21 +94,10 @@ export async function publishExecuteJob(message: ExecuteJobMessage): Promise<voi
   })
 }
 
-/**
- * Handler de un EngineEvent ya desenvuelto (sin el sobre {pattern,data} de
- * Nest). `ack`/`nack` delegan al mensaje AMQP original.
- */
+/** Handler de un EngineEvent ya desenvuelto; `ack`/`nack` delegan al mensaje AMQP. */
 export type EngineEventHandler = (event: EngineEvent<EngineEventPayload>) => Promise<void>
 
-/**
- * Se suscribe a `engine.events` y entrega cada EngineEvent ya desenvuelto y
- * VALIDADO (FIA-09) al handler. Ack manual: solo se ackea tras que `handler`
- * resuelva sin lanzar — un error deja el mensaje para reentrega (at-least-once,
- * mismo criterio que vortest-engine). Un mensaje que no valida contra el
- * contrato se rechaza sin reencolar (irá a la DLQ cuando exista).
- * Sobrevive a reconexiones: el `setup` se re-ejecuta y re-registra el consumidor.
- * Devuelve una función para cerrar el canal (graceful shutdown).
- */
+/** Suscribe a `engine.events`; entrega cada EngineEvent desenvuelto y validado, con ack manual tras `handler` (at-least-once). Devuelve el cierre del canal. */
 export async function consumeEngineEvents(handler: EngineEventHandler): Promise<() => Promise<void>> {
   const wrapper = getConnection().createChannel({
     setup: async (channel: ConfirmChannel) => {
@@ -181,8 +131,7 @@ async function handleMessage(
   let event: EngineEvent<EngineEventPayload>
   try {
     const raw: unknown = JSON.parse(msg.content.toString())
-    // Tolerante: si algún día algo publica el evento "pelado" (sin el sobre
-    // de Nest), lo aceptamos igual en vez de descartarlo.
+    // Tolerante: si algo publica el evento sin el sobre de Nest, se acepta igual
     const candidate =
       raw && typeof raw === 'object' && 'data' in raw && 'pattern' in raw
         ? (raw as NestEventEnvelope<unknown>).data

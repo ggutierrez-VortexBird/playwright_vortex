@@ -1,8 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-// El listado real agrupa ejecuciones por proyecto en secciones (no es una
-// <table>), así que se arma a mano con Skeleton en vez de forzar
-// TableSkeleton (que asume una fila de encabezado que este layout no tiene).
+// Listado agrupado por proyecto (no es una <table>), por eso no usa TableSkeleton.
 export default function Loading() {
   return (
     <div className="flex flex-col gap-6">

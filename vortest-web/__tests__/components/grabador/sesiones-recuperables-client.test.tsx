@@ -1,16 +1,4 @@
-/**
- * Tests de components/grabador/sesiones-recuperables-client.tsx.
- *
- * El botón "Reanudar" (HU-GR-2) se retiró: asumía que el BrowserContext
- * seguía vivo en memoria del recorder-worker tras detener, esperando una
- * reconexión. El grabador sin ventana de Inspector (codegen-runner) cierra
- * siempre el proceso al detener, así que no queda nada a lo que
- * reconectarse — el botón navegaba y mostraba "sesión no encontrada".
- *
- * También cubre el conteo de pasos: antes venía de `_count.pasos`
- * (PasoGrabado), que el grabador actual nunca escribe y siempre daba 0.
- * Ahora es `pasosCount`, calculado server-side parseando el specCode.
- */
+// El conteo de pasos viene de `pasosCount`, calculado en el servidor desde el specCode.
 
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SesionesRecuperablesClient } from "@/components/grabador/sesiones-recuperables-client";
@@ -76,12 +64,10 @@ describe("SesionesRecuperablesClient", () => {
     render(<SesionesRecuperablesClient sesiones={[{ ...baseSesion, estado: "detenida" }]} />);
     fireEvent.click(screen.getByTestId("sesion-descartar-button"));
 
-    // Verificar que el dialog muestra el conteo correcto
     await waitFor(() => {
       expect(screen.getByText(/7 paso\(s\) capturado\(s\)/i)).toBeInTheDocument();
     });
 
-    // Confirmar el dialog
     const confirmBtn = screen.getByRole("button", { name: /descartar sesión/i });
     fireEvent.click(confirmBtn);
 

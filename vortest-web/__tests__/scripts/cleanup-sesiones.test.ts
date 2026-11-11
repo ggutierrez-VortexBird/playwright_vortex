@@ -1,6 +1,3 @@
-// __tests__/scripts/cleanup-sesiones.test.ts
-// HU-GR-1 — tests para el cron de limpieza de sesiones antiguas.
-
 const mockCount = jest.fn();
 const mockDeleteMany = jest.fn();
 const mockDisconnect = jest.fn();
@@ -17,7 +14,7 @@ jest.mock("../../lib/db", () => ({
 
 const mockExit = jest.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
-// Mock console para no contaminar el output del runner de tests
+// Se mockea console para no ensuciar la salida
 const mockLog = jest.spyOn(console, "log").mockImplementation(() => undefined);
 const mockWarn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
 
@@ -32,7 +29,7 @@ describe("scripts/cleanup-sesiones.ts", () => {
   it("no hace nada si no hay sesiones a purgar", async () => {
     mockCount.mockResolvedValue(0);
 
-    // Importamos dinámicamente para que el mock de prisma esté listo
+    // Import dinámico para que el mock de prisma esté listo
     jest.isolateModules(() => {
       require("../../scripts/cleanup-sesiones");
     });
@@ -62,7 +59,7 @@ describe("scripts/cleanup-sesiones.ts", () => {
     expect(whereArg.estado).toEqual({ in: ["descartada", "guardada"] });
     expect(whereArg.updatedAt.lt).toBeInstanceOf(Date);
 
-    // cutoff debería ser ~7 días atrás
+    // cutoff ≈ 7 días atrás
     const expected = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const actual = whereArg.updatedAt.lt.getTime();
     expect(Math.abs(actual - expected)).toBeLessThan(5000);

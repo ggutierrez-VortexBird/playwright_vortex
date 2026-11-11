@@ -1,6 +1,3 @@
-// __tests__/lib/acta/template.test.ts
-// HU-G19 — tests para la plantilla HTML del acta.
-
 import { renderActaHTML } from "@/lib/acta/template";
 import type { ActaTemplateInput, ActaTemplateEjecucion } from "@/lib/acta/types";
 

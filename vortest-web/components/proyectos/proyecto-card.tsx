@@ -81,7 +81,6 @@ export function ProyectoCard({
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-shadow hover:shadow-card-hover">
-      {/* Cabecera coloreada */}
       <div className="relative isolate flex flex-col p-4 pb-5 text-white" style={{ backgroundColor: color }}>
         {capaParaBlanco(color) && <span aria-hidden="true" className="absolute inset-0 -z-10" style={capaParaBlanco(color)!} />}
         <div className="mb-2.5 flex items-center justify-between text-xs">
@@ -134,7 +133,6 @@ export function ProyectoCard({
         </div>
       </div>
 
-      {/* Cuerpo */}
       <div className="flex flex-1 flex-col justify-between gap-5 p-5">
         <div>
           <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">

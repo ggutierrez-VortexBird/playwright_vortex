@@ -1,28 +1,11 @@
-/**
- * AES-256-GCM crypto helpers para Credencial.valor.
- *
- * Versionado de clave (SEG-12):
- *   - v1 (legacy): key = scrypt(SESSION_SECRET, 'acta-credencial-salt', 32)
- *   - v2 (actual):  key = scrypt(CREDENCIALES_ENCRYPTION_KEY, 'acta-credencial-v2', 32)
- *     Prefijo 'v2:' en el ciphertext output. Si CREDENCIALES_ENCRYPTION_KEY no está
- *     definida se usa v1 (compatibilidad hacia atrás). Ambos derivan con scrypt
- *     para resistir rainbow tables.
- *   - nonce: 12 bytes random, prepended al ciphertext
- *   - output: [v2:] nonce(12) || ciphertext(N) || authTag(16)
- *   - tampered ciphertext/nonce/tag → decrypt throws (auth tag mismatch)
- *
- * Esta función se llama server-side (Next.js routes + recorder-worker).
- * NO exponer `valor` directamente al cliente.
- *
- * lib/env.ts (de otro agente) valida CREDENCIALES_ENCRYPTION_KEY como opcional.
- */
+// AES-256-GCM para Credencial.valor; clave v2 (CREDENCIALES_ENCRYPTION_KEY, prefijo 'v2:') o v1 legacy (SESSION_SECRET). Solo servidor.
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 
 const SALT_V1 = "acta-credencial-salt";
 const SALT_V2 = "acta-credencial-v2";
 const KEY_LEN = 32; // 256 bits
-const NONCE_LEN = 12; // GCM standard
-const TAG_LEN = 16; // GCM auth tag
+const NONCE_LEN = 12; // estándar GCM
+const TAG_LEN = 16; // tag de autenticación GCM
 const ALGO = "aes-256-gcm";
 const V2_PREFIX = "v2:";
 
@@ -33,7 +16,7 @@ let keyV1: Buffer | null = null;
 let keyV2: Buffer | null = null;
 let avisoV1 = false;
 
-/** Derived key v1 (legacy, SESSION_SECRET). */
+/** Clave derivada v1 (legacy, SESSION_SECRET). */
 function getKeyV1(): Buffer {
   if (keyV1) return keyV1;
   const secret = process.env.SESSION_SECRET;
@@ -46,7 +29,7 @@ function getKeyV1(): Buffer {
   return keyV1;
 }
 
-/** Derived key v2 (CREDENCIALES_ENCRYPTION_KEY). */
+/** Clave derivada v2 (CREDENCIALES_ENCRYPTION_KEY). */
 function getKeyV2(): Buffer {
   if (keyV2) return keyV2;
   if (!_credencialesKey) {
@@ -56,13 +39,7 @@ function getKeyV2(): Buffer {
   return keyV2;
 }
 
-/**
- * Cifra un plaintext (string) y devuelve un Buffer con `nonce || ciphertext || authTag`.
- * El nonce se genera aleatoriamente por cada llamada (12 bytes GCM standard).
- *
- * Usa v2 si CREDENCIALES_ENCRYPTION_KEY está definida, si no v1 (legacy).
- * Lanza Error si no hay clave disponible.
- */
+/** Cifra un string y devuelve `nonce || ciphertext || authTag`; usa v2 si hay CREDENCIALES_ENCRYPTION_KEY, si no v1; lanza sin clave. */
 export function encryptCredencial(plain: string): Buffer {
   const useV2 = Boolean(_credencialesKey);
   if (!useV2) {
@@ -80,16 +57,12 @@ export function encryptCredencial(plain: string): Buffer {
   const cipher = createCipheriv(ALGO, key, nonce);
   const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
-  // Layout: [v2:] nonce(12) || ciphertext(N) || authTag(16)
+  // Formato: [v2:] nonce(12) || ciphertext(N) || authTag(16)
   const body = Buffer.concat([nonce, ct, tag]);
   return useV2 ? Buffer.concat([Buffer.from(V2_PREFIX), body]) : body;
 }
 
-/**
- * Descifra un Buffer producido por `encryptCredencial`.
- * Detecta la versión por el prefijo 'v2:' y deriva la clave correspondiente.
- * Lanza Error si el auth tag no verifica (tampering, key incorrecta, nonce alterado).
- */
+/** Descifra un Buffer de `encryptCredencial`; la versión se detecta por el prefijo 'v2:'; lanza si el auth tag no verifica. */
 export function decryptCredencial(ciphertext: Buffer): string {
   const isV2 = ciphertext.slice(0, V2_PREFIX.length).toString() === V2_PREFIX;
   const data = isV2 ? ciphertext.subarray(V2_PREFIX.length) : ciphertext;

@@ -1,6 +1,3 @@
-// __tests__/lib/ejecuciones/chapter-segments.test.ts
-// HU-G18 — chapter segmentation tests
-
 import {
   computeChapterSegments,
   findChapterAtTime,
@@ -57,7 +54,7 @@ describe("pasosTienenCapitulosValidos", () => {
   });
 });
 
-describe("computeChapterSegments — modo timestamp (HU-G18 path)", () => {
+describe("computeChapterSegments — modo timestamp", () => {
   it("usa los timestamps absolutos cuando están disponibles", () => {
     const pasos: PasoConCapitulo[] = [
       paso({ id: "a", numero: 1, videoInicioMs: 0, videoFinMs: 1000 }),
@@ -146,8 +143,7 @@ describe("computeChapterSegments — edge cases", () => {
       paso({ id: "b", numero: 2, videoInicioMs: null, videoFinMs: null, duracionMs: 3000 }),
     ];
     const segs = computeChapterSegments(pasos, 4000);
-    // Como pasosTienenCapitulosValidos devuelve false (uno no tiene),
-    // se usa el fallback por duración.
+    // pasosTienenCapitulosValidos devuelve false (uno no tiene): se usa el fallback por duración.
     expect(segs[0].anchoPct).toBe(25);
     expect(segs[1].anchoPct).toBe(75);
   });
@@ -172,8 +168,7 @@ describe("findChapterAtTime", () => {
   });
 
   it("devuelve null en un gap entre segmentos (finMs exclusive)", () => {
-    // No hay gap en estos datos (contiguous), pero en el límite superior
-    // de c devuelve null (4s no pertenece a c, fin es exclusivo).
+    // En el límite superior de c devuelve null: el fin es exclusivo.
     expect(findChapterAtTime(segs as any, 4000)).toBeNull();
   });
 

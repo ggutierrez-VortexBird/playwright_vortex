@@ -55,7 +55,7 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
         setCasos(data.casos || []);
       }
     } catch {
-      // Ignore refresh errors
+      // Se ignoran los errores de refresco
     }
   }, []);
 
@@ -145,7 +145,6 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
         <SectionSearch value={busqueda} onChange={setBusqueda} placeholder="Buscar caso…" />
       </div>
 
-      {/* Mode selector modal (HU-G20): elegir modo + formulario embebido */}
       <ModeSelectorModal
         open={showModeSelector}
         onClose={() => setShowModeSelector(false)}
@@ -154,7 +153,6 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
         {...(proyectoId ? { proyectoId } : {})}
       />
 
-      {/* Edit modal */}
       <Modal open={!!editingCaso} onClose={handleCancel} labelledBy="editar-caso-title" className="max-w-lg" hayCambios={edicionConCambios}>
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
@@ -177,7 +175,6 @@ export function CasosClient({ casosIniciales, canEdit, proyectoId, proyectos, pr
         </div>
       </Modal>
 
-      {/* Casos grouped by proyecto, or flat when proyectoId is set */}
       {casos.length === 0 ? (
         <EmptyState
           icon="fact_check"

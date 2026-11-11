@@ -1,17 +1,4 @@
-/**
- * ParametrosPanel — V2 minimal stub.
- *
- * En V1 este panel permitía editar parámetros creados durante la grabación
- * (HU-G12: cookies, credenciales, etc.). V2 (pivot playwright-codegen) no
- * crea parámetros automáticamente — el spec crudo de `playwright codegen`
- * no tiene `const params = {...}`. Si un caso se subió con un script
- * paramétrico, los params viven en el script directamente; este panel
- * muestra los params extraídos del caso desde la DB (CasoParametros).
- *
- * Para no romper la pantalla /casos/[id], este componente es read-only:
- * muestra el nombre y valor de cada param. La edición de params en V2
- * requiere editar el script .spec.ts directamente.
- */
+/** Panel de solo lectura con los parámetros del caso; para editarlos hay que modificar el script .spec.ts. */
 "use client";
 
 import { useState, useTransition } from "react";
@@ -30,14 +17,11 @@ interface ParametrosPanelProps {
   readOnly?: boolean;
   onParametrosChange?: () => Promise<void> | void;
   emptyMessage?: string;
-  /** @deprecated V2: el panel es read-only — se ignora. */
+  /** @deprecated el panel es de solo lectura; se ignora. */
   onUpdated?: (parametros: ParametroPanelItem[]) => void;
 }
 
-/**
- * Reproduce el mask de credenciales que tenía el serializarPasos de V1.
- * 7 bullets + últimos 4 chars. Las credenciales reales NO se muestran en la UI.
- */
+/** Enmascara credenciales: 7 bullets + últimos 4 caracteres; nunca se muestran reales. */
 function maskValue(value: string): string {
   if (value.length <= 4) return "•".repeat(value.length);
   const last4 = value.slice(-4);
@@ -56,7 +40,7 @@ export function ParametrosPanel({ parametros, emptyMessage }: ParametrosPanelPro
           {emptyMessage ?? "Este caso no tiene parámetros."}
         </p>
         <p className="mt-2 text-xs text-m3-on-surface">
-          V2: los parámetros se editan directamente en el
+          Los parámetros se editan directamente en el
           archivo <code>.spec.ts</code> del caso.
         </p>
       </div>

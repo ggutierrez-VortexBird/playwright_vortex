@@ -7,11 +7,10 @@ import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { saveSession } from "@/lib/auth";
 
-// SEG-06: hash dummy precalculado — iguala el tiempo de respuesta cuando el
-// usuario no existe, evitando el canal lateral de enumeración.
+// Hash dummy precalculado: iguala el tiempo de respuesta cuando el usuario no existe (evita enumeración).
 const DUMMY_HASH = bcrypt.hashSync("noop", 10);
 
-// SEG-05: rate limiting
+// Límite de intentos
 const VENTANA_MIN = 15; // minutos
 const MAX_INTENTOS = 5;
 
@@ -58,7 +57,7 @@ export async function iniciarSesion(
     where: { email },
   });
 
-  // SEG-06: mensaje único, sin distinguir "no existe" vs "contraseña mal"
+  // Mensaje único: no distingue "no existe" de "contraseña incorrecta"
   const ok = await verifyPassword(password, usuario?.passwordHash ?? DUMMY_HASH);
   if (!usuario || !ok) {
     await registrarIntentoFallido(clave, !intento || intento.ventanaAt < cutoff);
@@ -74,7 +73,7 @@ export async function iniciarSesion(
     return { error: "Esta cuenta está suspendida. Contacta a un administrador." };
   }
 
-  // SEG-07: sólo rutas internas; `/evil.com` pasaba la validación anterior y los navegadores lo tratan como `//evil.com`.
+  // Solo rutas internas; `/evil.com` pasaba y los navegadores lo tratan como `//evil.com`.
   const destino = (formData.get("from") as string) || "/";
   const from = esRutaInterna(destino) ? destino : "/";
 

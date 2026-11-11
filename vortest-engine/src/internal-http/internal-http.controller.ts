@@ -1,9 +1,4 @@
-// src/internal-http/internal-http.controller.ts
-// Única superficie HTTP entrante del motor (fuera de /health): cancelación
-// de un job en curso. El motor EJECUTA el kill real acá (SIGTERM → 5s de
-// gracia → SIGKILL, vía kill-tree.ts) — runner.ts solo escucha el
-// AbortSignal para settlear su promesa correctamente, no mata nada por sí
-// mismo (ver comentario en runner.ts).
+// Cancelación de jobs en curso: acá se hace el kill; runner.ts solo escucha el AbortSignal
 import { Controller, HttpCode, HttpStatus, Logger, Param, Post, Res, UseGuards } from '@nestjs/common'
 import type { Response } from 'express'
 import { ActiveJobsRegistry } from '../execution/active-jobs.registry'
@@ -26,10 +21,7 @@ export class InternalHttpController {
       return { cancelled: true }
     }
     if (!entry) {
-      // 404 benigno: con múltiples réplicas compitiendo por trabajos
-      // (competing consumers), es normal y esperado que otra instancia sea
-      // la que tiene el job. El caller (vortest-web) trata esto como un
-      // miss inofensivo, nunca como un error.
+      // 404 benigno: con varias réplicas otra instancia puede tener el job
       res.status(HttpStatus.NOT_FOUND)
       return { cancelled: false }
     }
@@ -37,9 +29,7 @@ export class InternalHttpController {
     this.logger.log(`Cancelando job ${jobId} (pid=${entry.proc.pid})`)
     entry.abortController.abort()
 
-    // Misma lógica de gracia de 5s que runner.ts usaba para su timeout
-    // global: SIGTERM primero, esperar, forzar SIGKILL si el proceso sigue
-    // vivo cuando expira la gracia.
+    // SIGTERM, espera de 5s y SIGKILL si sigue vivo
     await killProcessTree(entry.proc.pid ?? undefined, false)
     const graceTimer = setTimeout(() => {
       if (this.registry.has(jobId)) {

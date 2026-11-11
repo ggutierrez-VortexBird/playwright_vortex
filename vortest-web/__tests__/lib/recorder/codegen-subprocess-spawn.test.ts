@@ -1,17 +1,4 @@
-/**
- * Tests del spawn de lib/recorder/codegen-subprocess.ts con
- * `node:child_process` mockeado.
- *
- * Lo que se protege:
- *   - Que ya NO se invoque `npx playwright codegen`. Ese binario abre
- *     siempre la ventana del Playwright Inspector, que es justo lo que se
- *     quería evitar, y obligaba a ocultarla desde el sistema operativo.
- *   - Que la parada pida apagado ordenado por stdin antes de recurrir a
- *     señales. En Windows las señales terminan el proceso sin ejecutar sus
- *     manejadores, así que el volcado final del runner no puede depender
- *     de ellas.
- *   - Que `ready()` distinga "el navegador abrió" de "el proceso murió".
- */
+// Spawn de codegen-subprocess con child_process mockeado: no usa `npx playwright codegen` y la parada pide apagado ordenado por stdin.
 
 import { EventEmitter } from "node:events";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";

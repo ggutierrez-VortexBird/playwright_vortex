@@ -54,8 +54,7 @@ describe("GET /api/usuarios", () => {
 
   it("should return only itself when caller is a tester (no people management)", async () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
-    // `serializeUsuario` necesita `createdAt` (Date) para hacer `toISOString()`;
-    // el mock debe incluir todos los campos que la action espera serializar.
+    // serializeUsuario necesita createdAt (Date) para toISOString().
     (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", email: "admin@example.com", rol: "tester", nombre: null });
     (prisma.usuario.findUnique as jest.Mock).mockResolvedValue({
       id: "user-123",
@@ -76,9 +75,7 @@ describe("GET /api/usuarios", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    // `serializeUsuario` añade más campos (nombre, activo, fechas ISO, espacios);
-    // usamos toMatchObject para verificar los esenciales sin acoplar el test al
-    // shape completo de la serialización.
+    // toMatchObject verifica lo esencial sin acoplar el test a toda la serialización.
     expect(data.usuarios).toHaveLength(1);
     expect(data.usuarios[0]).toMatchObject({
       id: "user-123",
@@ -90,8 +87,7 @@ describe("GET /api/usuarios", () => {
   it("should return 200 with user list for superadmin", async () => {
     (getSession as jest.Mock).mockResolvedValue(mockSession);
     (prisma.usuario.findFirst as jest.Mock).mockResolvedValue({ id: "user-123", rol: "superadmin" });
-    // Mocks con todos los campos requeridos por `serializeUsuario` (incluido
-    // `createdAt` para que `toISOString()` no falle).
+    // Mocks con todos los campos que requiere serializeUsuario.
     (prisma.usuario.findMany as jest.Mock).mockResolvedValue([
       { id: "user-1", email: "alice@example.com", rol: "admin", nombre: null, activo: true, ultimoAccesoAt: null, createdAt: new Date("2026-08-01"), espacios: [] },
       { id: "user-2", email: "bob@example.com", rol: "tester", nombre: null, activo: true, ultimoAccesoAt: null, createdAt: new Date("2026-08-02"), espacios: [] },

@@ -1,22 +1,10 @@
-/**
- * OrigenChip — HU-G17.
- *
- * Chip visual que muestra el origen de un CasoPrueba (`subirScript` |
- * `grabador` | `mixto`). Aparece en la pantalla de detalle de ejecución
- * para que el usuario distinga al vuelo si un caso fue subido como
- * script .spec.ts o grabado por el modo No-Code.
- *
- * Diseño (tokens M3, sin colores ad-hoc):
- *   - Azul info para `grabador` (acción capturada en vivo)
- *   - Gris neutro para `subirScript` (archivo subido)
- *   - Ámbar cálido para `mixto` (ambos modos)
- */
+/** Chip con el origen del caso: subirScript, grabador o mixto. */
 
 import type { CasoOrigen } from "@prisma/client";
 
 export interface OrigenChipProps {
   origen: CasoOrigen | string;
-  /** Override className for the wrapper. */
+  /** className adicional para el contenedor. */
   className?: string;
 }
 

@@ -2,8 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
-/** Botón "Nuevo Proyecto" para el header de /espacios/[id]/proyectos — vive en un
- *  Server Component, así que dispara un evento en vez de manejar estado directamente. */
+/** Botón "Nuevo Proyecto" del header; dispara un evento porque vive en un Server Component. */
 export function NuevoProyectoTrigger() {
   return (
     <Button

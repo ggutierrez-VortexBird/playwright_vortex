@@ -1,21 +1,4 @@
-// __tests__/lib/worker/claim.test.ts
-// Tests for HU-3 Botón Detener — atomic claim of pending execution
-//
-// El contrato real (lib/worker/claim.ts):
-// - `tryClaimPendingExecution(db)` busca la ejecución pendiente más antigua
-//   (`findFirst({where: { estado: 'pendiente' }, orderBy: createdAt: 'asc' })`)
-// - Luego intenta hacer `updateMany` con filtro `{ id, estado: 'pendiente' }`
-//   para marcarla como `corriendo` con `inicioAt = new Date()`.
-// - Si updateMany afecta 1 fila → retorna la fila claimed.
-// - Si updateMany afecta 0 filas (porque fue cancelada/tomada entre findFirst
-//   y updateMany) → retorna null.
-// - El caller debe iterar (loop) llamando a esta función hasta que retorne null
-//   o haya reclamado una ejecución.
-//
-// Tests cubren:
-// - AC-7 (race): si la ejecución fue cancelada entre findFirst y updateMany,
-//   updateMany afecta 0 filas y retornamos null (no procesamos).
-// - Happy path: updateMany afecta 1 fila y retornamos el job claimed.
+// tryClaimPendingExecution: updateMany atómico; si afecta 0 filas (cancelada entre medio) devuelve null.
 
 import { prisma } from "@/lib/db";
 
@@ -69,7 +52,7 @@ describe("tryClaimPendingExecution (atomic claim)", () => {
   });
 
   it("retorna null si la ejecución fue cancelada entre findFirst y updateMany (race)", async () => {
-    // AC-7: race entre detenerEjecucion y el worker.
+    // Carrera entre detenerEjecucion y el worker
     const { tryClaimPendingExecution } = await import("@/lib/worker/claim");
     const pending = {
       id: "ejec-canceled",

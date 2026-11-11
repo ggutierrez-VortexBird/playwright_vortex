@@ -3,10 +3,7 @@ import { requireEspacioAdmin, requireProyectoAccess, scopeProyectoWhere } from "
 import type { CreateProyectoInput, UpdateProyectoInput, ProyectoWithMetrics, ProyectoWithEspacio } from "@/types/proyecto";
 import type { SessionData, UsuarioActual } from "@/lib/auth";
 
-/**
- * Create a new proyecto within an espacio.
- * Requires superadmin, or admin del espacio destino.
- */
+/** Crea un proyecto en un espacio. Requiere superadmin o admin del espacio. */
 export async function createProyecto(
   input: CreateProyectoInput,
   session: SessionData
@@ -21,7 +18,7 @@ export async function createProyecto(
 
   const { nombre, ambiente, espacioId, color } = input;
 
-  // Validate required fields
+  // Valida campos obligatorios
   if (!nombre || typeof nombre !== "string" || nombre.trim() === "") {
     throw { status: 400, body: { error: "validation", message: "nombre is required" } };
   }
@@ -34,7 +31,7 @@ export async function createProyecto(
     throw { status: 400, body: { error: "validation", message: "espacioId is required" } };
   }
 
-  // Verify espacio exists
+  // Verifica que el espacio exista
   const espacio = await prisma.espacio.findUnique({
     where: { id: espacioId },
   });
@@ -63,11 +60,7 @@ export async function createProyecto(
   };
 }
 
-/**
- * List all active proyectos for a given espacio. Si se pasa `usuario`, se
- * filtra además por su alcance (relevante para tester: solo sus proyectos
- * asignados dentro de ese espacio).
- */
+/** Lista proyectos activos de un espacio, filtrados por el alcance del `usuario` si se pasa. */
 // `null` = sesión sin usuario activo (borrado o desactivado): nunca listar sin filtro; `undefined` queda para usos internos sin alcance.
 export async function listProyectosByEspacio(espacioId: string, usuario?: UsuarioActual | null) {
   if (usuario === null) return [];
@@ -81,11 +74,7 @@ export async function listProyectosByEspacio(espacioId: string, usuario?: Usuari
   });
 }
 
-/**
- * List all active proyectos with their espacio included. Si se pasa
- * `usuario`, se filtra por su alcance (superadmin: todos; admin: los de sus
- * espacios; tester: solo los asignados).
- */
+/** Lista proyectos activos con su espacio, filtrados por el alcance del `usuario` si se pasa. */
 export async function listProyectosActivos(usuario?: UsuarioActual | null): Promise<ProyectoWithEspacio[]> {
   return prisma.proyecto.findMany({
     where: {
@@ -97,12 +86,7 @@ export async function listProyectosActivos(usuario?: UsuarioActual | null): Prom
   });
 }
 
-/**
- * Get a single proyecto by ID with metrics from latest execution per caso.
- * Uses 3-query strategy to avoid N+1.
- * Aplica `requireProyectoAccess` internamente (EST-02): ningún llamador puede
- * olvidarse del guard. Lanza FORBIDDEN_ERROR / NOT_FOUND_ERROR.
- */
+/** Obtiene un proyecto por id con métricas de la última ejecución por caso (3 queries, sin N+1); aplica `requireProyectoAccess` internamente. */
 export async function getProyectoById(id: string, session: SessionData): Promise<ProyectoWithMetrics> {
   await requireProyectoAccess(session, id);
 
@@ -141,10 +125,7 @@ export interface MetricasProyecto {
   fechaUltimaEjecucion: string | null;
 }
 
-/**
- * Métricas de varios proyectos con dos consultas en total (antes eran dos por proyecto y traían filas completas):
- * casos activos y la ejecución terminada más reciente de cada caso.
- */
+/** Métricas de varios proyectos en dos consultas: casos activos y última ejecución terminada de cada caso. */
 export async function getMetricsLote(proyectoIds: string[]): Promise<Map<string, MetricasProyecto>> {
   const resultado = new Map<string, MetricasProyecto>(
     proyectoIds.map((id) => [id, { totalCasos: 0, casosConformes: 0, casosNoConformes: 0, fechaUltimaEjecucion: null }]),
@@ -187,17 +168,13 @@ export async function getMetrics(proyectoId: string): Promise<MetricasProyecto> 
   return (await getMetricsLote([proyectoId])).get(proyectoId)!;
 }
 
-/**
- * Update an existing proyecto.
- * Requires superadmin role.
- * Only updates fields that are provided.
- */
+/** Actualiza un proyecto existente; solo los campos provistos. */
 export async function updateProyecto(
   id: string,
   input: UpdateProyectoInput,
   session: SessionData
 ) {
-  // Check proyecto exists
+  // Verifica que el proyecto exista
   const existing = await prisma.proyecto.findUnique({
     where: { id },
   });
@@ -206,7 +183,7 @@ export async function updateProyecto(
     throw { status: 404, body: { error: "not_found" } };
   }
 
-  // Requires superadmin, o admin del espacio dueño del proyecto
+  // Requiere superadmin o admin del espacio dueño del proyecto
   await requireEspacioAdmin(session, existing.espacioId);
 
   const updateData: UpdateProyectoInput = {};
@@ -248,12 +225,9 @@ export async function updateProyecto(
   };
 }
 
-/**
- * Soft delete a proyecto (sets activo: false).
- * Requires superadmin role.
- */
+/** Baja lógica de un proyecto (activo: false). Requiere superadmin o admin del espacio. */
 export async function deleteProyecto(id: string, session: SessionData) {
-  // Check proyecto exists
+  // Verifica que el proyecto exista
   const existing = await prisma.proyecto.findUnique({
     where: { id },
   });
@@ -262,7 +236,7 @@ export async function deleteProyecto(id: string, session: SessionData) {
     throw { status: 404, body: { error: "not_found" } };
   }
 
-  // Requires superadmin, o admin del espacio dueño del proyecto
+  // Requiere superadmin o admin del espacio dueño del proyecto
   await requireEspacioAdmin(session, existing.espacioId);
 
   await prisma.proyecto.update({
@@ -273,10 +247,7 @@ export async function deleteProyecto(id: string, session: SessionData) {
   return { success: true };
 }
 
-/**
- * Asigna un tester ya existente a un Proyecto. Requiere superadmin o admin
- * del espacio dueño del proyecto. El usuario destino debe tener rol tester.
- */
+/** Asigna un tester existente a un Proyecto. Requiere superadmin o admin del espacio; el destino debe ser tester. */
 export async function asignarTesterProyecto(proyectoId: string, usuarioId: string, session: SessionData) {
   const proyecto = await prisma.proyecto.findUnique({ where: { id: proyectoId } });
   if (!proyecto) {
@@ -302,10 +273,7 @@ export async function asignarTesterProyecto(proyectoId: string, usuarioId: strin
   return { success: true };
 }
 
-/**
- * Quita el acceso de un tester a un Proyecto. Requiere superadmin o admin
- * del espacio dueño del proyecto.
- */
+/** Quita el acceso de un tester a un Proyecto. Requiere superadmin o admin del espacio. */
 export async function quitarTesterProyecto(proyectoId: string, usuarioId: string, session: SessionData) {
   const proyecto = await prisma.proyecto.findUnique({ where: { id: proyectoId } });
   if (!proyecto) {
@@ -321,10 +289,7 @@ export async function quitarTesterProyecto(proyectoId: string, usuarioId: string
   return { success: true };
 }
 
-/**
- * Lista los testers con acceso a un Proyecto. Requiere superadmin o admin
- * del espacio dueño del proyecto.
- */
+/** Lista los testers con acceso a un Proyecto. Requiere superadmin o admin del espacio. */
 export async function listTestersProyecto(proyectoId: string, session: SessionData) {
   const proyecto = await prisma.proyecto.findUnique({ where: { id: proyectoId } });
   if (!proyecto) {

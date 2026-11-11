@@ -1,10 +1,7 @@
 import type { ZodType } from "zod";
 import { AppError } from "@/lib/http/errors";
 
-/**
- * Lee el cuerpo JSON de la petición; si no es JSON válido o no cumple el esquema lanza un AppError 400
- * con un mensaje para el usuario (mapErrorToResponse lo convierte en respuesta).
- */
+/** Lee el cuerpo JSON de la petición; si es inválido o no cumple el esquema lanza un AppError 400 con mensaje para el usuario. */
 export async function leerJson<T = unknown>(request: Request, esquema?: ZodType<T>): Promise<T> {
   let datos: unknown;
   try {

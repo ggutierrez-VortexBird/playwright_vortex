@@ -1,9 +1,4 @@
-// src/config/env.schema.ts
-// Zod schema para validación de variables de entorno.
-// Migrado desde Joi en la migración NestJS 10 → NestJS 12: NestJS 12
-// espera un validador compatible con StandardSchemaV1 y Joi v17 no lo
-// satisface sin adapter. Zod es el estándar interno del proyecto (vortest-web
-// ya lo usa en otros lados) y evita la capa de adapter.
+// Schema Zod de variables de entorno
 import { z } from 'zod'
 
 export const envSchema = z.object({

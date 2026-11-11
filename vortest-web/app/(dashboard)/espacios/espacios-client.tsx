@@ -75,7 +75,6 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
 
   return (
     <article className="group flex w-full max-w-sm flex-col overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5 hover:scale-[1.01]">
-      {/* Cabecera coloreada */}
       <div className="relative isolate flex flex-col justify-between px-5 pb-5 pt-4 text-white" style={{ backgroundColor: espacio.color }}>
         {capaParaBlanco(espacio.color) && <span aria-hidden="true" className="absolute inset-0 -z-10" style={capaParaBlanco(espacio.color)!} />}
         <div className="flex items-center justify-between gap-2 text-xs text-white">
@@ -125,7 +124,6 @@ function EspacioCard({ espacio, canEdit, onEnter, onManageAdmins, onEdit, onDele
         </div>
       </div>
 
-      {/* Cuerpo */}
       <div className="flex flex-1 flex-col justify-between gap-4 p-5">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between text-xs text-m3-on-surface-variant">
@@ -291,8 +289,7 @@ function EspaciosList({ espacios, onEdit, onDelete, onAdminsChanged, canEdit }: 
   const [page, setPage] = useState(1);
   const [busqueda, setBusqueda] = useState("");
 
-  // Busca por nombre, código (#ESP-XXXX) o email de los administradores —
-  // no solo nombre.
+  // Busca por nombre, código o email de los admins.
   const espaciosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return espacios;
@@ -556,7 +553,6 @@ export function EspaciosClient({ initialEspacios, canEdit }: EspaciosClientProps
         }
       />
 
-      {/* Modal */}
       {canEdit && (
         <Modal
           open={showCreateForm || !!editingEspacio}

@@ -1,13 +1,4 @@
-/**
- * Tests for components/proyectos/proyecto-card.tsx.
- *
- * Notas:
- *   - El componente calcula un texto relativo ("hace X min", "ayer", etc.)
- *     basado en `Date.now()`. Para que las aserciones sean estables fijamos
- *     `Date.now` con jest.spyOn en beforeEach.
- *   - Usa `<Link>` de next/link; next/jest lo sustituye por un <a> nativo,
- *     por lo que basta con `getByRole("link", { name: "Ver" })`.
- */
+// Se fija Date.now para que el texto relativo ("hace X min") sea estable.
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { ProyectoCard } from "@/components/proyectos/proyecto-card";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
@@ -44,14 +35,12 @@ describe("ProyectoCard", () => {
   it("renders the proyecto name and ambiente", () => {
     render(<ProyectoCard proyecto={baseProyecto} />);
     expect(screen.getByText("Catastro Medellín")).toBeInTheDocument();
-    // El ambiente "QA" aparece DOS veces en la card (píldora + línea de
-    // metadata del footer) — verificamos que aparezca al menos una vez.
+    // "QA" aparece dos veces (píldora y footer): al menos una.
     expect(screen.getAllByText("QA").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders the project codigo formatted as #PRY-PRY1", () => {
-    // `codigoProyecto(id)` quita guiones y toma los primeros 4 chars
-    // uppercased. Para "pry-1234" eso da "PRY1" → "#PRY-PRY1".
+    // codigoProyecto(id) quita guiones y toma 4 caracteres en mayúsculas.
     render(<ProyectoCard proyecto={baseProyecto} />);
     expect(screen.getByText("#PRY-PRY1")).toBeInTheDocument();
   });

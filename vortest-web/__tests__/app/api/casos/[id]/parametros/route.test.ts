@@ -1,5 +1,4 @@
-// __tests__/app/api/casos/[id]/parametros/route.test.ts
-// Tests for GET /api/casos/[id]/parametros — parameter listing with enUso flag.
+// GET /api/casos/[id]/parametros: listado con la bandera enUso.
 
 import { GET } from "@/app/api/casos/[id]/parametros/route";
 import { getSession, requireProyectoAccess } from "@/lib/auth";

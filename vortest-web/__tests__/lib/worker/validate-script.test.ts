@@ -1,13 +1,9 @@
-// __tests__/lib/worker/validate-script.test.ts
-// RED test — testing functionality that doesn't exist yet
-// These tests verify AC-7 (script validation)
-
 describe("validateScript", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("script vacío es inválido con mensaje 'Script vacío o no proporcionado' — AC-7", async () => {
+  it("script vacío es inválido con mensaje 'Script vacío o no proporcionado'", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
     const result = validateScript("", "test.spec.ts");
@@ -15,7 +11,7 @@ describe("validateScript", () => {
     expect(result.error).toBe("Script vacío o no proporcionado");
   });
 
-  it("script con solo espacios es inválido — AC-7", async () => {
+  it("script con solo espacios es inválido", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
     const result = validateScript("   \n\t  ", "test.spec.ts");
@@ -23,7 +19,7 @@ describe("validateScript", () => {
     expect(result.error).toBe("Script vacío o no proporcionado");
   });
 
-  it("scriptFileName con extensión válida .spec.ts es válido — AC-7", async () => {
+  it("scriptFileName con extensión válida .spec.ts es válido", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
     const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
@@ -32,7 +28,7 @@ describe("validateScript", () => {
     expect(result.error).toBeUndefined();
   });
 
-  it("scriptFileName con extensión válida .test.ts es válido — AC-7", async () => {
+  it("scriptFileName con extensión válida .test.ts es válido", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
     const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
@@ -40,7 +36,7 @@ describe("validateScript", () => {
     expect(result.valid).toBe(true);
   });
 
-  it("scriptFileName con extensión inválida es inválido con mensaje descriptivo — AC-7", async () => {
+  it("scriptFileName con extensión inválida es inválido con mensaje descriptivo", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
     const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
@@ -50,7 +46,7 @@ describe("validateScript", () => {
     expect(result.error).toContain(".test.ts");
   });
 
-  it("scriptFileName null o undefined es válido (se usa default) — AC-7", async () => {
+  it("scriptFileName null o undefined es válido (se usa default)", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
     const script = 'import { test } from "@playwright/test"; test("pasa", async ({ page }) => {});';
@@ -58,10 +54,10 @@ describe("validateScript", () => {
     expect(result.valid).toBe(true);
   });
 
-  it("script con contenido válido es válido aunque no sea Playwright sintácticamente — AC-7", async () => {
+  it("script con contenido válido es válido aunque no sea Playwright sintácticamente", async () => {
     const { validateScript } = require("@/lib/worker/validate-script");
 
-    // Validation is lazy — only checks non-empty and filename extension
+    // La validación es perezosa: solo revisa no vacío y extensión
     const script = "not really playwright code but not empty";
     const result = validateScript(script, "test.spec.ts");
     expect(result.valid).toBe(true);

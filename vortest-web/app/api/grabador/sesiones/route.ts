@@ -1,13 +1,4 @@
-/**
- * POST /api/grabador/sesiones
- *
- * Wrapper HTTP que invoca la Server Action `iniciarSesionGrabacion`.
- * Auth: superadmin (via la action).
- *
- * Request body: NuevaGrabacionInput
- * Response 201: SesionGrabacionOut
- * Errors: 400 (validation), 401 (no session), 403 (forbidden), 503 (recorder)
- */
+/** POST: wrapper HTTP de la action `iniciarSesionGrabacion` (solo superadmin). */
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { iniciarSesionGrabacion } from "@/lib/grabador/actions";

@@ -1,10 +1,8 @@
-// __tests__/scripts/my-reporter.test.js
-// TDD RED/GREEN/TRIANGULATE for HU-4.5 custom Playwright reporter
-// Verifies 6 event types emitted to stdout: env, step, substep, log, assertion, end
+// Verifica los 6 eventos que emite a stdout: env, step, substep, log, assertion, end
 
 const JsonReporter = require('../../scripts/my-reporter.js')
 
-describe('JsonReporter — HU-4.5 multi-event emitter', () => {
+describe('JsonReporter — multi-event emitter', () => {
   let reporter
   let stdoutSpy
 

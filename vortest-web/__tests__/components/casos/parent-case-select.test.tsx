@@ -1,6 +1,3 @@
-/**
- * Tests for components/casos/parent-case-select.tsx.
- */
 import { render, cleanup, act, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ParentCaseSelect } from "@/components/casos/parent-case-select";
 

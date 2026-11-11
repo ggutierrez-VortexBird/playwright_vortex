@@ -1,14 +1,4 @@
-// src/queue/events.publisher.ts
-// Único servicio que sabe publicar en la cola `engine.events`. Espejo casi
-// 1:1 de los 7 tipos de evento que emite scripts/my-reporter.js (env/step/
-// substep/log/assertion/captura-test/end), envueltos en un sobre EngineEvent
-// con jobId/seq/emittedAt para que el consumidor detecte huecos/reordenamiento.
-//
-// Cambio deliberado vs. el NDJSON de hoy: donde antes había un path de
-// filesystem local (capturaActualPath/capturaReferenciaPath), ahora hay un
-// Token — el artefactoId devuelto por la subida HTTP de ese archivo
-// (ver ArtifactsService). El motor sube el artefacto ANTES de emitir el
-// evento que lo referencia.
+// Publica en engine.events los eventos del reporter dentro de un sobre EngineEvent (jobId/seq/emittedAt)
 
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { ClientProxy } from '@nestjs/microservices'
@@ -17,9 +7,7 @@ import type { LogEntry } from '../execution/log-cap'
 export const ENGINE_EVENTS_CLIENT = 'ENGINE_EVENTS_CLIENT'
 export const ENGINE_EVENTS_QUEUE = 'engine.events'
 
-// ============================================================
-// Payload variants — uno por tipo de evento del reporter.
-// ============================================================
+// Payloads por tipo de evento
 
 export interface EnvEventPayload {
   type: 'env'
@@ -38,7 +26,7 @@ export interface StepEventPayload {
   resultadoEsperado: string | null
   resultadoObtenido: string | null
   errorCount: number
-  /** HU-G18 — offset en ms desde el inicio del video. */
+  /** Offset en ms desde el inicio del video */
   videoInicioMs: number | null
   videoFinMs: number | null
   /** Logs acumulados (page/console/stderr/stdout) durante este paso. */
@@ -105,17 +93,9 @@ export interface EndEventPayload {
   asercionesFail: number
   /** storageState resultante, para encadenamiento padre/hijo. */
   outputStorageState?: unknown
-  /**
-   * Mensaje de error cuando estado === 'errorMotor' (crash del proceso,
-   * timeout, o ejecución sin pasos). No proviene del reporter — lo agrega
-   * el motor mismo, ya que en estos casos la propia línea NDJSON 'end'
-   * puede no haber llegado nunca.
-   */
+  /** Mensaje de error cuando estado === 'errorMotor'; lo agrega el motor, no el reporter */
   errorMsg?: string | null
-  /**
-   * true si algún artefacto no pudo subirse tras agotar reintentos — evita
-   * reportar silenciosamente una corrida "pasó" sin video/capturas.
-   */
+  /** Algún artefacto no pudo subirse tras agotar reintentos */
   artifactUploadFailed?: boolean
   /** Artefactos detectados en el barrido post-ejecución (video, capturas sueltas). */
   artefactos?: CollectedArtifactRef[]
@@ -163,8 +143,7 @@ export class EventsPublisherService {
       emittedAt: new Date().toISOString(),
       payload,
     }
-    // Fire-and-forget: emit() de un ClientProxy RMQ no espera respuesta. Los
-    // errores de conexión se loggean pero nunca deben tumbar la ejecución.
+    // Fire-and-forget: los errores de conexión se loggean sin tumbar la ejecución
     try {
       this.client.emit(ENGINE_EVENTS_QUEUE, event).subscribe({
         error: (err: unknown) =>

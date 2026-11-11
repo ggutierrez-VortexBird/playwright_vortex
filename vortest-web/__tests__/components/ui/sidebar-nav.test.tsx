@@ -1,6 +1,3 @@
-/**
- * Tests for components/ui/sidebar-nav.tsx.
- */
 import { render, screen } from "@testing-library/react";
 import { SidebarNav, type SidebarNavItem } from "@/components/ui/sidebar-nav";
 

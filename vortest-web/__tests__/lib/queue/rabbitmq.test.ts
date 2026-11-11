@@ -1,17 +1,5 @@
-// __tests__/lib/queue/rabbitmq.test.ts
-// GOTCHA cubierto por estos tests (ver comentario en lib/queue/rabbitmq.ts):
-// vortest-engine consume `engine.execute` vía un ClientProxy de NestJS
-// (Transport.RMQ), que envuelve cada mensaje como `{ pattern, data }`
-// (RmqRecordSerializer) — un publish "pelado" del ExecuteJobMessage sin ese
-// sobre es tratado como mensaje externo por el IncomingRequestDeserializer
-// de Nest y se descarta sin ejecutar el handler. Estos tests verifican que
-// publishExecuteJob arma el sobre correcto, y que consumeEngineEvents
-// desenvuelve `.data` correctamente (lo que vortest-engine publica a
-// engine.events pasa por el mismo ClientProxy, así que llega con el mismo
-// sobre) y que un evento que siempre falla no bloquea la cola.
-//
-// La conexión es `amqp-connection-manager`: se mockea el manager y se ejecuta
-// a mano el `setup` de cada canal, como haría el manager al (re)conectar.
+// publishExecuteJob envuelve el mensaje como { pattern, data } (formato del ClientProxy de Nest) y consumeEngineEvents lo desenvuelve.
+// La conexión es amqp-connection-manager: se mockea y se ejecuta a mano el `setup` de cada canal.
 
 import amqp from "amqp-connection-manager";
 import { publishExecuteJob, consumeEngineEvents } from "@/lib/queue/rabbitmq";

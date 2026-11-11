@@ -1,28 +1,4 @@
-/**
- * HTTP API interna del recorder-worker (V2 — Pivot playwright-codegen).
- *
- * Endpoints:
- *   POST /internal/start — auth: X-Internal-Secret
- *     401 si secret inválido
- *     503 {error:'MAX_SESSIONS_REACHED'} si registry lleno
- *     200 {token, wsUrl, specPath} OK
- *
- *   GET /health — health sin auth
- *     200 {status:'ok'}
- *
- * V2: NO hay BrowserContext. NO hay init-script. NO hay onReport callback.
- * Solo: spawnCodegen → addEntry(subprocess) → onBrowserReady(watcher).
- *
- * Diferencias vs V1 (http-api.ts viejo):
- *   - start ahora spawn un subprocess (no un BrowserContext).
- *   - onBrowserReady recibe (sessionId, specPath) — no (sessionId, page, cdp).
- *   - placeholders en registry NO se usan (entry real se inserta antes
- *     de spawnea el subprocess).
- *   - una URL inaccesible NO tumba la sesión: el runner deja el navegador
- *     abierto con la página de error para que el usuario escriba otra
- *     dirección. Solo se responde error si el proceso murió antes de
- *     abrir el navegador.
- */
+/** API HTTP interna del recorder-worker: POST /internal/start (X-Internal-Secret; 401, 503 MAX_SESSIONS_REACHED o 200 {token, wsUrl, specPath}) y GET /health. */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { issueToken } from "./auth";
@@ -34,10 +10,7 @@ import {
 import { existsSync, readFileSync } from "node:fs";
 import { secretoValido } from "@/lib/security/secret";
 
-/**
- * Cuánto se espera a que el runner avise que el navegador abrió antes de
- * responder igual. No es un timeout duro: la sesión sigue viva.
- */
+/** Cuánto se espera a que el runner avise que abrió el navegador; no es un timeout duro, la sesión sigue viva. */
 const START_WAIT_MS = 10_000;
 
 export interface HttpApiOptions {
@@ -45,11 +18,11 @@ export interface HttpApiOptions {
   internalSecret: string;
   wsPublicUrl: string;
   tokenTtlSec: number;
-  /** Directorio donde vivir el .spec.ts. Default = OS tempdir. */
+  /** Directorio del .spec.ts (por defecto el tempdir del SO). */
   specDir?: string;
-  /** Llamado cuando el subprocess se inicializa OK. La watcher se monta acá. */
+  /** Se llama cuando el subprocess arrancó bien; acá se monta el watcher. */
   onBrowserReady?: (sessionId: string, specPath: string) => void | Promise<void>;
-  /** Llamado cuando algo falla pre-spawn (registry full, secret bad). */
+  /** Se llama cuando algo falla antes del spawn (registry lleno, secret inválido). */
   onBrowserFailed?: (sessionId: string, err: { message: string }) => void;
 }
 
@@ -70,7 +43,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-/** Límite de tamaño del body para evitar DoS por memory exhaustion. */
+/** Límite de tamaño del body (evita DoS por memoria). */
 const MAX_JSON_BODY_BYTES = 10 * 1024 * 1024; // 10MB
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
@@ -135,7 +108,7 @@ async function handleStart(
       ? (body.navegador as "chromium" | "firefox" | "webkit")
       : "chromium";
 
-  // Generar token ANTES de insertar entry.
+  // Genera el token antes de insertar la entry.
   const token = issueToken(body.sessionId, body.userId, ctx.options.tokenTtlSec);
 
   let handle: SpawnCodegenResult;
@@ -154,7 +127,7 @@ async function handleStart(
   // La ruta la decide spawnCodegen; calcular otra acá hacía que el watcher vigilara un archivo que codegen nunca escribe y no llegaba ningún paso.
   const specPath = handle.specPath;
 
-  // addEntry ANTES de responder 200. Si registry full, kill subprocess + fail fast.
+  // addEntry antes de responder 200; si el registry está lleno, mata el subprocess y falla rápido.
   try {
     addEntry({
       sessionId: body.sessionId,
@@ -178,15 +151,10 @@ async function handleStart(
     throw err;
   }
 
-  // Notify watcher chain (recorder-worker se engancha acá). Va antes de
-  // esperar el arranque para que el watcher no se pierda las primeras
-  // escrituras del runner.
+  // Notifica al watcher antes de esperar el arranque para no perder las primeras escrituras.
   void ctx.options.onBrowserReady?.(body.sessionId, specPath);
 
-  // Esperar a que el runner avise que el navegador abrió. Si tarda más de
-  // la cuenta pero sigue vivo, se responde igual: el arranque en frío de un
-  // navegador puede ser lento y la sesión ya está registrada. Solo se
-  // reporta error si el proceso murió antes de abrir nada.
+  // Espera el aviso de que el navegador abrió; si tarda pero sigue vivo se responde igual, y solo se reporta error si el proceso murió antes.
   const arranco = await Promise.race([
     handle.ready(),
     new Promise<null>((r) => {
@@ -216,7 +184,7 @@ function handleHealth(res: ServerResponse): void {
   sendJson(res, 200, { status: "ok" });
 }
 
-/** Crea el HTTP server (no escucha todavía — llamar .listen()). */
+/** Crea el HTTP server (no escucha todavía; llamar .listen()). */
 export function createHttpApi(
   options: HttpApiOptions,
 ): import("node:http").Server {

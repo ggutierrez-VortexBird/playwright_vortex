@@ -9,7 +9,7 @@ interface RouteParams {
 export const GET = withAuth<RouteParams>(async (_request, { params }, session) => {
   const { id } = await params;
 
-  // getCasoById aplica requireProyectoAccess internamente (EST-02).
+  // getCasoById aplica requireProyectoAccess internamente.
   const caso = await getCasoById(id, session);
   return NextResponse.json(caso);
 });
@@ -52,9 +52,7 @@ export const PUT = withAuth<RouteParams>(async (request, { params }, session) =>
     updateData.script = await scriptFile.text();
     updateData.scriptFileName = fileName;
   } else {
-    // Edición directa del script desde el editor del detalle de caso
-    // (sin reemplazar el archivo completo). Solo se toma si no vino un
-    // archivo — subir un archivo siempre gana.
+    // Edición directa del script; un archivo subido siempre gana.
     const script = formData.get("script");
     if (typeof script === "string") {
       updateData.script = script;

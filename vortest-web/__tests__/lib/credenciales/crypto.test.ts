@@ -1,19 +1,8 @@
-/**
- * Tests for AES-256-GCM crypto helpers used by Credencial.valor.
- *
- * TDD: these tests describe the contract from design.md:
- *   - key = scrypt(SESSION_SECRET, 'acta-credencial-salt', 32)
- *   - nonce: 12 random bytes, prepended to ciphertext
- *   - output: nonce || ciphertext || authTag (28 bytes overhead)
- *   - decrypt(encrypt(plain)) === plain
- *   - encrypt() returns DIFFERENT ciphertext per call (random nonce)
- */
+// AES-256-GCM: salida nonce (12 bytes) || ciphertext || authTag, con nonce aleatorio por llamada.
 
 import { encryptCredencial, decryptCredencial } from "@/lib/credenciales/crypto";
 
-// SESSION_SECRET must be set before importing (crypto.ts reads it lazily, but
-// tests run with the env from jest.setup.ts). Provide a stable secret so
-// scrypt is deterministic.
+// SESSION_SECRET estable para que scrypt sea determinista.
 const ORIGINAL_SECRET = process.env.SESSION_SECRET;
 
 beforeAll(() => {
@@ -52,7 +41,7 @@ describe("credenciales/crypto — AES-256-GCM round-trip", () => {
   });
 
   it("preserves long strings round-trip (storageState JSON, >1KB)", () => {
-    // Simulate a realistic Playwright storageState JSON
+    // storageState de Playwright simulado
     const obj = {
       cookies: Array.from({ length: 50 }, (_, i) => ({
         name: `cookie_${i}`,
@@ -82,7 +71,7 @@ describe("credenciales/crypto — AES-256-GCM round-trip", () => {
     const plain = "MiPass123";
     const c1 = encryptCredencial(plain);
     const c2 = encryptCredencial(plain);
-    // Same plaintext but different ciphertext = random nonce working.
+    // Mismo texto, distinto ciphertext: nonce aleatorio
     expect(c1.equals(c2)).toBe(false);
   });
 
@@ -90,14 +79,14 @@ describe("credenciales/crypto — AES-256-GCM round-trip", () => {
     const plain = "x";
     const ciphertext = encryptCredencial(plain);
     expect(Buffer.isBuffer(ciphertext)).toBe(true);
-    // 12-byte nonce + 16-byte authTag + at least 1 byte ciphertext
+    // 12 bytes de nonce + 16 de authTag + al menos 1 de ciphertext
     expect(ciphertext.length).toBeGreaterThanOrEqual(28);
   });
 
   it("fails decryption when ciphertext is tampered (auth tag mismatch)", () => {
     const plain = "MiPass123";
     const ciphertext = encryptCredencial(plain);
-    // Flip a bit in the middle of the ciphertext (not the tag)
+    // Se invierte un bit del ciphertext (no del tag)
     const tampered = Buffer.from(ciphertext);
     tampered[20] = tampered[20] ^ 0xff;
     expect(() => decryptCredencial(tampered)).toThrow();
@@ -124,11 +113,11 @@ describe("credenciales/crypto — AES-256-GCM round-trip", () => {
 
     const orig = process.env.SESSION_SECRET;
     process.env.SESSION_SECRET = "another-secret-totally-different-32chars-AAA-BBB";
-    // Re-import with new env
+    // Se reimporta con el nuevo entorno
     jest.isolateModules(() => {
       const { encryptCredencial: enc2 } = require("@/lib/credenciales/crypto");
       const c2 = enc2(plain);
-      // Different key → different ciphertext (overwhelmingly likely)
+      // Otra clave produce otro ciphertext
       expect(c1.equals(c2)).toBe(false);
     });
     process.env.SESSION_SECRET = orig;

@@ -1,18 +1,4 @@
-/**
- * Integration test: PATCH /api/grabador/sesiones/[id]
- *
- * Covers HU-G2 — Detener (estado='detenida') and Descartar
- * (estado='descartada' → cascade delete) from the topbar buttons.
- *
- * Cases:
- *   - 401 sin sesión
- *   - 400 JSON inválido o estado inválido
- *   - 403 sesión de otro usuario
- *   - 404 sesión inexistente
- *   - 200 PATCH estado='detenida' → marca endedAt
- *   - 200 PATCH estado='descartada' → cascade delete
- *   - 200 idempotente: si ya está detenida/descartada, no hace nada
- */
+// PATCH /api/grabador/sesiones/[id]: detener y descartar (borrado en cascada).
 
 import { PATCH } from "@/app/api/grabador/sesiones/[id]/route";
 import { getSession } from "@/lib/auth";

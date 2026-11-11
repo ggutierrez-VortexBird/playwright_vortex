@@ -1,25 +1,6 @@
 "use client";
 
-/**
- * ModeSelectorModal — HU-G20
- *
- * Modal que se abre desde el botón "Nuevo caso" de la página /casos.
- * Paso 1 ("select"): 2 tarjetas lado a lado (Grabar Acción / Subir Script
- * Playwright) para elegir el modo de creación del caso — ninguna aparece
- * preseleccionada, el resaltado sigue al hover/foco de cada tarjeta.
- * Paso 2 ("subir" | "grabar"): el formulario correspondiente se embebe en
- * el mismo modal (no navega a otra pantalla). Un botón "Volver" arriba a la
- * derecha regresa al paso 1 sin cerrar el modal.
- *
- * Diseño: replica el mockup fase2/mockups/nuevo-caso-pruebas.html para el
- * paso 1. Accesibilidad:
- *   - role="dialog" + aria-modal
- *   - Cerrar con Escape, click en backdrop, o botón "Cancelar"
- *   - focus trap liviano: el primer botón enfocable toma foco al abrirse
- *
- * Nota: el "Video" del mockup original queda fuera del MVP (decisión de
- * Gustavo el 2026-09-01) — sólo se implementan los 2 modos.
- */
+/** Modal de "Nuevo caso": elige el modo (grabar o subir script) y embebe el formulario correspondiente. */
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";

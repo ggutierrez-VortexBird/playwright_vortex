@@ -31,8 +31,7 @@ export default async function NuevaGrabacionPage({ searchParams }: PageProps) {
 
   const usuario = await getUsuarioActual(session);
 
-  // Si hay proyectoId en query, cargar ese proyecto + sus credenciales.
-  // Si no, mostrar el primer proyecto visible para el usuario como default.
+  // Usa el proyecto de la query o el primero visible.
   let resolvedProyectoId = proyectoId;
   if (!resolvedProyectoId) {
     const firstProyecto = await prisma.proyecto.findFirst({

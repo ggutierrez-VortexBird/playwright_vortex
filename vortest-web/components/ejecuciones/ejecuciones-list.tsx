@@ -82,7 +82,6 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
       </div>
       )}
 
-      {/* Table column headers (desktop) */}
       <div className="hidden md:grid md:grid-cols-12 border-b border-m3-outline-variant bg-m3-surface-container-low px-5 py-2 gap-4 font-label text-label-xs text-m3-on-surface-variant uppercase tracking-wide">
         <div className="col-span-5">Caso</div>
         <div className="col-span-2">Estado</div>
@@ -91,7 +90,6 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
         <div className="col-span-1" />
       </div>
 
-      {/* Table rows */}
       {filtered.length === 0 ? (
         <div className="px-5 py-8 text-center font-body text-body-sm text-m3-on-surface-variant">
           No hay ejecuciones que coincidan con &quot;{searchQuery}&quot;
@@ -102,7 +100,6 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
             key={ejec.id}
             className="grid grid-cols-12 items-center gap-4 border-b border-m3-outline-variant px-5 py-3 last:border-b-0 hover:bg-m3-surface-container-high md:py-4"
           >
-            {/* Caso */}
             <div className="col-span-12 md:col-span-5">
               <div className="truncate font-body text-body-md font-medium text-m3-on-surface">
                 {ejec.casoPrueba.nombre}
@@ -112,22 +109,18 @@ export function EjecucionesList({ ejecuciones, hasNextPage, currentPage, q, esta
               </div>
             </div>
 
-            {/* Estado */}
             <div className="col-span-6 md:col-span-2">
               <EjecucionStatus estado={ejec.estado} />
             </div>
 
-            {/* Duración */}
             <div className="col-span-6 md:col-span-2 font-body text-body-sm text-m3-on-surface">
               {formatDuration(ejec.duracionMs)}
             </div>
 
-            {/* Inicio */}
             <div className="col-span-6 md:col-span-2 font-body text-body-sm text-m3-on-surface-variant">
               {formatFecha(ejec.createdAt, { anio: false })}
             </div>
 
-            {/* Acciones */}
             <div className="col-span-6 md:col-span-1 flex justify-end">
               <Link
                 href={`/ejecuciones/${ejec.id}`}

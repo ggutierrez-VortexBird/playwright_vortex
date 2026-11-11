@@ -1,15 +1,10 @@
-// Marker errors para el módulo de ejecuciones.
-// Se mantienen en un archivo separado (sin 'use server') porque Next.js no
-// permite exportar valores que no sean async functions desde archivos
-// marcados como Server Actions.
+// Errores marcadores; sin 'use server' porque Next solo permite exportar async functions desde Server Actions.
 
 export const YA_EXISTE_EJECUCION_EN_CURSO_ERROR = new Error(
   'YA_EXISTE_EJECUCION_EN_CURSO'
 )
 
-// La ejecución ya terminó (estado terminal: paso, fallo, errorMotor
-// o cancelado) y no puede ser detenida. Análogo a
-// YA_EXISTE_EJECUCION_EN_CURSO_ERROR pero para el caso opuesto.
+// La ejecución ya terminó (estado terminal) y no puede detenerse.
 export const EJECUCION_YA_TERMINADA_ERROR = new Error(
   'EJECUCION_YA_TERMINADA'
 )

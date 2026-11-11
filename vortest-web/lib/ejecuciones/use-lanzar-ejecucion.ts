@@ -17,10 +17,7 @@ export interface ErrorDeLanzamiento {
   ejecucionEnCursoId?: string
 }
 
-/**
- * Lanza un caso por la ruta HTTP única y navega al detalle; el ref queda tomado hasta salir de la página,
- * así un doble clic no lanza dos veces. Con `inline` el error se devuelve para mostrarlo en la pantalla en vez de un toast.
- */
+/** Lanza un caso por la ruta HTTP única y navega al detalle; el ref evita lanzar dos veces con doble clic; con `inline` el error se devuelve en vez de mostrar un toast. */
 export function useLanzarEjecucion({ inline = false }: { inline?: boolean } = {}) {
   const toast = useToast()
   const enVuelo = useRef(false)

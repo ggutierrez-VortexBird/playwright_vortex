@@ -1,5 +1,4 @@
-// __tests__/app/api/artefactos/[id]/route.test.ts
-// Tests for HU-4.2 — GET /api/artefactos/[id] streaming with auth
+// GET /api/artefactos/[id]: streaming con auth.
 
 import { GET } from "@/app/api/artefactos/[id]/route";
 import { getSession } from "@/lib/auth";

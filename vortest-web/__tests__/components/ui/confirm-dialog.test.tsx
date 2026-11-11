@@ -1,13 +1,4 @@
-/**
- * Tests for components/ui/confirm-dialog.tsx.
- *
- * Notas:
- *   - El componente es un <div role="dialog"> propio; NO usa el componente
- *     compartido <Modal>, así que NO tiene handler de Escape. El test
- *     correspondiente verifica que la tecla Escape no cierra el diálogo
- *     (comportamiento actual).
- *   - El backdrop cierra el diálogo al hacer click directamente sobre él.
- */
+// El diálogo es un <div role="dialog"> propio sin handler de Escape; el backdrop cierra con clic.
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 

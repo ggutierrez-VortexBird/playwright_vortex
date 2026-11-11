@@ -12,14 +12,10 @@ export class HealthController {
     return { status: 'ok', activeJobs: this.registry.size() };
   }
 
-  // Readiness: 503 si no hay conexión a RabbitMQ. El transporte RMQ de NestJS
-  // no expone un flag de conexión público, así que usamos la cantidad de jobs
-  // activos y el tamaño del registro como proxy. Si se necesita un flag real
-  // habría que extender el transporte o mantener un estado propio en un servicio.
+  // Readiness: sin flag público de conexión RMQ, se usa el registro de jobs como proxy
   @Get('ready')
   ready(): { status: 'ok' | 'fail'; activeJobs: number } {
-    // Registry vacío + proceso corriendo = listo. Si hubiera jobs activos,
-    // implícitamente ya hay conexión (RabbitMQ los entregó).
+    // Registry vacío y proceso corriendo = listo
     const jobs = this.registry.size()
     return { status: 'ok', activeJobs: jobs };
   }

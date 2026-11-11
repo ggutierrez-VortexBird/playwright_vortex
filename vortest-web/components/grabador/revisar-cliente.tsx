@@ -1,27 +1,6 @@
 "use client";
 
-/**
- * RevisarCliente — pantalla de revisión post-grabación (pivot V2 +
- * editor real).
- *
- * Look & feel: réplica de documentacion/referencias-diseño/cambios/editor-codigo.html
- * — tarjeta de metadatos/acciones arriba, editor estilo IDE oscuro a la
- * izquierda (8 cols) y panel inspector (pasos grabados + parámetros) a la
- * derecha (4 cols).
- *
- * La fuente de verdad es el specCode crudo que escribió el grabador de
- * Playwright. Esta pantalla permite:
- *
- *   - Ver y EDITAR el .spec.ts con un editor de código de verdad (Monaco),
- *     no un bloque de solo lectura. La edición es una decisión explícita
- *     del usuario — no una decoración automática del sistema — así que no
- *     choca con la política ZERO modificación sobre lo que produce el
- *     grabador: lo que el usuario tipeó es, literalmente, lo que se guarda.
- *   - "Descartar cambios" para volver al texto tal cual lo grabó Playwright.
- *   - "Guardar caso": persiste el CasoPrueba y va al detalle.
- *   - "Guardar y ejecutar": persiste el CasoPrueba, encola una ejecución
- *     inmediata y va directo al detalle de esa ejecución.
- */
+/** Pantalla de revisión post-grabación: edita el specCode en Monaco; lo que escribe el usuario es lo que se guarda. */
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -166,9 +145,7 @@ export function RevisarCliente({
       }
       if (data.casoPruebaId) setSavedCasoId(data.casoPruebaId);
       if (data.ejecucionError) {
-        // El caso quedó guardado, pero no se pudo encolar la ejecución —
-        // no navegamos a una ejecución que no existe, avisamos y dejamos
-        // que el usuario la dispare desde el detalle del caso.
+        // El caso quedó guardado pero no se pudo encolar la ejecución: se avisa y el usuario la lanza desde el detalle.
         setErrorMsg(
           `Caso guardado, pero no se pudo encolar la ejecución: ${data.ejecucionError}`,
         );
@@ -202,15 +179,13 @@ export function RevisarCliente({
     setErrorMsg(null);
   }
 
-  // markers viene tipado por monaco-editor; evitamos importar el paquete
-  // completo solo por el tipo y nos quedamos con la forma mínima que usamos.
+  // Forma mínima de los markers de monaco-editor, sin importar el paquete solo por el tipo.
   function handleValidate(markers: { severity: number }[]) {
     setSyntaxErrorCount(markers.filter((m) => m.severity === 8).length);
   }
 
   return (
     <div data-testid="revisar-cliente" className="flex flex-col gap-4">
-      {/* Tarjeta de metadatos del caso + acciones */}
       <section className="rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-sm">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -320,7 +295,6 @@ export function RevisarCliente({
             </div>
           </div>
 
-          {/* Franja de telemetría */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-m3-outline-variant pt-3 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <span
@@ -405,10 +379,8 @@ export function RevisarCliente({
         </div>
       )}
 
-      {/* Editor (8 cols) + inspector (4 cols) */}
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
         <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-slate-800 bg-[#0f172a] shadow-xl lg:col-span-8 lg:h-[560px]">
-          {/* Titlebar + tab del archivo */}
           <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
             <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">
               <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-label-xs font-bold text-white">
@@ -430,7 +402,6 @@ export function RevisarCliente({
             </button>
           </div>
 
-          {/* Ruta del archivo */}
           <div className="truncate border-b border-slate-800 bg-[#0d1424] px-4 py-1.5 font-mono-code text-label-xs text-slate-400">
             {codegenFilePath ?? suggestedFileName}
           </div>
@@ -455,7 +426,6 @@ export function RevisarCliente({
             />
           </div>
 
-          {/* Statusbar */}
           <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-label-xs text-slate-400">
             <div className="flex items-center gap-4">
               {syntaxErrorCount > 0 ? (
@@ -475,7 +445,6 @@ export function RevisarCliente({
           </div>
         </div>
 
-        {/* Panel inspector */}
         <div className="space-y-4 lg:col-span-4">
           <div className="overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
             <div className="flex items-center justify-between border-b border-m3-outline-variant bg-m3-surface-container p-4">

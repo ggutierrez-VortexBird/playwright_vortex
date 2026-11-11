@@ -21,9 +21,7 @@ interface SesionView {
   updatedAt: string;
   proyecto: { nombre: string };
   credencial: { nombre: string } | null;
-  /** Cantidad de pasos que se verían en "Revisar" — calculada del
-   *  specCode real, no de PasoGrabado (el grabador actual ya no escribe
-   *  esas filas, así que ese conteo siempre daba 0). */
+  /** Pasos que se verían en "Revisar", calculados del specCode real. */
   pasosCount: number;
 }
 
@@ -64,10 +62,7 @@ function statusLabel(estado: string): string {
   }
 }
 
-// Paridad con el precedente ya establecido en ejecucion-status.tsx:
-// "en curso" → warning (ámbar, como "corriendo"), "en espera" → info (azul,
-// como "pendiente"), resultado guardado → success, detenida/descartada →
-// neutral (recuperable o descartada, no es un fallo), error → error.
+// Tonos como en ejecucion-status: en curso warning, en espera info, guardado success, detenida/descartada neutral, error error.
 function statusTone(estado: string): StatusBadgeTone {
   switch (estado) {
     case "activa":
@@ -126,7 +121,6 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
-      {/* Tabla — md y superior */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full font-body text-body-sm" data-testid="sesiones-recuperables-table">
           <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
@@ -210,7 +204,6 @@ export function SesionesRecuperablesClient({ sesiones }: Props) {
         </table>
       </div>
 
-      {/* Tarjetas — móvil */}
       <div className="flex flex-col divide-y divide-m3-outline-variant md:hidden">
         {sesiones.map((s) => (
           <div key={s.id} data-testid="sesion-card" data-sesion-estado={s.estado} className="flex flex-col gap-2 p-4">

@@ -70,8 +70,7 @@ export default async function ProyectosPage({ params }: PageProps) {
 
   const session = await getSession();
 
-  // Solo superadmin y el admin de este espacio pueden ver su detalle; un
-  // tester nunca tiene alcance a nivel Espacio.
+  // Solo superadmin y el admin del espacio; un tester no tiene alcance a nivel Espacio.
   try {
     await requireEspacioAdmin(session, espacioId);
   } catch (err) {
@@ -102,7 +101,6 @@ export default async function ProyectosPage({ params }: PageProps) {
         actions={canCreate ? <NuevoProyectoTrigger /> : undefined}
       />
 
-      {/* Proyectos Grid with Suspense */}
       <Suspense fallback={<ProyectoSkeleton />}>
         <ProyectoGrid
           espacioId={espacioId}

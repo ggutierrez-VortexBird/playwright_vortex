@@ -1,6 +1,3 @@
-// src/execution/log-cap.spec.ts
-// Ported verbatim from vortest-web/__tests__/lib/worker/log-cap.test.ts —
-// pure helper, no changes needed to the test or the source.
 import { capLogs, LogEntry } from './log-cap'
 
 function makeEntry(msg: string, ts = '2026-08-20T10:00:00Z'): LogEntry {

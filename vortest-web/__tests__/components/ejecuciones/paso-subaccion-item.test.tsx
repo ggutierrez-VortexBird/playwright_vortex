@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/paso-subaccion-item.test.tsx
-// TDD RED/GREEN/TRIANGULATE for HU-4.5 PasoSubaccionItem
-
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { PasoSubaccionItem } from "@/components/ejecuciones/paso-subaccion-item";
 
@@ -48,7 +45,7 @@ describe("PasoSubaccionItem", () => {
 
   it("renderiza Camera icon cuando tiene capturas", () => {
     render(<PasoSubaccionItem subaccion={makeSubaccionConCapturas()} expanded={false} onToggle={jest.fn()} />);
-    // Lucide icons render as svg; query by class prefix
+    // Los íconos de Lucide son svg: se busca por prefijo de clase
     const cameraIcon = document.querySelector('svg[class*="lucide-camera"]');
     expect(cameraIcon).toBeInTheDocument();
   });
@@ -90,9 +87,7 @@ describe("PasoSubaccionItem", () => {
     expect(fallbacks.length).toBe(2);
   });
 
-  // ============================================================
-  // FIX HU-4.5: pill de estado en el header
-  // ============================================================
+  // Pill de estado en el header
 
   it("renders status pill 'Conforme' when estado is paso", () => {
     render(<PasoSubaccionItem subaccion={makeSubaccion({ estado: "paso" })} expanded={false} onToggle={jest.fn()} />);

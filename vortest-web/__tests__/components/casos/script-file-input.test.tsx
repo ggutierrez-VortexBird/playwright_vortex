@@ -1,6 +1,3 @@
-/**
- * Tests for components/casos/script-file-input.tsx.
- */
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ScriptFileInput } from "@/components/casos/script-file-input";
 

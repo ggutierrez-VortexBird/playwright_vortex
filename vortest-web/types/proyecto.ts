@@ -1,6 +1,4 @@
-/**
- * Types for Proyecto entities.
- */
+/** Tipos de Proyecto. */
 
 export interface Proyecto {
   id: string;
@@ -31,9 +29,7 @@ export interface UpdateProyectoInput {
   activo?: boolean;
 }
 
-/**
- * API response type for Proyecto with metrics.
- */
+/** Respuesta de la API para Proyecto con métricas. */
 export interface ProyectoWithMetrics {
   id: string;
   espacioId: string;

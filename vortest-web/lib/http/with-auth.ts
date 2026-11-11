@@ -1,14 +1,4 @@
-/**
- * Wrapper de orden superior para route handlers (DUP-03).
- *
- * Centraliza el chequeo de sesión (401) y la traducción de errores
- * (`mapErrorToResponse`), de modo que ningún handler pueda "olvidarse" de
- * autenticar. NO reemplaza los guards de rol/proyecto: siguen siendo
- * responsabilidad del handler (`requireProyectoAccess`, etc.).
- *
- * Uso:
- *   export const GET = withAuth<RouteParams>(async (_req, { params }, session) => { ... })
- */
+/** Envuelve route handlers con chequeo de sesión (401) y mapeo de errores; los guards de rol/proyecto siguen en el handler. */
 import { NextResponse } from "next/server";
 import { getSession, getUsuarioActual, type SessionData } from "@/lib/auth";
 import { mapErrorToResponse } from "@/lib/http/errors";

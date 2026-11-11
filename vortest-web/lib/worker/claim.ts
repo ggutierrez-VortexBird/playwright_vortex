@@ -1,11 +1,4 @@
-// Atomic claim of pending executions for the worker.
-// Encapsulates the race-condition-safe pattern: findFirst + updateMany-with-filter.
-// If between findFirst and updateMany someone cancels the execution, updateMany
-// affects 0 rows and we return null (worker should skip and poll again).
-//
-// AC-7 (cancelación durante el poll): este helper es la pieza que evita que el
-// worker procese una ejecución que fue cancelada por el usuario entre el
-// `findFirst` y la toma efectiva.
+// Toma atómica de ejecuciones pendientes (findFirst + updateMany filtrado); evita procesar una cancelada entre ambos pasos.
 
 import type { PrismaClient } from '@prisma/client'
 
@@ -16,16 +9,11 @@ export interface ClaimedEjecucion {
   createdAt: Date
 }
 
-/**
- * Intenta tomar la ejecución pendiente más antigua de forma atómica.
- *
- * @returns La ejecución ya marcada como `corriendo`, o `null` si no hay
- *          pendientes o si fue cancelada/tomada por otro worker.
- */
+/** Toma de forma atómica la pendiente más antigua; devuelve `corriendo` o `null`. */
 export async function tryClaimPendingExecution(
   db: Pick<PrismaClient, 'ejecucion'>
 ): Promise<ClaimedEjecucion | null> {
-  // 1. Buscar la ejecución pendiente más antigua.
+  // Busca la ejecución pendiente más antigua.
   const pending = await db.ejecucion.findFirst({
     where: { estado: 'pendiente' },
     orderBy: { createdAt: 'asc' },
@@ -35,8 +23,7 @@ export async function tryClaimPendingExecution(
     return null
   }
 
-  // 2. Intentar "tomarla" atómicamente: solo si sigue pendiente.
-  // Si entre (1) y (2) alguien la canceló o la tomó otro worker, count === 0.
+  // Toma atómica: solo si sigue pendiente; si alguien la canceló o tomó, count === 0.
   const claimed = await db.ejecucion.updateMany({
     where: { id: pending.id, estado: 'pendiente' },
     data: { estado: 'corriendo', inicioAt: new Date() },

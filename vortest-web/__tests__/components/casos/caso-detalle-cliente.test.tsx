@@ -1,12 +1,8 @@
-/**
- * Tests for components/casos/caso-detalle-cliente.tsx (HU-G16).
- */
-
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CasoDetalleCliente } from "@/components/casos/caso-detalle-cliente";
 import { BreadcrumbProvider } from "@/components/breadcrumb-context";
 
-// Monaco Editor is loaded via next/dynamic with a then() chain - mock it explicitly
+// Monaco se carga con next/dynamic: se mockea explícitamente
 jest.mock("@monaco-editor/react", () => ({
   Editor: function MockEditor({ value, onChange }: any) {
     return (
@@ -55,7 +51,7 @@ const baseCaso = {
   parametros: [],
 };
 
-describe("CasoDetalleCliente (HU-G16)", () => {
+describe("CasoDetalleCliente", () => {
   it("renders the title, codigo, origen and script", () => {
     render(<BreadcrumbProvider><CasoDetalleCliente caso={baseCaso} backHref="/casos" /></BreadcrumbProvider>);
     expect(
@@ -63,7 +59,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/CP-ABCDEF/)).toBeInTheDocument();
     expect(screen.getByText("Origen: Grabador")).toBeInTheDocument();
-    // script-editor-container is present (Monaco loads via dynamic, which shows loading state in jsdom)
+    // El editor carga vía dynamic; en jsdom muestra el estado de carga
     expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
   });
 
@@ -132,7 +128,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
 
   it("Ejecutar button POSTs and redirects via window.location.href", async () => {
     const originalLocation = window.location;
-    // @ts-expect-error - override location for the test
+    // @ts-expect-error: se reemplaza window.location en el test
     delete window.location;
     (window as unknown as { location: { href: string } }).location = {
       href: "",
@@ -179,8 +175,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
   });
 
   it("autoAbrirEditorScript abre el editor ya desplegado al montar", async () => {
-    // Llega desde la acción "Script" de la tabla de Casos — el usuario no
-    // debería tener que hacer un clic más una vez que entró con esa intención.
+    // Llega desde la acción "Script" de la tabla: no debe requerir otro clic.
     render(
       <BreadcrumbProvider>
         <CasoDetalleCliente caso={baseCaso} backHref="/casos" autoAbrirEditorScript />
@@ -208,7 +203,7 @@ describe("CasoDetalleCliente (HU-G16)", () => {
 
     fireEvent.click(screen.getByTestId("cancelar-script-button"));
 
-    // Editor stays visible in read-only mode after cancel
+    // El editor sigue visible en solo lectura tras cancelar
     expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
   });
 
@@ -229,21 +224,20 @@ describe("CasoDetalleCliente (HU-G16)", () => {
     });
     fireEvent.click(screen.getByTestId("guardar-script-button"));
 
-    // Verify PUT was called with the new script in FormData
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
         "/api/casos/caso-1",
         expect.objectContaining({ method: "PUT" }),
       );
     });
-    // Verify the PUT body contained the new script
+    // El PUT lleva el nuevo script
     const putCall = mockFetch.mock.calls.find(
       ([url, opts]: any) => url === "/api/casos/caso-1" && opts?.method === "PUT"
     );
     expect(putCall).toBeDefined();
     const formData = putCall[1].body as FormData;
     expect(formData.get("script")).toBe(newScript);
-    // Editor stays visible after successful save (back in read-only mode)
+    // El editor sigue visible tras guardar (solo lectura)
     expect(screen.getByTestId("script-editor-container")).toBeInTheDocument();
   });
 

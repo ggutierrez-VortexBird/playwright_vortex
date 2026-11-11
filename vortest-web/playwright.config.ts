@@ -2,13 +2,12 @@ import { defineConfig, devices } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 
-// Custom reporter que emite eventos JSON por stdout para que el worker los parsee
+// Reporter que emite eventos JSON por stdout
 const jsonReporterPath = path.resolve(__dirname, 'scripts', 'my-reporter.js')
 
 const isRunner = process.env.VORTEST_RUNNER === '1'
 
-// HU-PARENT: si el worker inyectó un storageState de un caso padre,
-// lo cargamos para que el browser arranque ya autenticado.
+// storageState del caso padre, si se inyectó
 function resolveStorageState(): string | undefined {
   const envPath = process.env.PLAYWRIGHT_STORAGE_STATE
   if (envPath && fs.existsSync(envPath)) {
@@ -19,16 +18,12 @@ function resolveStorageState(): string | undefined {
 
 export default defineConfig({
   testDir: './runtime/ejecuciones',
-  // HU-FIX: si VORTEST_OUTPUT_DIR no está definido (edge case en cache
-  // de config o carga temprana), caemos a test-results/ para evitar undefined.
+  // Fallback si VORTEST_OUTPUT_DIR no está definido
   outputDir: process.env.VORTEST_OUTPUT_DIR || path.resolve(process.cwd(), 'test-results'),
-  timeout: 1 * 60 * 1000, // 10 minutes per execution
+  timeout: 1 * 60 * 1000,
   retries: 0,
   workers: 1,
-  // Reporter custom que emite JSON por stdout.
-  // El reporter 'list' solo se activa en terminal interactiva (TTY);
-  // cuando el runner ejecuta con stdio en pipes, isTTY es false y
-  // evitamos que el buffer de stdout se sature con updates de progreso.
+  // El reporter list solo en TTY, para no saturar stdout cuando corre con pipes
   reporter: [
     [jsonReporterPath],
     ...(process.stdout.isTTY ? [['list'] as const] : []),

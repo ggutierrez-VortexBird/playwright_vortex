@@ -1,9 +1,4 @@
-// __tests__/lib/worker/artifacts.test.ts
-// Motor Fase 1: artifacts.ts ahora solo hace la mitad de DB-linking (el
-// escaneo/hash de archivos se movió a vortest-engine). Estos tests
-// reemplazan a los de `collectArtifacts` (eliminada), cubriendo:
-// ensureArtefacto (dedup), linkCaptureToSubaccion(Auto), la nueva
-// linkCapturaTestToLastSubaccion, y el orquestador linkCollectedArtifacts.
+// ensureArtefacto (dedup), linkCaptureToSubaccion(Auto), linkCapturaTestToLastSubaccion y linkCollectedArtifacts.
 
 import {
   ensureArtefacto,

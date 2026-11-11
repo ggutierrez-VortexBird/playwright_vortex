@@ -173,7 +173,7 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
         </div>
       )}
 
-      {/* Formularios de creación/edición — el botón "Nuevo Proyecto" vive en el PageHeader */}
+      {/* El botón "Nuevo Proyecto" vive en el PageHeader */}
       {canEdit && (showForm || editingProyecto) && (
         <div>
           {showForm && (
@@ -194,7 +194,6 @@ export function ProyectoGrid({ espacioId, espacioNombre, espacioColor, canEdit }
         </div>
       )}
 
-      {/* Grid de proyectos */}
       {proyectos.length === 0 && !showForm ? (
         <EmptyState
           icon="folder_open"

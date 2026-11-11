@@ -19,6 +19,6 @@ export function aplicarPreferenciaTema(preferencia: PreferenciaTema): void {
     if (preferencia === "system") localStorage.removeItem(CLAVE_TEMA);
     else localStorage.setItem(CLAVE_TEMA, preferencia);
   } catch {
-    // Sin almacenamiento (modo privado) el tema vale sólo para esta pestaña.
+    // Sin almacenamiento (modo privado) el tema vale solo para esta pestaña.
   }
 }

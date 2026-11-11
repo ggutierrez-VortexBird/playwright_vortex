@@ -1,5 +1,4 @@
-// __tests__/app/api/casos/[id]/parametros/[paramId]/route.test.ts
-// Tests for PATCH /api/casos/[id]/parametros/[paramId] — update parameter default value.
+// PATCH /api/casos/[id]/parametros/[paramId]: actualiza el valor por defecto.
 
 import { PATCH } from "@/app/api/casos/[id]/parametros/[paramId]/route";
 import { getSession, requireProyectoAccess } from "@/lib/auth";

@@ -1,7 +1,4 @@
-/**
- * GET  /api/credenciales → lista sin el valor cifrado (superadmin).
- * POST /api/credenciales → { proyectoId, nombre, storageState, vence? } → 201 { id }.
- */
+/** GET lista sin el valor cifrado; POST crea { proyectoId, nombre, storageState, vence? } → 201 { id }. Solo superadmin. */
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/http/with-auth";
 import { crearCredencial, listarCredenciales } from "@/lib/credenciales/gestion";

@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/aserciones-resumen.test.tsx
-// TDD RED/GREEN for HU-4.5 AsercionesResumen
-
 import { render, screen } from "@testing-library/react";
 import { AsercionesResumen } from "@/components/ejecuciones/aserciones-resumen";
 

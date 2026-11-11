@@ -47,7 +47,7 @@ export async function GET(
     casoPrueba: {
       nombre: ejecucion.casoPrueba.nombre,
       codigo: ejecucion.casoPrueba.codigo,
-      origen: ejecucion.casoPrueba.origen, // HU-G17: exponer origen para chip
+      origen: ejecucion.casoPrueba.origen,
     },
     pasos: ejecucion.pasos.map(p => ({
       id: p.id,
@@ -59,7 +59,7 @@ export async function GET(
       resultadoEsperado: p.resultadoEsperado,
       resultadoObtenido: p.resultadoObtenido,
       errorCount: p.errorCount,
-      // HU-G18 — chapter timestamps for the segmented video bar.
+      // Marcas de capítulo para la barra de video segmentada.
       videoInicioMs: p.videoInicioMs,
       videoFinMs: p.videoFinMs,
       logs: p.logs,
@@ -95,7 +95,7 @@ export async function GET(
       bytes: a.bytes,
       createdAt: a.createdAt,
     })),
-    // HU-G19 — acta ya generada (si existe)
+    // Acta ya generada, si existe.
     acta: ejecucion.acta
       ? {
           id: ejecucion.acta.id,

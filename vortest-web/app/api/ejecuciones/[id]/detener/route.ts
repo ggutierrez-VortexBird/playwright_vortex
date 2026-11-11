@@ -4,15 +4,7 @@ import { EJECUCION_YA_TERMINADA_ERROR } from '@/lib/ejecuciones/errors'
 import { isNotFoundError } from '@/lib/http/errors'
 import { withAuth } from '@/lib/http/with-auth'
 
-/**
- * POST /api/ejecuciones/[id]/detener
- *
- * Cancela una ejecución en estado `pendiente` o `corriendo`.
- * Decisiones de producto:
- * - Cancelación dura: el worker mata el proceso Playwright (SIGTERM).
- * - Permite cancelar también desde `pendiente`.
- * - NO registra quién canceló — solo el estado `cancelado`.
- */
+/** POST: cancela una ejecución pendiente o corriendo (mata el proceso Playwright). */
 export const POST = withAuth<{ params: Promise<{ id: string }> }>(
   async (_request, { params }) => {
     const { id } = await params

@@ -1,14 +1,4 @@
-/**
- * Tests de components/grabador/revisar-cliente.tsx.
- *
- * Cubre lo que cambió respecto de la versión de solo lectura:
- *   - El editor es editable (Monaco mockeado como <textarea>), no un <pre>.
- *   - "Guardar caso" y "Guardar y ejecutar" mandan el texto editado y
- *     navegan con router.push al redirectTo que devuelve el server —
- *     antes el componente ignoraba ese campo y se quedaba en la pantalla.
- *   - Si "Guardar y ejecutar" falla al encolar, el caso queda guardado y
- *     se avisa sin navegar a una ejecución que no existe.
- */
+// "Guardar caso" y "Guardar y ejecutar" envían el texto editado y navegan al redirectTo del server.
 
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { RevisarCliente } from "@/components/grabador/revisar-cliente";

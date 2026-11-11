@@ -56,7 +56,6 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
 
   return (
     <div className="border-b border-m3-outline-variant last:border-b-0" data-purpose="step-container">
-      {/* Header */}
       <button
         type="button"
         role="button"
@@ -84,11 +83,9 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
         </div>
       </button>
 
-      {/* Panel */}
       {expanded && (
         <div id={panelId} className="bg-m3-surface-container px-6 py-6 shadow-inner border-y border-m3-outline-variant">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-6">
-            {/* Left: Detalles Técnicos */}
             <div>
               <h5 className="text-xs font-bold text-m3-on-surface mb-3 uppercase tracking-wider">Detalles Técnicos</h5>
               <div className="space-y-4">
@@ -111,7 +108,6 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
               </div>
             </div>
 
-            {/* Right: Logs & Trace */}
             <div>
               <h5 className="text-xs font-bold text-m3-on-surface mb-3 uppercase tracking-wider">Logs & Trace</h5>
               <div className="space-y-4">
@@ -128,7 +124,6 @@ export function PasoAccordionItem({ paso, expanded, onToggle, expandedSubaccionI
             </div>
           </div>
 
-          {/* Sub-pasos (dentro del panel) */}
           {(paso.subacciones ?? []).length > 0 && (
             <div className="mt-6 pt-6 border-t border-m3-outline-variant">
               <h5 className="text-xs font-bold text-m3-on-surface mb-3 uppercase tracking-wider">

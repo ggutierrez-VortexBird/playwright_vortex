@@ -1,27 +1,14 @@
-# Docker Compose — entorno de desarrollo
-#
-# Monta el volumen playwright-scripts en /app/playwright-scripts para que
-# el motor de ejecución pueda localizar y ejecutar scripts sin configuración
-# adicional.
-#
-# Uso: docker compose -f docker-compose.dev.yml up
-#
-# `name:` fijo evita que Compose derive el project-name del nombre de la
-# carpeta contenedora (que puede variar según dónde se clone el repo).
+# Entorno de desarrollo. Uso: docker compose -f docker-compose.dev.yml up
+# `name` fijo para que el project-name no dependa de la carpeta donde se clone.
 name: vortest
 
 services:
   web:
     build:
       context: ./vortest-web
-      # Imagen liviana (node:24-slim, sin Playwright) — `web` es
-      # Next.js puro, no lanza navegadores.
       dockerfile: Dockerfile.slim
     container_name: vortest-dev
-    # Aplica las migraciones pendientes y siembra el usuario/credencial
-    # demo antes de levantar Next.js. `migrate deploy` (no `migrate dev`)
-    # porque en un contenedor no hay a quién preguntarle nada de forma
-    # interactiva; las migraciones ya deben existir versionadas.
+    # migrate deploy: las migraciones ya están versionadas y no hay terminal interactiva
     command: >
       sh -c "npx prisma migrate deploy &&
              node --import tsx prisma/seed.ts &&
@@ -34,31 +21,17 @@ services:
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
       - CREDENCIALES_ENCRYPTION_KEY=${CREDENCIALES_ENCRYPTION_KEY:-}
       - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD required}
-      # Apunta al servicio `recorder` del compose (HTTP interno, no el WS público).
-      # El grabador abre una ventana real del navegador en el escritorio del usuario, así que corre en el host (`npm run dev:recorder`), no en Docker.
+      # El grabador corre en el host porque codegen necesita el escritorio
       - RECORDER_INTERNAL_URL=${RECORDER_INTERNAL_URL:-http://host.docker.internal:3100}
-      # Unificado con el resto de los secretos: falla duro si falta,
-      # en vez de caer en un default público conocido.
       - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:?RECORDER_INTERNAL_SECRET required}
-      # Motor Fase 1 (RabbitMQ + vortest-engine) — dispatch/cancelación desde
-      # lib/ejecuciones/actions.ts. `web` es también quien corre
-      # scripts/execution-consumer.ts (consume engine.events) — ver `command`.
-      # Credenciales explícitas en vez de guest/guest.
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:?RABBITMQ_USER required}:${RABBITMQ_PASS:?RABBITMQ_PASS required}@rabbitmq:5672
       - ENGINE_INTERNAL_SECRET=${ENGINE_INTERNAL_SECRET:?ENGINE_INTERNAL_SECRET required}
       - ENGINE_INTERNAL_URL=http://engine:3001
     volumes:
-      # Volumen nombrado para scripts de Playwright.
-      # En desarrollo se puede sustituir por un bind mount si se desea editar
-      # scripts desde el host: ./vortest-web/playwright-scripts:/app/playwright-scripts
       - playwright-scripts:/app/playwright-scripts
-      # Persistencia de artefactos de ejecución (evidencias, screenshots, traces).
-      # `engine` NUNCA monta este volumen — nunca toca storage local
-      # directamente, sube cada artefacto por HTTP a `web` (ver
-      # app/api/internal/artefactos/upload/route.ts).
+      # El motor no monta este volumen; sube los artefactos por HTTP a web
       - artefactos:/app/storage/artefactos
     restart: "no"
-    # refleja "servicio funcional" (responde HTTP), no solo "proceso arriba".
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
@@ -71,16 +44,10 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # Consumidor de `engine.events` — reemplaza al `worker` viejo (polling).
-  # Proceso Node separado de Next.js, misma imagen que `web` (comparte
-  # código fuente vía el mismo build.context), pero corre
-  # scripts/execution-consumer.ts en vez de `next start`. También publica el
-  # job del HIJO en el encadenamiento padre/hijo (ver
-  # lib/ejecuciones/actions.ts::dispararEjecucion para la otra mitad).
+  # Consume engine.events y escribe en Postgres
   execution-consumer:
     build:
       context: ./vortest-web
-      # Tampoco lanza navegadores — solo consume eventos y escribe en Postgres.
       dockerfile: Dockerfile.slim
     container_name: vortest-execution-consumer
     command: ["node", "--import", "tsx", "scripts/execution-consumer.ts"]
@@ -94,11 +61,7 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # Motor de ejecución de Playwright (NestJS) — única imagen del repo (fuera
-  # de `recorder`) que sigue necesitando la imagen pesada con navegadores.
-  # NO monta `artefactos`/`playwright-scripts` — nunca toca storage local,
-  # todo cruza por RabbitMQ (jobs/eventos) o HTTP (subida de artefactos,
-  # cancelación).
+  # Motor de ejecución (NestJS + Playwright); sin acceso a la base ni a storage local
   engine:
     build:
       context: ./vortest-engine
@@ -112,7 +75,6 @@ services:
     ports:
       - "3001:3001"
     restart: "no"
-    # `engine` ya expone /health.
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
@@ -123,23 +85,11 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # Broker de mensajes entre `web`/`execution-consumer` y `engine`.
-  #
-  # [I-06 parcial] DLQ: se declaran acá (vía definitions.json) el exchange
-  # `engine.dlx` y la cola `engine.execute.dlq`, listos para usarse — pero
-  # la cola `engine.execute` NO está bindeada a este exchange todavía. Eso
-  # requiere pasar `arguments: { 'x-dead-letter-exchange': 'engine.dlx' }` en
-  # el `queueOptions` con el que `vortest-engine/src/main.ts` declara
-  # `engine.execute`, que es código fuente del motor (fuera de mi territorio
-  # en esta tanda de correcciones — ver reporte final para la advertencia
-  # completa sobre `PRECONDITION_FAILED` antes de aplicar ese cambio).
+  # Broker entre web/execution-consumer y engine
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: vortest-rabbitmq
     environment:
-      # Credenciales explícitas en vez de guest/guest (default de la
-      # imagen oficial). Actualizar RABBITMQ_URL de `web`/`execution-consumer`/
-      # `engine` en consecuencia (ya hecho arriba).
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?RABBITMQ_USER required}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:?RABBITMQ_PASS required}
     ports:
@@ -156,31 +106,25 @@ services:
       retries: 5
 
   recorder:
-    # El recorder-worker comparte imagen con web pero ejecuta el proceso Node
-    # dedicado. Aísla memoria/CPU del Chromium y permite escalado independiente.
-    # Este SÍ necesita la imagen con navegadores (lanza `playwright codegen`).
     build:
       context: ./vortest-web
       dockerfile: Dockerfile
     container_name: vortest-recorder
-    # Opt-in (`--profile recorder-docker`): sin pantalla el navegador de codegen no se ve y no se puede grabar; ver RECORDER_INTERNAL_URL en `web`.
+    # Opt-in: sin pantalla no se ve el navegador de codegen; normalmente corre en el host
     profiles: ["recorder-docker"]
     command: ["node", "--import", "tsx", "scripts/recorder-worker.ts"]
     ports:
       - "3100:3100"
     environment:
       - DATABASE_URL=postgresql://vortest:vortest@postgres:5432/vortest?schema=public
-      # Apunta al app para HTTP /internal/start (mismo docker network)
       - RECORDER_PUBLIC_URL=ws://localhost:3100
       - RECORDER_WS_PORT=3100
-      # Unificado con el resto de los secretos.
       - RECORDER_INTERNAL_SECRET=${RECORDER_INTERNAL_SECRET:?RECORDER_INTERNAL_SECRET required}
       - RECORDER_MAX_SESSIONS=${RECORDER_MAX_SESSIONS:-3}
       - RECORDER_HEARTBEAT_TIMEOUT_MS=${RECORDER_HEARTBEAT_TIMEOUT_MS:-600000}
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET required}
       - CREDENCIALES_ENCRYPTION_KEY=${CREDENCIALES_ENCRYPTION_KEY:-}
     restart: "no"
-    # El recorder expone HTTP interno + WS en el mismo puerto.
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s

@@ -48,7 +48,7 @@ interface Paso {
   errorCount: number
   logs: unknown
   createdAt: string
-  // HU-G18 — chapter timestamps del video.
+  // Marcas de capítulo del video.
   videoInicioMs: number | null
   videoFinMs: number | null
   subacciones: Subaccion[]
@@ -57,7 +57,7 @@ interface Paso {
 interface CasoPrueba {
   nombre: string
   codigo: string
-  // HU-G17: origen del caso (subirScript | grabador | mixto)
+  // Origen del caso (subirScript | grabador | mixto)
   origen?: string | null
 }
 
@@ -88,7 +88,7 @@ interface Ejecucion {
   casoPrueba: CasoPrueba
   pasos: Paso[]
   artefactos: Artefacto[]
-  // HU-G19 — acta ya generada (si existe).
+  // Acta ya generada, si existe.
   acta?: { id: string; consecutivo: string } | null
 }
 
@@ -175,7 +175,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
   const { ejecucion, conexion, refrescar } = useEjecucionEnVivo<Ejecucion>(ejecucionId, initialEjecucion)
   const [expandedPasoId, setExpandedPasoId] = useState<string | null>(null)
   const toast = useToast()
-  // HU-G18 — ref al <video> para que VideoChapterBar pueda hacer seek.
+  // Ref al <video> para que VideoChapterBar pueda hacer seek.
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [videoDurationMs, setVideoDurationMs] = useState(0)
   const handleLoadedMetadata = useCallback(() => {
@@ -221,7 +221,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
   const videoArtefacto = ejecucion.artefactos.find((a) => a.tipo === 'video')
   const totalDuracionMs = ejecucion.pasos.reduce((sum, p) => sum + (p.duracionMs ?? 0), 0)
 
-  // First error for 200px visibility (PRD Criterio #6)
+  // Primer error, visible en los primeros 200px
   const primerPasoFallido = ejecucion.pasos.find((p) => p.estado === 'fallo')
   const errorMsg =
     primerPasoFallido?.errorMsg ?? ejecucion.errorMsg ?? null
@@ -232,7 +232,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
 
   return (
     <div className="flex flex-col gap-6 accordion-panel">
-      {/* Canonical PageHeader with breadcrumbs */}
       <PageHeader
         title={caso.nombre}
         subtitle={
@@ -295,11 +294,8 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
         </Alert>
       )}
 
-      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left column */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          {/* Summary Card */}
           <div
             className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm overflow-hidden"
             data-purpose="summary-header"
@@ -314,7 +310,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
             />
           </div>
 
-          {/* CRITICAL — PRD Criterio #6: First error visible in 200px */}
           {isFailed && errorMsg && (
             <div
               className="rounded-lg border-2 border-m3-error bg-m3-error-container p-4"
@@ -333,7 +328,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
                   <pre className="mt-2 whitespace-pre-wrap break-all font-mono-code text-mono-code text-body-sm text-m3-on-error-container">
                     {errorMsg}
                   </pre>
-                  {/* Screenshot of failure if available */}
                   {primerPasoFallido?.subacciones
                     ?.find((s) => s.capturaActual)
                     ?.capturaActual && (
@@ -349,7 +343,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
             </div>
           )}
 
-          {/* Steps accordion */}
           <div
             className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm flex flex-col flex-grow"
             data-purpose="test-steps-section"
@@ -374,7 +367,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
             </div>
           </div>
 
-          {/* Artefacts section */}
           {ejecucion.artefactos.length > 0 && (
             <div
               className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm"
@@ -394,9 +386,7 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
           )}
         </div>
 
-        {/* Right column */}
         <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-[90px] self-start w-full">
-          {/* Status chip row */}
           <div className="flex flex-wrap items-center gap-2">
             {caso.origen && <OrigenChip origen={caso.origen} />}
             {ejecucion.estado === 'errorMotor' && (
@@ -404,7 +394,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
             )}
           </div>
 
-          {/* Video */}
           <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm p-4">
             <h3 className="font-label text-label-sm font-semibold text-m3-on-surface-variant uppercase tracking-wide mb-4 px-2">
               Video de la ejecución
@@ -465,7 +454,6 @@ export function EjecucionDetalleClient({ ejecucionId, initialEjecucion, migas }:
             )}
           </div>
 
-          {/* Environment + Assertions card */}
           <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-sm">
             <div className="bg-m3-surface-container px-6 py-3 border-b border-m3-outline-variant rounded-t-lg">
               <h3 className="font-label text-label-sm font-semibold text-m3-on-surface-variant uppercase tracking-wide">

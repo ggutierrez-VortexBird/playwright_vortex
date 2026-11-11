@@ -1,11 +1,4 @@
-/**
- * /api/grabador/sesiones/[id]/pasos
- *
- * POST: create a PasoGrabado (HU-G6 agregar verificación, HU-G10 paso manual)
- * PATCH: reorder pasos via drag-and-drop (HU-G8)
- *
- * Auth: requiere ser owner de la sesión.
- */
+/** POST crea un paso (verificación o manual); PATCH reordena los pasos. Solo el dueño de la sesión. */
 
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
@@ -17,9 +10,6 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-/* ====================================================================== */
-/* POST — create a single paso (HU-G6, HU-G10)                            */
-/* ====================================================================== */
 
 const TIPOS_VALIDOS = new Set([
   "navegar",
@@ -207,9 +197,6 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 }
 
-/* ====================================================================== */
-/* PATCH — reorder (HU-G8)                                                 */
-/* ====================================================================== */
 
 interface PatchBody {
   orderedIds?: string[];
@@ -262,7 +249,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Verify the provided IDs match the session's pasos exactly.
+  // Verifica que los IDs coincidan exactamente con los pasos de la sesión.
   const existingIds = sesion.pasos.map((p) => p.id).sort();
   const providedIds = [...orderedIds].sort();
   if (
@@ -278,9 +265,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Renumber in a transaction. Two-phase to avoid unique constraint collisions:
-  //   phase 1: assign negative numbers (-1, -2, ...) to break the (sesionId, numero) unique
-  //   phase 2: assign positive numbers 1..N in the desired order
+  // Renumera en dos fases para no chocar con el unique (sesionId, numero): primero negativos, luego 1..N.
   const updated = await prisma.$transaction(async (tx) => {
     for (let i = 0; i < orderedIds.length; i++) {
       await tx.pasoGrabado.update({

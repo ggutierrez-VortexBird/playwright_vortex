@@ -30,7 +30,7 @@ export async function getEjecucionConPasos(id: string) {
       artefactos: {
         orderBy: { createdAt: 'asc' }
       },
-      // HU-G19 — acta asociada (1-a-1 con Ejecucion)
+      // Acta asociada (1-a-1 con Ejecucion)
       acta: true,
     }
   })
@@ -101,12 +101,12 @@ export async function listEjecuciones(
       },
     },
     orderBy: { createdAt: 'desc' },
-    take: pageSize + 1, // take one extra to detect hasNextPage
+    take: pageSize + 1, // una extra para detectar hasNextPage
     skip,
   }), prisma.ejecucion.count({ where })])
 
   const hasNextPage = ejecuciones.length > pageSize
-  if (hasNextPage) ejecuciones.pop() // remove the extra one
+  if (hasNextPage) ejecuciones.pop() // descarta la extra
 
   return { ejecuciones, hasNextPage, total }
 }

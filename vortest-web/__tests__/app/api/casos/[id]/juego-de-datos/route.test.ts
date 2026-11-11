@@ -1,5 +1,4 @@
-// __tests__/app/api/casos/[id]/juego-de-datos/route.test.ts
-// Tests for GET/POST /api/casos/[id]/juego-de-datos — data-driven test data.
+// GET/POST /api/casos/[id]/juego-de-datos: datos para tests data-driven.
 
 import { GET, POST } from "@/app/api/casos/[id]/juego-de-datos/route";
 import { getSession, requireProyectoAccess } from "@/lib/auth";

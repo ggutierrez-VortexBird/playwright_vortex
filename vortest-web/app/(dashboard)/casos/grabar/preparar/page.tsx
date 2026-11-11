@@ -11,15 +11,7 @@ interface PageProps {
   searchParams: Promise<Record<string, string | undefined>>;
 }
 
-/**
- * Pantalla intermedia entre "Nueva grabación" (el formulario, que solo
- * junta datos) y la sesión en vivo. Acá el usuario decide arrancar de
- * verdad — recién al hacer click en "Iniciar grabación"
- * (`PrepararGrabacionClient`) se crea la `SesionGrabacion` y se abre el
- * navegador real. La autorización de proyecto/credencial/caso padre ya la
- * hace `POST /api/grabador/sesiones` al arrancar, así que acá solo
- * validamos sesión de usuario + que el borrador decodifique.
- */
+/** Pantalla previa a la sesión en vivo: la sesión se crea al pulsar "Iniciar grabación". */
 export default async function PrepararGrabacionPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const session = await getSession();

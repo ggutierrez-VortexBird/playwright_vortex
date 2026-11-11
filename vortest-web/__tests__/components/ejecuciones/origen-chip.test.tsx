@@ -1,11 +1,7 @@
-/**
- * Tests for components/ejecuciones/origen-chip.tsx (HU-G17).
- */
-
 import { render, screen } from "@testing-library/react";
 import { OrigenChip } from "@/components/ejecuciones/origen-chip";
 
-describe("OrigenChip (HU-G17)", () => {
+describe("OrigenChip", () => {
   it("muestra 'Origen: Grabador' cuando origen='grabador'", () => {
     render(<OrigenChip origen="grabador" />);
     const chip = screen.getByTestId("origen-chip");

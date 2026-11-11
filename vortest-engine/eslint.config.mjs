@@ -1,7 +1,3 @@
-// ESLint flat config para vortest-engine (NestJS + TypeScript).
-// Reglas base recomendadas de typescript-eslint; no se activan reglas
-// "type-checked" más estrictas para no generar un volumen de violaciones
-// que bloquee el CI antes de una limpieza progresiva.
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import globals from "globals";
@@ -22,7 +18,7 @@ export default tseslint.config(
     },
   },
   {
-    // Scripts JS que Playwright y Node cargan como CommonJS (el reporter, verificaciones).
+    // Scripts CommonJS cargados por Playwright y Node
     files: ["scripts/**/*.js"],
     languageOptions: { globals: globals.node, sourceType: "commonjs" },
     rules: { "@typescript-eslint/no-require-imports": "off" },

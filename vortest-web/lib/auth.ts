@@ -8,9 +8,7 @@ export interface SessionData {
   email?: string;
 }
 
-// Falla temprano y con un mensaje claro en vez de dejar que iron-session
-// reciba `undefined` (vía `!`) y explote más abajo con un error críptico
-// sobre longitud de password.
+// Falla temprano con mensaje claro en vez de pasar `undefined` a iron-session.
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET) {
   throw new Error(
@@ -46,12 +44,11 @@ export async function destroySession() {
   await session.destroy();
 }
 
-// Marker errors so route handlers can map them to HTTP responses
+// Errores marcadores para que los route handlers los mapeen a respuestas HTTP
 export const FORBIDDEN_ERROR = new Error("FORBIDDEN");
 export const NOT_FOUND_ERROR = new Error("NOT_FOUND");
 
-// Re-exportados desde lib/roles.ts (sin deps de servidor) para no romper a
-// quienes ya importan RolUsuario/ROL_LABEL desde acá.
+// Re-exportados desde lib/roles.ts (sin deps de servidor) para no romper imports existentes.
 export type { RolUsuario } from "@/lib/roles";
 export { ROL_LABEL } from "@/lib/roles";
 
@@ -62,10 +59,7 @@ export interface UsuarioActual {
   nombre: string | null;
 }
 
-/**
- * Única consulta {id, email, rol, nombre} del usuario de la sesión actual.
- * Punto central de lectura de rol — evita repetir esta query en cada page.
- */
+/** Consulta única {id, email, rol, nombre} del usuario de la sesión actual. */
 export async function getUsuarioActual(session: SessionData): Promise<UsuarioActual | null> {
   if (!session.userId) {
     return null;
@@ -80,10 +74,7 @@ export async function getUsuarioActual(session: SessionData): Promise<UsuarioAct
   return usuario;
 }
 
-/**
- * Verify that the current session user has superadmin role.
- * Throws FORBIDDEN_ERROR if not authorized.
- */
+/** Exige rol superadmin; lanza FORBIDDEN_ERROR si no. */
 export async function requireSuperadmin(session: SessionData): Promise<void> {
   const usuario = await getUsuarioActual(session);
 
@@ -92,12 +83,7 @@ export async function requireSuperadmin(session: SessionData): Promise<void> {
   }
 }
 
-/**
- * Pasa si el usuario es superadmin, o si es admin con una fila
- * `UsuarioEspacio` para ese espacio (i.e. el superadmin se lo asignó).
- * Usado para gestionar Proyectos y para asignar/quitar testers — nunca
- * para editar el Espacio en sí (eso sigue siendo `requireSuperadmin`).
- */
+/** Pasa si es superadmin o admin con fila `UsuarioEspacio` para ese espacio; para gestionar Proyectos y testers. */
 export async function requireEspacioAdmin(session: SessionData, espacioId: string): Promise<void> {
   const usuario = await getUsuarioActual(session);
   if (!usuario) {
@@ -118,12 +104,7 @@ export async function requireEspacioAdmin(session: SessionData, espacioId: strin
   }
 }
 
-/**
- * Pasa si el usuario es superadmin, admin del espacio dueño del proyecto, o
- * tester con una fila `UsuarioProyecto` para ese proyecto. Usado para CRUD
- * de Casos y Ejecuciones (los tres roles con acceso pueden operar), nunca
- * para editar el Proyecto en sí (eso usa `requireEspacioAdmin`).
- */
+/** Pasa si es superadmin, admin del espacio del proyecto o tester asignado; para CRUD de Casos y Ejecuciones. */
 export async function requireProyectoAccess(session: SessionData, proyectoId: string): Promise<void> {
   const usuario = await getUsuarioActual(session);
   if (!usuario) {
@@ -160,11 +141,7 @@ export async function requireProyectoAccess(session: SessionData, proyectoId: st
   }
 }
 
-/**
- * Fragmento de `where` de Prisma para filtrar Espacios visibles por el
- * usuario actual: superadmin ve todo, admin solo los que administra, tester
- * ninguno (no tiene alcance a nivel Espacio).
- */
+/** Filtro `where` de Espacios visibles: superadmin todos, admin los que administra, tester ninguno. */
 export function scopeEspacioWhere(usuario: UsuarioActual) {
   if (usuario.rol === "superadmin") {
     return {};
@@ -175,11 +152,7 @@ export function scopeEspacioWhere(usuario: UsuarioActual) {
   return { id: "__sin-acceso__" };
 }
 
-/**
- * Fragmento de `where` de Prisma para filtrar Proyectos visibles por el
- * usuario actual: superadmin ve todo, admin los de sus espacios, tester
- * solo los que se le asignaron.
- */
+/** Filtro `where` de Proyectos visibles: superadmin todos, admin los de sus espacios, tester los asignados. */
 export function scopeProyectoWhere(usuario: UsuarioActual) {
   if (usuario.rol === "superadmin") {
     return {};

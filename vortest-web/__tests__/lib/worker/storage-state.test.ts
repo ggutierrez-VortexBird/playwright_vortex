@@ -3,12 +3,7 @@ import * as os from "os";
 import * as path from "path";
 
 describe("lib/worker/storage-state", () => {
-  // El módulo `storage-state.ts` calcula `RUNTIME_DIR` una sola vez al ser
-  // importado, usando `process.cwd()`. Para evitar contaminar el workspace
-  // real, hacemos `process.chdir(tmpDir)` ANTES de requerir el módulo, y
-  // lo cargamos dentro de `jest.isolateModules` para que su top-level
-  // `const RUNTIME_DIR = path.resolve(process.cwd(), ...)` capture el
-  // directorio temporal.
+  // RUNTIME_DIR se calcula al importar con process.cwd(): se hace chdir a un tmp antes de cargar el módulo con isolateModules.
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vortest-storage-"));
   const originalCwd = process.cwd();
 
@@ -17,7 +12,7 @@ describe("lib/worker/storage-state", () => {
   beforeAll(() => {
     process.chdir(tmpDir);
     jest.isolateModules(() => {
-      // require() re-ejecuta el módulo bajo isolateModules.
+      // require() re-ejecuta el módulo bajo isolateModules
       mod = require("@/lib/worker/storage-state");
     });
   });

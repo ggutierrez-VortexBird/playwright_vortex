@@ -1,4 +1,4 @@
-// Visor de trazas de Playwright servido desde la propia app: trace.playwright.dev es otro sitio y no recibe la cookie de sesión (SameSite=Strict) que exige /api/artefactos.
+// Visor de trazas servido desde la app: trace.playwright.dev no recibe la cookie de sesión (SameSite=Strict) que exige /api/artefactos.
 import { readFile, stat } from 'fs/promises'
 import * as path from 'path'
 import { NextResponse } from 'next/server'

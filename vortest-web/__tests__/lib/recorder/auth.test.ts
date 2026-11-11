@@ -1,27 +1,10 @@
-/**
- * Tests for HMAC token issuance/validation (recorder-worker WS auth).
- *
- * Contract from design.md:
- *   token = HMAC-SHA256(SESSION_SECRET, `${sessionId}|${userId}|${exp}`)
- *   - base64url encoding
- *   - exp en segundos desde epoch
- *   - issueToken(sessionId, userId, ttlSec)
- *   - validateToken(token) → {ok:true,...} | {ok:false, reason:...}
- *   - tampered token → invalid_signature
- *   - exp < now → expired
- *   - malformed → malformed
- *
- * Diferentes tokens con mismo (sessionId, userId) y exp distinto deben ser diferentes.
- * Mismo token emitido dos veces debe validar idénticamente.
- */
+// Token HMAC-SHA256 en base64url con payload sessionId|userId|exp: valida firma, expiración y formato.
 
 import { createHmac } from "node:crypto";
 
 const ORIGINAL_SECRET = process.env.SESSION_SECRET;
 
-// Secreto fijo, SIN fallback `||`: `next/jest` carga `.env`/`.env.local`
-// antes de correr los tests, así que en una máquina con `.env` el fallback
-// nunca se aplicaba y el test corría contra el secreto real (no hermético).
+// Secreto fijo sin fallback: next/jest carga .env y el test dejaría de ser hermético.
 beforeAll(() => {
   process.env.SESSION_SECRET = "test-secret-fijo-de-32-caracteres-min";
 });
@@ -41,13 +24,12 @@ describe("recorder/auth — HMAC token", () => {
     const t = issueToken("ses-1", "user-1", 600);
     expect(typeof t).toBe("string");
     expect(t.length).toBeGreaterThan(20);
-    // Format: <payload>|<payload>|<exp>.<base64url-sig>
     const parts = t.split(".");
     expect(parts.length).toBe(2);
     const [payload, sig] = parts;
-    // Payload contains sessionId|userId|exp (with `|` separators)
+    // El payload contiene sessionId|userId|exp separados por |
     expect(payload).toMatch(/^ses-1\|user-1\|\d+$/);
-    // Sig is base64url: A-Z a-z 0-9 - _ (no padding)
+    // La firma es base64url (A-Z a-z 0-9 - _), sin padding
     expect(sig).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
@@ -79,7 +61,7 @@ describe("recorder/auth — HMAC token", () => {
   });
 
   it("returns expired for tokens with exp < now", () => {
-    // Issue with TTL = -10s (already expired)
+    // TTL de -10s (ya expirado)
     const t = issueToken("ses-1", "user-1", -10);
     const result = validateToken(t);
     expect(result.ok).toBe(false);
@@ -119,11 +101,7 @@ describe("recorder/auth — HMAC token", () => {
   it("token signed with different SESSION_SECRET fails validation", () => {
     const t = issueToken("ses-1", "user-1", 600);
 
-    // Manually forge a token with different secret.
-    // try/finally: si alguna aserción de adentro falla, la excepción
-    // se propagaba antes de restaurar SESSION_SECRET, contaminando el resto
-    // de los tests de este archivo Y de cualquier otro que corra después en
-    // el mismo worker de Jest (los workers reutilizan el proceso).
+    // Se forja un token con otro secreto; try/finally restaura SESSION_SECRET aunque falle una aserción.
     const orig = process.env.SESSION_SECRET;
     try {
       process.env.SESSION_SECRET = "totally-different-secret-32chars-AAA-BBB-CCC-DDD";
@@ -141,7 +119,7 @@ describe("recorder/auth — HMAC token", () => {
   });
 
   it("manually constructed valid token validates (verify HMAC format)", () => {
-    // Reproduce the signing exactly to ensure contract
+    // Reproduce la firma exacta para verificar el contrato
     const sessionId = "ses-x";
     const userId = "user-x";
     const exp = Math.floor(Date.now() / 1000) + 600;
@@ -160,8 +138,7 @@ describe("recorder/auth — HMAC token", () => {
   });
 
   it("returns malformed for token with empty payload parts", () => {
-    // payload = "|user|exp" (empty sessionId) — currently we DON'T treat this as malformed
-    // since sessionId can technically be empty. Verify that case.
+    // payload "|user|exp" (sessionId vacío): no se trata como malformed.
     const sessionId = "";
     const userId = "user-x";
     const exp = Math.floor(Date.now() / 1000) + 600;
@@ -172,8 +149,7 @@ describe("recorder/auth — HMAC token", () => {
     const token = `${payload}.${sig}`;
 
     const result = validateToken(token);
-    // sessionId="" still parses OK — by design, empty sessionId accepted.
-    // User can guard against this in business logic.
+    // Un sessionId vacío se acepta por diseño; la lógica de negocio puede protegerse.
     expect(result.ok).toBe(true);
   });
 });

@@ -48,13 +48,11 @@ export default async function DashboardHomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Greeting — Issue #8: use nombre, not email */}
       <PageHeader
         title={`Hola, ${usuario?.nombre?.trim() || usuario?.email.split("@")[0] || "de nuevo"}`}
         subtitle={usuario?.email ?? "—"}
       />
 
-      {/* KPI tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiTile
           label="Proyectos"
@@ -90,7 +88,6 @@ export default async function DashboardHomePage() {
 
       {totalEjecuciones > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Executions by space */}
           <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
             <h3 className="font-headline text-headline-sm text-m3-on-surface">Ejecuciones por espacio</h3>
             <p className="font-body text-body-sm text-m3-on-surface-variant">Total general</p>
@@ -106,7 +103,6 @@ export default async function DashboardHomePage() {
             </ul>
           </div>
 
-          {/* Results distribution — Issue #21: use M3 tokens */}
           <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-5 shadow-card">
             <h3 className="font-headline text-headline-sm text-m3-on-surface">Distribución de resultados</h3>
             <p className="font-body text-body-sm text-m3-on-surface-variant">
@@ -139,7 +135,6 @@ export default async function DashboardHomePage() {
         </div>
       )}
 
-      {/* Recent activity */}
       <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
         <div className="flex items-center justify-between border-b border-m3-outline-variant px-5 py-4">
           <h3 className="font-headline text-headline-md text-m3-on-surface">Actividad reciente</h3>
@@ -167,7 +162,6 @@ export default async function DashboardHomePage() {
                   <div className="truncate font-body text-body-md font-medium text-m3-on-surface">
                     {ejec.casoPrueba.nombre}
                   </div>
-                  {/* Issue #15: use font-body, not font-mono-code */}
                   <div className="mt-0.5 font-body text-body-sm text-m3-on-surface-variant">
                     {ejec.casoPrueba.proyecto.nombre} · {ejec.casoPrueba.proyecto.espacio.nombre} ·{" "}
                     {formatFecha(ejec.createdAt, { anio: false })}

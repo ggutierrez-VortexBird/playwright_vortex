@@ -1,11 +1,4 @@
-/**
- * Tests for app/(dashboard)/casos/casos-client.tsx (HU-G20).
- *
- * Verifica que:
- *   - El botón único "Nuevo caso" reemplaza a los anteriores "Grabar caso" y "+ Nuevo Caso".
- *   - Click en "Nuevo caso" abre el ModeSelectorModal.
- *   - Elegir "Subir Script" dentro del modal embebe el CreateCasoForm (sin salir del modal).
- */
+// El botón único "Nuevo caso" abre el ModeSelectorModal y "Subir Script" embebe el formulario.
 
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CasosClient } from "@/app/(dashboard)/casos/casos-client";
@@ -42,11 +35,10 @@ const mockCasos: CasoPruebaListItem[] = [
   },
 ];
 
-describe("CasosClient (HU-G20 mode selector)", () => {
+describe("CasosClient (mode selector)", () => {
   it("renderiza el botón único 'Nuevo caso' en lugar de los dos anteriores", () => {
     render(<CasosClient casosIniciales={mockCasos} canEdit={true} />);
 
-    // Botón nuevo
     expect(screen.getByTestId("nuevo-caso-button")).toBeInTheDocument();
     expect(screen.getByText(/Nuevo caso/)).toBeInTheDocument();
 
@@ -63,7 +55,6 @@ describe("CasosClient (HU-G20 mode selector)", () => {
   it("click en 'Nuevo caso' abre el ModeSelectorModal", () => {
     render(<CasosClient casosIniciales={mockCasos} canEdit={true} />);
 
-    // Inicialmente el modal no está abierto
     expect(screen.queryByTestId("mode-selector-modal")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("nuevo-caso-button"));

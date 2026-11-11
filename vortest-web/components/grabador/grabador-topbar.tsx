@@ -1,17 +1,6 @@
 "use client";
 
-/**
- * GrabadorTopbar — barra de control de la sesión de grabación activa.
- *
- * Look & feel: réplica de la "ActiveRecordingSubHeader" del mockup
- * documentacion/referencias-diseño/cambios/grabador.html — badge de
- * grabación en vivo con pulso, cronómetro, nombre del caso, y las
- * acciones Descartar / Detener y procesar.
- *
- * Estado propio: confirmar descarte (una segunda click sobre Descartar
- * antes de X segundos confirma, sino se resetea) + cronómetro en vivo
- * calculado a partir de `startedAt`.
- */
+/** Barra de control de la sesión activa: estado, cronómetro, nombre del caso y acciones Descartar / Detener. */
 import { useEffect, useRef, useState } from "react";
 
 export interface GrabadorTopbarProps {
@@ -32,11 +21,7 @@ export interface GrabadorTopbarProps {
   onDescartar: () => void;
   /** ISO server-time de inicio de la sesión, para el cronómetro. */
   startedAt?: string;
-  /**
-   * "idle" = todavía no se creó la sesión real ni se abrió el navegador:
-   * en vez de Descartar/Detener se muestra Cancelar + un botón Play que
-   * dispara `onIniciar`. Default "session" (comportamiento de siempre).
-   */
+  /** "idle": sin sesión real aún; muestra Cancelar y un botón Play que dispara `onIniciar`. */
   variant?: "session" | "idle";
   /** Click en el botón Play (solo variant="idle"). */
   onIniciar?: () => void;

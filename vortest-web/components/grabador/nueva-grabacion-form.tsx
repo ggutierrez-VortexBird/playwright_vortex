@@ -26,25 +26,13 @@ interface NuevaGrabacionFormProps {
   embedded?: boolean;
   /** Reemplaza el "Cancelar" -> router.back() por este handler (uso embebido en modal). */
   onCancel?: () => void;
-  /**
-   * Cuando se provee, reemplaza la navegación por defecto a
-   * `/casos/grabar/preparar` (uso embebido en modal, que además necesita
-   * cerrarse). El formulario NO arranca la grabación: solo junta los datos.
-   * El arranque real ocurre en la pantalla `/casos/grabar/preparar`.
-   */
+  /** Reemplaza la navegación por defecto a `/casos/grabar/preparar` (uso embebido en modal). */
   onContinue?: (draft: GrabacionDraft) => void;
 }
 
 type NavegadorValue = "chromium" | "firefox" | "webkit";
 
-/**
- * Form "Nueva Grabación" del HU-G1.
- *
- * Este formulario solo junta los parámetros de la grabación. Al enviar,
- * NO llama a la API ni abre el navegador real — arma un `GrabacionDraft`
- * y navega a `/casos/grabar/preparar`, donde el usuario decide cuándo
- * arrancar (ver ADR: "iniciar grabación vive en su propia pantalla").
- */
+/** Formulario "Nueva grabación": solo junta datos y navega a `/casos/grabar/preparar`, donde se inicia. */
 export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedded, onCancel, onContinue }: NuevaGrabacionFormProps) {
   const router = useRouter();
   // Cuando viene `proyectos`, el proyecto se elige dentro del mismo formulario;
@@ -53,18 +41,10 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
   const [credencialesState, setCredencialesState] = useState<CredencialListItem[]>(credenciales ?? []);
   const [loadingCred, setLoadingCred] = useState(credenciales === undefined && Boolean(proyectoId));
   const [nombre, setNombre] = useState("");
-  // HU-G34: el usuario tipea la URL completa (con scheme). Antes se preponía
-  // `https://` visualmente y solo dejaba editar el host. Con browser headed
-  // el usuario necesita poder usar http:// también, y la URL completa se ve
-  // en el BrowserChrome de la sesión activa. El `type="url"` del input
-  // valida que tenga scheme al perder foco, pero la validación final la
-  // hace el server en `iniciarSesionGrabacion`.
+  // URL completa con scheme (permite http://); la validación final la hace `iniciarSesionGrabacion`.
   const [urlInicial, setUrlInicial] = useState("");
   const [ambiente, setAmbiente] = useState<"QA" | "Staging" | "Prod">("QA");
-  // El centinela "__none__" es "Login manual". Se ofrece SIEMPRE: el
-  // grabador todavía no aplica el storageState de la credencial al
-  // navegador, así que exigirla solo bloqueaba grabar en proyectos sin
-  // credenciales cargadas. Al enviar, el centinela viaja como "".
+  // El centinela "__none__" es "Login manual" y viaja como "" al enviar; se ofrece siempre porque el grabador aún no aplica el storageState.
   const sentinelNone = "__none__";
   const [credencialId, setCredencialId] = useState<string>(
     credencialesState.length > 0 ? credencialesState[0]!.id : sentinelNone,
@@ -73,11 +53,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
   const [parentCaseId, setParentCaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Cuando el contenedor padre no pre-cargó las credenciales (modal, con o sin
-  // selección de proyecto embebida), las cargamos dinámicamente al elegir/tener
-  // proyecto, y reseteamos las selecciones que dependían del proyecto anterior
-  // (credencial y caso padre). Si `credenciales` viene fijo (página standalone
-  // con proyecto fijo), no se vuelve a pedir.
+  // Sin credenciales precargadas se piden al elegir proyecto, y se resetean credencial y caso padre.
   const [proyectoAntes, setProyectoAntes] = useState(selectedProyectoId);
   if (proyectoAntes !== selectedProyectoId) {
     setProyectoAntes(selectedProyectoId);
@@ -117,9 +93,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
   }, [selectedProyectoId]);
 
   const tieneCredenciales = credencialesState.length > 0;
-  // HU-G34: los tres navegadores son seleccionables ahora. El worker
-  // dispatcha según el valor (chromium/firefox/webkit) en launchSession.
-  // const puedeSeleccionarNavegador ya no necesita narrowing — todos son válidos.
   const puedeSeleccionarNavegador = (_v: NavegadorValue) => true;
 
   const urlCompleta = urlInicial.trim();
@@ -178,7 +151,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
           : "w-full max-w-2xl bg-m3-surface-container-lowest border border-m3-surface-variant rounded-md shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] overflow-hidden"
       }
     >
-      {/* Header (omitido en modo embebido: el contenedor padre ya muestra título/volver) */}
       {!embedded && (
         <header className="bg-m3-surface border-b border-m3-surface-variant px-6 py-4 flex items-center justify-between gap-4">
           <div>
@@ -203,9 +175,7 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
         </header>
       )}
 
-      {/* Body */}
       <div className="p-6 space-y-6">
-        {/* Proyecto — solo cuando no viene fijo desde el contenedor padre */}
         {proyectos && (
           <Field label="Proyecto" id="grabar-proyecto" required error={erroresCampo.proyecto}>
             <Select value={selectedProyectoId} onChange={(e) => setSelectedProyectoId(e.target.value)}>
@@ -219,21 +189,15 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
           </Field>
         )}
 
-        {/* Nombre del Caso */}
         <Field label="Nombre del caso" id="caso_nombre" required error={erroresCampo.nombre}>
           <Input value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} placeholder="ej. Login exitoso - usuario estándar" />
         </Field>
 
-        {/* URL Inicial — HU-G34: input libre, el usuario tipea la URL completa
-            (incluyendo scheme). La validación del scheme vive en el server
-            (`iniciarSesionGrabacion`) y en el BrowserChrome post-start. */}
         <Field label="URL inicial" id="url_inicial" required error={erroresCampo.url} hint="La página donde abre el navegador del grabador.">
           <Input type="url" value={urlInicial} onChange={(e) => setUrlInicial(e.target.value)} placeholder="https://app.ejemplo.com/login" className="font-mono-code text-body-sm" />
         </Field>
 
-        {/* Grid 2 cols */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Ambiente */}
           <Field label="Ambiente" id="ambiente">
             <Select value={ambiente} onChange={(e) => setAmbiente(e.target.value as typeof ambiente)}>
               <option value="QA">QA (pruebas)</option>
@@ -242,7 +206,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
             </Select>
           </Field>
 
-          {/* Credencial */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="credencial" className="font-label text-label-md text-m3-on-surface">
               Credencial (sesión iniciada)
@@ -273,7 +236,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
             </p>
           </div>
 
-          {/* Caso padre (login) */}
           <div>
             <label
               htmlFor="parentCase"
@@ -293,7 +255,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
           </div>
         </div>
 
-        {/* Motor de Navegador — Bento */}
         <div>
           <span className="block font-label text-label-sm font-semibold text-m3-primary mb-2">
             Motor de Navegador
@@ -347,7 +308,6 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
                       {opt.label}
                     </span>
                   </div>
-                  {/* Selected check dot — top-right */}
                   <div
                     aria-hidden="true"
                     className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${
@@ -368,14 +328,12 @@ export function NuevaGrabacionForm({ proyectoId, proyectos, credenciales, embedd
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <Alert tone="error"
             data-testid="form-error">{error}</Alert>
         )}
       </div>
 
-      {/* Footer */}
       <footer className="bg-m3-surface-container-low px-6 py-4 flex justify-end gap-3 border-t border-m3-surface-variant">
         <button
           type="button"

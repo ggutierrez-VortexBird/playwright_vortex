@@ -1,30 +1,7 @@
-/**
- * POST /api/internal/artefactos/upload
- *
- * Único endpoint HTTP entrante que vortest-engine llama directamente (fuera
- * de RabbitMQ) — sube cada artefacto (video/captura/trace) apenas termina de
- * generarlo, streamed, multipart. Ver vortest-engine/src/artifacts/artifacts.service.ts
- * para el cliente exacto que arma este POST.
- *
- * Auth: `secretoValido` (constant-time, lib/security/secret.ts) contra `X-Internal-Secret`; 401 `{error:'unauthorized'}` si falta o no matchea.
- *
- * Body (multipart/form-data):
- *   ejecucionId, fileName, tipo ('video'|'captura'|'trace'), sha256, bytes,
- *   metadata? (JSON string), file (binario)
- *
- * Responses:
- *   200 { artefactoId, deduplicated }
- *   400 { error: 'validation' | 'invalid_multipart', message? }
- *   401 { error: 'unauthorized' }
- *   500 { error: 'write_failed' | 'internal' }
- */
+/** POST: recibe cada artefacto del motor (multipart) y lo guarda en disco; auth por X-Internal-Secret. */
 import { NextRequest, NextResponse } from 'next/server'
 import * as fs from 'fs'
-// Import por default (no destructurado) a propósito: es el mismo patrón que
-// el resto del repo usa para `fs/promises` porque `jest.mock('fs/promises', factory)`
-// no intercepta consistentemente named imports bajo el transform de
-// next/jest — el mock testeable es sobre `fsPromises.default` (ver
-// __tests__/app/api/internal/artefactos/upload/route.test.ts).
+// Import por default: jest.mock('fs/promises') no intercepta de forma consistente los named imports.
 import fsPromises from 'fs/promises'
 import * as path from 'path'
 import { createHash } from 'crypto'
@@ -36,8 +13,7 @@ import type { ArtefactoTipo, Prisma } from '@prisma/client'
 import { secretoValido } from '@/lib/security/secret'
 import { prisma } from '@/lib/db'
 
-// Necesita `fs` real (streaming a disco local) — no puede correr en el
-// runtime Edge.
+// Necesita fs real: no corre en el runtime Edge.
 export const runtime = 'nodejs'
 
 const VALID_TIPOS = new Set<string>(['video', 'captura', 'trace'])
@@ -91,7 +67,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'validation', message: `tipo inválido: ${tipo}` }, { status: 400 })
   }
 
-  // SEG-08: validar formato UUID y existencia de la ejecucion antes de tocar disco
+  // Valida el UUID y la existencia de la ejecución antes de tocar disco.
   if (!UUID_RE.test(ejecucionId)) {
     return NextResponse.json({ error: 'validation', message: 'ejecucionId inválido' }, { status: 400 })
   }
@@ -114,15 +90,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // path.basename evita path traversal si fileName llegara con "../" — mismo
-  // destino que antes (storage/artefactos/<ejecucionId>/<fileName>), solo
-  // que ahora llega por HTTP en vez de fs.renameSync local.
+  // path.basename evita path traversal si fileName trae "../".
   const sanitizedFileName = path.basename(fileName)
   if (!/^[0-9a-f]{64}$/i.test(sha256)) {
     return NextResponse.json({ error: 'validation', message: 'sha256 inválido' }, { status: 400 })
   }
   const storageDir = path.resolve(process.cwd(), 'storage', 'artefactos', ejecucionId)
-  // Prefijo con el hash: los tests de un mismo spec generan `video.webm` iguales y se pisaban; `nombre` conserva el original para vincularlo a los pasos.
+  // Prefijo con el hash: los video.webm de un mismo spec se pisaban; `nombre` conserva el original.
   const destPath = path.join(storageDir, `${sha256.slice(0, 12).toLowerCase()}-${sanitizedFileName}`)
   const hash = createHash('sha256')
   let bytesEscritos = 0
@@ -136,19 +110,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     await fsPromises.mkdir(storageDir, { recursive: true })
-    // File -> disco vía streaming: `file.stream()` (Web ReadableStream) se
-    // adapta con Readable.fromWeb y se conecta a fs.createWriteStream con
-    // pipeline — de acá en más nunca se materializa el archivo completo en
-    // un Buffer/string propio de esta ruta. IMPORTANTE (honestidad sobre la
-    // garantía real): la llamada `request.formData()` de más arriba ya hizo
-    // el parseo completo del multipart entrante usando la implementación
-    // nativa de Next.js/undici, que construye cada parte (incluida `file`)
-    // como un Blob en memoria ANTES de que este handler pueda leer nada —
-    // es decir, el body completo ya fue bufferizado una vez por el runtime
-    // antes de llegar acá. Lo que este código evita es un SEGUNDO buffer
-    // completo propio (no hacemos `await file.arrayBuffer()` + `writeFile`);
-    // no puede evitar el primero, porque la App Router de Next.js no expone
-    // hoy una API de multipart verdaderamente streaming de punta a punta.
+    // Streaming a disco con Readable.fromWeb + pipeline; request.formData() ya bufferizó el body, esto solo evita un segundo buffer.
     const webStream = file.stream() as unknown as WebReadableStream<Uint8Array>
     const nodeStream = Readable.fromWeb(webStream)
     await pipeline(nodeStream, verificador, fs.createWriteStream(destPath))

@@ -1,13 +1,3 @@
-/**
- * Tests for lib/casos/parametros.ts (HU-G12 server-side helpers).
- *
- * Verifies:
- *   - listarParametrosConEnUso computes enUso from current PasoGrabado list.
- *   - Credential params are returned with valorDefecto=null (security).
- *   - actualizarValorDefecto refuses to update credential params.
- *   - actualizarValorDefecto updates and re-computes enUso.
- */
-
 import {
   listarParametrosConEnUso,
   actualizarValorDefecto,
@@ -37,7 +27,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("listarParametrosConEnUso (HU-G12)", () => {
+describe("listarParametrosConEnUso", () => {
   it("returns empty array when no params", async () => {
     mockParamFindMany.mockResolvedValue([]);
     mockPasoFindMany.mockResolvedValue([]);
@@ -127,7 +117,7 @@ describe("listarParametrosConEnUso (HU-G12)", () => {
   });
 });
 
-describe("actualizarValorDefecto (HU-G12)", () => {
+describe("actualizarValorDefecto", () => {
   it("returns null when param does not exist", async () => {
     mockParamFindFirst.mockResolvedValue(null);
     const out = await actualizarValorDefecto("caso-1", "p1", "x");

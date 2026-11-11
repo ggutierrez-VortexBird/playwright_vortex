@@ -27,8 +27,7 @@ jobs:
         if: matrix.proyecto == 'vortest-web'
         run: npx prisma generate
 
-      # Falla si @playwright/test (npm) y el tag del Dockerfile
-      # (imagen con binarios de navegador) se desalinean.
+      # Falla si @playwright/test y el tag del Dockerfile se desalinean
       - name: Verificar alineación de versión de Playwright
         run: npm run verify:playwright
 
@@ -36,7 +35,7 @@ jobs:
 
       - run: npm test
 
-      # Informativo: el lint no bloquea el resto de la matriz.
+      # El lint no bloquea
       - name: Lint (informativo)
         run: npm run lint
         continue-on-error: true

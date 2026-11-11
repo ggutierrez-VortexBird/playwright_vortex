@@ -1,9 +1,4 @@
-// src/queue/queue.module.ts
-// El único módulo que sabe que RabbitMQ existe: hospeda el consumidor de
-// `engine.execute` (ExecuteJobConsumer) y, vía EventsPublisherModule, el
-// publicador de `engine.events`. La conexión del microservicio RMQ en sí
-// (transport/queue de ENTRADA `engine.execute`) se configura en main.ts —
-// este módulo solo registra el controller que Nest engancha a esa conexión.
+// Hospeda el consumidor de engine.execute y el publicador de engine.events; la conexión RMQ se configura en main.ts
 import { Module } from '@nestjs/common'
 import { ExecutionModule } from '../execution/execution.module'
 import { EventsPublisherModule } from './events-publisher.module'

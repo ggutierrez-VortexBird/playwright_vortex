@@ -1,20 +1,6 @@
 "use client";
 
-/**
- * GrabadorClient — composición del modo grabador en el slot principal.
- *
- * Backend (V2): el recorder-worker spawnea `npx playwright codegen` y
- * vigila el .spec.ts. Cada cambio broadcastea `spec_updated` por WS con
- * `{content, bytes, changedAt}`.
- *
- * UI: Topbar (estado + título + Detener/Descartar) + BrowserChrome (URL) +
- * grilla de contenido (RecordingInstructions + RecordingGuide).
- *
- * Mensajes WS (V2, 3 variantes): spec_updated / sesion_detenida / error.
- * Bot `pause`/`resume` ya no se usa — codegen maneja el pause desde
- * su toolbar nativa. El botón "Señalar elemento" desapareció con el
- * signal mode de V1 (HU-G5).
- */
+/** Modo grabador: el worker lanza playwright codegen y emite `spec_updated` por WS; aquí se muestran topbar, URL y guías. */
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { WsServerMessage, WsClientMessage } from "@/lib/recorder/types";
@@ -32,9 +18,9 @@ export interface GrabadorClientProps {
   wsUrl: string;
   urlInicial: string;
   sesionId: string;
-  /** ISO server-time cuando se creó la sesión. */
+  /** Hora ISO del servidor al crear la sesión. */
   startedAt?: string;
-  /** Título de la sesión (nombre tipeado en el form). */
+  /** Título de la sesión. */
   titulo: string;
 }
 
@@ -94,15 +80,13 @@ export function GrabadorClient({
           setSpec(msg.content);
           setBytes(msg.bytes);
           setLastUpdateAt(msg.changedAt);
-          // Sincronizar URL actual si el worker la incluye
+          // Sincroniza la URL actual si el worker la incluye
           if (msg.currentUrl) setCurrentUrl(msg.currentUrl);
         } else if (msg.type === "sesion_detenida") {
           if (descartandoRef.current) return;
           if (!stopping) setStopping(true);
           if (wsRef.current) wsRef.current.close(1000, "sesion_detenida");
-          // El motivo viaja a la pantalla de revisión: cuando la grabación
-          // terminó porque se cerró la ventana del navegador, el usuario no
-          // pulsó nada acá y conviene explicarle por qué cambió de pantalla.
+          // El motivo viaja a la pantalla de revisión para explicar el cambio de pantalla.
           const motivo = msg.reason ? `?motivo=${encodeURIComponent(msg.reason)}` : "";
           router.push(`/casos/grabar/${sesionId}/revisar${motivo}`);
         } else if (msg.type === "error") {
@@ -110,7 +94,7 @@ export function GrabadorClient({
           setConnState("error");
         }
       } catch {
-        /* ignore malformed */
+        /* mensaje malformado, se ignora */
       }
     };
 
@@ -176,9 +160,7 @@ export function GrabadorClient({
     if (stopping) return;
     setStopping(true);
     descartandoRef.current = true;
-    // El worker también escucha el WS — un mensaje "stop" descarta
-    // el spec.ts sin guardarlo. Pero para "descartar" lo correcto es
-    // pedir al server que marque la sesión como 'descartada'.
+    // Para descartar se pide al server marcar la sesión como 'descartada'; un "stop" por WS solo borra el spec.ts.
     try {
       const res = await fetch(`/api/grabador/sesiones/${sesionId}/descartar`, { method: "POST" });
       if (!res.ok && res.status !== 404) throw new Error(String(res.status));
@@ -196,11 +178,7 @@ export function GrabadorClient({
   }
 
   async function handleNavigateFromChrome(url: string) {
-    // El recorder-worker no implementa navigate en V2 (codegen navega
-    // directo desde su inspector bar). Por ahora, registramos el intento
-    // en el spec vía ws.Send. Si en el futuro queremos manejar navigate,
-    // agregamos un mensaje `navigate` a WsClientMessage y el worker lo
-    // emite como `page.goto` directamente.
+    // El worker no implementa navigate (codegen navega desde su propia barra).
     sendWsMessage({ type: "navigate", url });
     setCurrentUrl(url);
   }
@@ -220,9 +198,7 @@ export function GrabadorClient({
 
   return (
     <section data-testid="grabador-shell" className="flex flex-col gap-6">
-      {/* Topbar + barra de URL van a borde a borde contra el `main` del
-          dashboard (mismo patrón de sangría responsive que usan otras
-          pantallas), en vez de quedar encerradas en una caja con borde propio. */}
+      {/* Topbar y barra de URL a borde a borde contra el `main` del dashboard */}
       <div className="-mx-4 -mt-4 lg:-mx-6 lg:-mt-6">
         <GrabadorTopbar
           titulo={titulo}

@@ -4,20 +4,9 @@ interface ScopeBarProps {
   espacioColor?: string | null;
 }
 
-/**
- * Scope indicator — shows the active Espacio + Proyecto as a contextual breadcrumb.
- * Mandatory on all screens except /login (PRD Criterio #2).
- *
- * Anatomy:
- *   - Small left-border client-band accent in espacioColor
- *   - espacioNombre in text-m3-on-surface-variant
- *   - Chevron separator
- *   - proyectoNombre in text-m3-primary (emphasized as active)
- *
- * Impeccable: layout (always visible) + colorize (semantic emphasis).
- */
+/** Indicador del Espacio y Proyecto activos como breadcrumb contextual. */
 export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeBarProps) {
-  // If no project is active, show the espacio only (e.g. project listing)
+  // Sin proyecto activo, muestra solo el espacio
   if (!proyectoNombre) {
     return (
       <div className="relative flex items-center gap-2 overflow-hidden">
@@ -37,7 +26,6 @@ export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeB
 
   return (
     <div className="relative flex items-center gap-2 overflow-hidden">
-      {/* Left accent border — espacio color */}
       {espacioColor && (
         <i
           className="scope-bar-icon"
@@ -45,7 +33,6 @@ export function ScopeBar({ espacioNombre, proyectoNombre, espacioColor }: ScopeB
           aria-hidden="true"
         />
       )}
-      {/* Breadcrumb: espacio > proyecto */}
       <span className="font-label text-label-md text-m3-on-surface-variant truncate">
         {espacioNombre}
       </span>

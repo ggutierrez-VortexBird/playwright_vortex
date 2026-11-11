@@ -1,44 +1,15 @@
-/**
- * parse-spec.ts — convierte el contenido de un .spec.ts generado por
- * Playwright codegen en pasos estructurados para el panel derecho del
- * modo grabador.
- *
- * Política ZERO modificación: lo que parseamos es lo que `npx playwright
- * codegen` emite. Si codegen cambia su formato, este parser se actualiza
- * para reflejarlo — nunca altera el spec.ts persistido.
- *
- * Estructura devuelta por linea no-trivial:
- *   - `kind: "goto"`           → page.goto(URL)
- *   - `kind: "click"`          → page.getByRole(...) / getByText / locator / getByLabel
- *   - `kind: "fill"`           → .fill(...) / .type(...)
- *   - `kind: "press"`          → .press(...)
- *   - `kind: "check"`          → .check() / .uncheck()
- *   - `kind: "select"`         → .selectOption(...)
- *   - `kind: "hover"`          → .hover() / hover()
- *   - `kind: "assertion"`      → expect(...).toBeVisible / toHaveText / etc
- *   - `kind: "other"`          → cualquier otra cosa
- *
- * `rawText` siempre está (la línea completa sin trim).
- * `selectorText` es la parte del selector legible para el QA
- *   ("getByRole('button', { name: 'Iniciar sesión' })").
- * `description` es la descripción legible en español lista para la UI
- *   ("Click en «Iniciar sesión»", "Verificar visibilidad de «Carrito»",
- *    "Ir a https://example.com/login", etc.).
- *
- * El parser es "best-effort" — falla nunca. Si no entiende una línea,
- * la expone como kind: "other" con su rawText.
- */
+// Convierte un .spec.ts de Playwright codegen en pasos estructurados (kind, rawText, selectorText, description); best-effort, nunca altera el spec persistido.
 
 export interface SpecLine {
-  /** 1-indexed line number en el spec.ts. */
+  /** Número de línea (base 1) en el spec.ts. */
   number: number;
-  /** Texto crudo de la línea (trimmed). Vacío si la línea es whitespace puro. */
+  /** Texto crudo de la línea (trimmed); vacío si la línea es solo espacios. */
   rawText: string;
   /** Categoría de la acción. */
   kind: SpecLineKind;
   /** Selector legible extraído (puede estar vacío en goto/assertion). */
   selectorText: string;
-  /** Descripción legible en español lista para UI. */
+  /** Descripción legible en español lista para la UI. */
   description: string;
 }
 
@@ -58,7 +29,7 @@ export type SpecLineKind =
   | "other";
 
 export interface ParseSpecOptions {
-  /** Si true, líneas con whitespace puro se incluyen como rawText="" y kind="other". Default false. */
+  /** Si es true, las líneas en blanco se incluyen con rawText="" y kind="other" (por defecto false). */
   includeEmpty?: boolean;
 }
 
@@ -110,12 +81,7 @@ function parseLine(number: number, trimmed: string, raw: string): SpecLine {
     };
   }
 
-  // await expect(page.getByRole(...)).toBeVisible();
-  // await expect(page.getByText('...')).toHaveText('...');
-  // await expect(locator).not.toBeVisible(); — negación soportada.
-  // await expect.soft(locator).toBeVisible(); — expect.soft soportado.
-  // El matcher se captura genérico (\w+), no de una lista cerrada, así que
-  // cubre las ~30 aserciones que trae Playwright (locator/page/response).
+  // await expect(...), con .not y expect.soft; el matcher se captura genérico (\w+)
   m = trimmed.match(/^await\s+expect(\.soft)?\((.+)\)\.(not\.)?(\w+)\((.*?)\)\s*;?$/);
   if (m) {
     const selector = humanizePlaywrightArg(m[2] ?? "");
@@ -130,7 +96,7 @@ function parseLine(number: number, trimmed: string, raw: string): SpecLine {
     };
   }
 
-  // .click() — puede tener selector chain antes
+  // .click(), puede tener cadena de selectores antes
   m = trimmed.match(/^await\s+(.+?)\.click\(([^)]*)\)\s*;?$/);
   if (m) {
     const selector = humanizePlaywrightArg(m[1] ?? "");
@@ -207,7 +173,7 @@ function parseLine(number: number, trimmed: string, raw: string): SpecLine {
     };
   }
 
-  // await page.goto, await page.locator, etc — cualquier await suelto
+  // Cualquier await suelto (page.goto, page.locator, etc.)
   if (trimmed.startsWith("await ")) {
     return { ...fallback, kind: "navigate", description: trimmed };
   }
@@ -215,25 +181,15 @@ function parseLine(number: number, trimmed: string, raw: string): SpecLine {
   return fallback;
 }
 
-/**
- * Convierte un selector Playwright crudo a una versión legible para mostrar
- * en el panel derecho. Maneja las formas comunes que emite codegen:
- *   - page.getByRole('button', { name: 'Iniciar sesión' })
- *   - page.getByLabel('Email')
- *   - page.getByText('Continue')
- *   - page.getByTestId('submit')
- *   - page.locator('css-selector')
- *   - page.locator('#id').first()
- */
+/** Convierte un selector Playwright crudo a una versión legible para el panel (getByRole, getByLabel, getByText, getByTestId, locator). */
 function humanizePlaywrightArg(arg: string): string {
   let s = arg.trim();
   if (!s) return "<desconocido>";
 
-  // Limpia .first() / .nth(N) del final antes de cualquier match
+  // Quita .first() / .nth(N) del final antes de matchear
   s = s.replace(/\.(?:first|nth\(\d+\))\s*$/, "");
 
-  // Si es `page.X(...)`, trabajamos sobre `X(...)` para que las regex
-  // siguientes no se confundan con el prefijo `page.`.
+  // Si es `page.X(...)` se trabaja sobre `X(...)` para no confundir las regex siguientes
   const inner =
     s.startsWith("page.") && /\(.*\)\s*$/.test(s) ? s.slice("page.".length) : s;
 
@@ -269,7 +225,7 @@ const SECRET_VALUE_PATTERNS = [
   /secret/i,
   /token/i,
   /api[-_]?key/i,
-  /^sk_(live|test)_/i, // Stripe-like
+  /^sk_(live|test)_/i, // tipo Stripe
   /bearer\s/i,
 ];
 const SECRET_SELECTOR_PATTERNS = [
@@ -280,12 +236,7 @@ const SECRET_SELECTOR_PATTERNS = [
   /credential/i,
 ];
 
-/**
- * Enmascara valores que parecen credenciales — tanto por el contenido del
- * valor como por el selector (label, name, testid). Si el QA tipea
- * "super-secret-123" en cualquier lugar, lo enmascaramos. Si tipea
- * algo que parece secreto dentro de un campo "Password", también.
- */
+/** Enmascara valores que parecen credenciales, por su contenido o por el selector (label, name, testid). */
 function maskSecretValue(value: string, selectorText: string): string {
   if (SECRET_VALUE_PATTERNS.some((re) => re.test(value))) return "••••••";
   if (SECRET_SELECTOR_PATTERNS.some((re) => re.test(selectorText))) {
@@ -294,10 +245,7 @@ function maskSecretValue(value: string, selectorText: string): string {
   return value;
 }
 
-// Traducciones para TODOS los matchers de `expect(locator/page/response)` que
-// trae Playwright (@playwright/test), no solo los más comunes. Un matcher
-// que no esté acá (por ej. uno custom vía expect.extend) cae al `default`
-// y se muestra tal cual — nunca se pierde la clasificación "assertion".
+// Traducciones de los matchers de `expect(locator/page/response)`; uno desconocido cae al `default` y sigue clasificado como "assertion".
 function humanizeMatcher(matcher: string): string {
   switch (matcher) {
     // Locator: visibilidad / estado
@@ -402,10 +350,7 @@ function humanizeMatcher(matcher: string): string {
   }
 }
 
-/**
- * Helper que filtra solo los pasos no triviales (skip imports, brackets,
- * whitespace) para alimentar al `PasoPanel`.
- */
+/** Filtra solo los pasos no triviales (sin imports, llaves ni líneas en blanco) para el `PasoPanel`. */
 export function parseSpecToSteps(content: string): SpecLine[] {
   return parseSpec(content).filter(
     (line) =>

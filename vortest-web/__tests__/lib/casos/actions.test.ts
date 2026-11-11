@@ -40,10 +40,7 @@ jest.mock("@/lib/auth", () => ({
   getSession: jest.fn(),
 }));
 
-// El guard real (`requireProyectoAccess`) resuelve el proyecto para decidir
-// si un admin/tester tiene acceso — estos tests solo ejercitan el camino
-// "no autorizado", así que alcanza con que el proyecto exista y que no haya
-// membresía de espacio/proyecto para el usuario de prueba.
+// requireProyectoAccess resuelve el proyecto: basta con que exista y no haya membresía.
 beforeEach(() => {
   (prisma.proyecto.findUnique as jest.Mock).mockResolvedValue({ id: "proyecto-1", espacioId: "espacio-1" });
   (prisma.usuarioEspacio.findUnique as jest.Mock).mockResolvedValue(null);

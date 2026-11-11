@@ -1,4 +1,4 @@
-// Valida que el script sea ejecutable antes de escribirlo a archivo temporal
+// Valida que el script sea ejecutable antes de escribirlo a un archivo temporal
 export function validateScript(script: string, scriptFileName: string | null): { valid: boolean; error?: string } {
   if (!script || script.trim() === '') {
     return { valid: false, error: 'Script vacío o no proporcionado' }

@@ -11,11 +11,9 @@ describe("ScopeBar", () => {
       />
     );
 
-    // El componente solo renderiza `proyectoNombre` en el DOM; `espacioNombre`
-    // se mantiene como prop pero no se pinta. Verificamos que el proyecto
-    // aparece y que el indicador de color está presente.
+    // Solo se renderiza proyectoNombre; espacioNombre es prop pero no se pinta.
     expect(screen.getByText("Proyecto 1")).toBeInTheDocument();
-    // Check the color indicator element exists (it's an <i> with aria-hidden)
+    // El indicador de color es un <i> con aria-hidden
     const icon = document.querySelector('i[aria-hidden="true"]');
     expect(icon).toBeInTheDocument();
     expect(icon).toHaveStyle({ backgroundColor: "rgb(255, 0, 0)" });
@@ -41,7 +39,7 @@ describe("ScopeBar", () => {
       />
     );
 
-    // Component now renders espacioNombre even without proyectoNombre
+    // Renderiza espacioNombre aunque falte proyectoNombre
     expect(container.firstChild).not.toBeNull();
     expect(container.textContent).toContain("Cliente A");
   });
@@ -54,7 +52,7 @@ describe("ScopeBar", () => {
       />
     );
 
-    // Component now renders espacioNombre even without proyectoNombre
+    // Renderiza espacioNombre aunque falte proyectoNombre
     expect(container.firstChild).not.toBeNull();
     expect(container.textContent).toContain("Cliente A");
   });

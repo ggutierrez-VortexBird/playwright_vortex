@@ -18,7 +18,7 @@ interface Props {
   initialActa?: Acta | null
 }
 
-/** HU-G19 — Genera el acta de evidencia (PDF) y la deja a un clic; si ya existe, enlaza directo. */
+/** Genera el acta de evidencia (PDF); si ya existe, enlaza directo. */
 export function GenerarActaButton({ ejecucionId, initialActa }: Props) {
   const toast = useToast()
   const [acta, setActa] = useState<Acta | null>(initialActa ?? null)

@@ -4,12 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMobileNav } from "@/components/mobile-nav-context";
 import { useEscape } from "@/components/ui/use-escape";
 
-/**
- * Envoltorio responsive del `<aside>` del dashboard:
- *  - `lg:` y superior — sticky, w-60, siempre visible.
- *  - `md:`–`lg-1` (tablet) — riel de solo íconos (w-[72px]), siempre visible.
- *  - `<md` (móvil) — cajón superpuesto; cerrado queda `inert` para que el teclado no recorra enlaces invisibles.
- */
+/** Envoltorio responsive del sidebar: fijo en lg, riel de íconos en md y cajón (inert al cerrar) en móvil. */
 export function ResponsiveSidebarShell({ children }: { children: ReactNode }) {
   const { open, close } = useMobileNav();
   const ref = useRef<HTMLElement>(null);

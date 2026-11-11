@@ -17,16 +17,14 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
   const router = useRouter();
   const toast = useToast();
 
-  // --- Dirty state tracking (Issue #2: unsaved changes warning) ---
+  // Aviso de cambios sin guardar
   const [isDirty, setIsDirty] = useState(false);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
-  // Track dirty on any form field change
   function markDirty() {
     setIsDirty(true);
   }
 
-  // beforeunload handler
   useEffect(() => {
     if (!isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -63,7 +61,6 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
     }
   }
 
-  // --- Datos de la cuenta (nombre) ---
   const [nombre, setNombre] = useState(nombreActual ?? "");
   const [savingNombre, setSavingNombre] = useState(false);
   const [nombreError, setNombreError] = useState<string | null>(null);
@@ -93,7 +90,6 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
     }
   }
 
-  // --- Seguridad (cambiar contraseña) ---
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -152,10 +148,8 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
         onConfirm={confirmLeave}
         onCancel={() => setPendingUrl(null)}
       />
-      {/* Datos de la cuenta */}
       <section className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
         <h3 className="font-headline text-headline-md text-m3-on-surface">Datos de la cuenta</h3>
-        {/* Issue #12: fixed copy */}
         <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">
           Tu correo es {email}. Para cambiarlo, contacta a un administrador.
         </p>
@@ -192,7 +186,6 @@ export function PerfilClient({ nombreActual, email }: PerfilClientProps) {
         </form>
       </section>
 
-      {/* Seguridad */}
       <section className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-6 shadow-card">
         <h3 className="font-headline text-headline-md text-m3-on-surface">Seguridad</h3>
         <p className="mt-1 font-body text-body-sm text-m3-on-surface-variant">

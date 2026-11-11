@@ -4,23 +4,15 @@ interface EmptyStateProps {
   icon: string;
   title: string;
   description?: string;
-  /** Primary CTA — most important action */
+  /** CTA principal */
   action?: ReactNode;
-  /** Optional onboarding content embedded below the CTA (e.g. 3-step recorder guide) */
+  /** Contenido de onboarding bajo el CTA (p. ej. guía de 3 pasos) */
   onboarding?: ReactNode;
-  /** Optional secondary action (e.g. secondary link, help text) */
+  /** Acción secundaria opcional (enlace, texto de ayuda) */
   secondaryAction?: { label: string; onClick: () => void };
 }
 
-/**
- * Canonical empty state — teaches, does not just lament.
- * Follows taste-brief: no sad face, no error icon — only useful illustration + CTA.
- * Impeccable: layout (centred) + typeset (h3 headline, body text) + polish.
- *
- * Typography per taste-brief Section 2:
- *   - Headline: Archivo 600, headline-sm, text-m3-on-surface
- *   - Body: Archivo 400, body-md, text-m3-on-surface-variant
- */
+/** Estado vacío canónico: ilustración útil + CTA, sin íconos de error. */
 export function EmptyState({
   icon,
   title,
@@ -31,26 +23,21 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center shadow-card">
-      {/* Icon circle */}
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant">
         <span aria-hidden="true" className="material-symbols-outlined text-[24px]">
           {icon}
         </span>
       </div>
 
-      {/* Text block */}
       <h3 className="font-headline text-headline-sm text-m3-on-surface">{title}</h3>
       {description && (
         <p className="mt-1 font-body text-body-md text-m3-on-surface-variant">{description}</p>
       )}
 
-      {/* Primary action */}
       {action && <div className="mt-4">{action}</div>}
 
-      {/* Onboarding content — embedded guide below CTA */}
       {onboarding && <div className="mt-6">{onboarding}</div>}
 
-      {/* Secondary action */}
       {secondaryAction && (
         <button
           type="button"

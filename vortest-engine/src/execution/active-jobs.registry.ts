@@ -1,10 +1,4 @@
-// src/execution/active-jobs.registry.ts
-// Map<jobId, {proc, abortController}> — respalda dos consumidores:
-//   1. ExecuteJobConsumer: acka el mensaje de RabbitMQ solo después de que
-//      el job quedó registrado acá (ver ExecutionService.runJob).
-//   2. InternalHttpController: POST /internal/cancel/:jobId busca el job acá
-//      para saber si ESTA réplica lo está corriendo (con múltiples réplicas
-//      compitiendo por trabajos, un 404 en otra instancia es normal, no error).
+// Jobs activos: el consumer acka tras registrar y el endpoint de cancelación los busca acá
 import { Injectable, OnApplicationShutdown, Logger } from '@nestjs/common'
 import type { ChildProcess } from 'child_process'
 import { killProcessTree } from './kill-tree'
@@ -63,11 +57,7 @@ export class ActiveJobsRegistry implements OnApplicationShutdown {
     return true
   }
 
-  /**
-   * FIA-08: apagado ordenado — cancela y mata todos los procesos activos
-   * antes de que NestJS cierre conexiones. Promise.allSettled garantiza que
-   * un proceso que falle no bloquea a los demás.
-   */
+  /** Apagado ordenado: cancela y mata todos los procesos activos */
   async onApplicationShutdown(signal?: string): Promise<void> {
     const graceMs = Number(process.env.ENGINE_SHUTDOWN_GRACE_MS ?? 0)
     this.logger.log(

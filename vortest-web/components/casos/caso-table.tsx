@@ -85,7 +85,6 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false, mostrarPro
 
   return (
     <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
-      {/* Tabla — md y superior */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-left">
           <thead className="border-b border-m3-outline-variant bg-m3-surface-container">
@@ -140,7 +139,6 @@ export function CasoTable({ casos, onEdit, onDelete, canEdit = false, mostrarPro
         </table>
       </div>
 
-      {/* Tarjetas — móvil */}
       <div className="flex flex-col divide-y divide-m3-outline-variant md:hidden">
         {casosPagina.map((caso) => {
           return (

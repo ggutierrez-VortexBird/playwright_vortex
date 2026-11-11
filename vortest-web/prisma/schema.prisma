@@ -1,8 +1,4 @@
-// VorTest — Prisma schema
-// HU-0.1: 11 tablas + 3 enums. Naming camelCase en DB. UUID v4. Postgres 16+.
-// HU-G21: +4 modelos (SesionGrabacion, PasoGrabado, ParametroGrabacion, JuegoDeDatos)
-//         +1 enum (CasoOrigen). Extensiones no-breaking a CasoPrueba, Ejecucion, PasoEjecucion.
-// Convenciones: Restrict en PKs de evidencia; Cascade en child rows.
+// Schema Prisma de VorTest: Postgres 16+, UUID v4; Restrict en PKs de evidencia, Cascade en filas hijas.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,9 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================
 // Enums nativos Postgres
-// ============================================================
 
 enum EjecucionEstado {
   pendiente
@@ -43,26 +37,21 @@ enum CasoOrigen {
   mixto
 }
 
-// HU-Fase3: roles jerárquicos. superadmin = acceso total; admin = administra
-// los Espacios que se le asignaron (UsuarioEspacio); tester = solo accede a
-// los Proyectos que se le asignaron (UsuarioProyecto).
+// Roles jerárquicos: superadmin (todo), admin (Espacios asignados), tester (Proyectos asignados)
 enum Rol {
   superadmin
   admin
   tester
 }
 
-// ============================================================
-// Entidades de identidad y membresía (HU-1.1, HU-6.1, HU-Fase3)
-// ============================================================
+// Identidad y membresía
 
 model Usuario {
   id             String    @id @default(uuid())
   email          String    @unique
   passwordHash   String
   rol            Rol       @default(tester)
-  /// Nombre para mostrar, editable por el propio usuario desde /perfil.
-  /// Opcional: los usuarios existentes no tienen uno hasta que lo cargan.
+  /// Nombre para mostrar, editable desde /perfil; opcional.
   nombre         String?
   /// Suspender = false. Un usuario suspendido no puede iniciar sesión.
   activo         Boolean   @default(true)
@@ -102,9 +91,7 @@ model UsuarioEspacio {
   @@index([espacioId])
 }
 
-// ============================================================
-// Jerarquía espacio → proyecto → caso de prueba (HU-2.x)
-// ============================================================
+// Jerarquía espacio → proyecto → caso de prueba
 
 model Proyecto {
   id             String   @id @default(uuid())
@@ -127,9 +114,7 @@ model Proyecto {
   @@index([espacioId])
 }
 
-// HU-Fase3: tester↔proyecto — un tester solo ve/opera los Proyectos donde
-// tiene una fila aquí. La crea/borra el admin del Espacio del proyecto (o
-// el superadmin).
+// Tester↔proyecto: un tester solo opera los Proyectos donde tiene una fila aquí
 model UsuarioProyecto {
   usuarioId  String
   proyectoId String
@@ -151,9 +136,7 @@ model CasoPrueba {
   scriptFileName String?
   responsableId  String
   origen         CasoOrigen @default(subirScript)
-  /// Caso padre (opcional): si se define, se ejecuta ANTES de este caso
-  /// y su storageState se inyecta en el navegador. Útil para casos de login
-  /// que deben ejecutarse siempre antes de otros casos del mismo proyecto.
+  /// Caso padre (opcional): se ejecuta antes de este caso y su storageState se inyecta en el navegador.
   parentCaseId   String?
   activo         Boolean    @default(true)
   createdAt      DateTime   @default(now()) @db.Timestamptz(6)
@@ -177,9 +160,7 @@ model CasoPrueba {
   @@index([parentCaseId])
 }
 
-// ============================================================
-// Ejecución, pasos, artefactos (HU-3.x, HU-4.x)
-// ============================================================
+// Ejecución, pasos, artefactos
 
 model Ejecucion {
   id               String          @id @default(uuid())
@@ -194,21 +175,12 @@ model Ejecucion {
   sistemaOperativo String?
   nodoEjecucion    String?
   loteId           String?
-  /// storageState capturado después de una ejecución exitosa.
-  /// Usado por casos hijos que declaran este caso como parentCaseId.
+  /// storageState capturado tras una ejecución exitosa; lo usan los casos hijos.
   storageState     Json?
   asercionesTotal  Int             @default(0)
   asercionesOk     Int             @default(0)
   asercionesFail   Int             @default(0)
-  /// Motor Fase 1 (encadenamiento padre/hijo, RabbitMQ): cuando esta fila es
-  /// una Ejecucion de PADRE sintetizada por dispararEjecucion (porque el
-  /// caso hijo solicitado declara parentCaseId), apunta al id de la
-  /// Ejecucion del HIJO que está esperando a que este padre termine.
-  /// scripts/execution-consumer.ts lo lee al recibir el evento `end` del
-  /// padre para decidir si publica el job del hijo (padre 'paso') o lo
-  /// marca 'errorMotor' sin publicarlo (padre 'fallo'/'errorMotor'). NULL
-  /// en cualquier otra fila (incluida la del hijo). Campo interno de
-  /// plumbing entre procesos — nunca se expone en UI/API pública.
+  /// Si es un padre sintetizado, id de la Ejecucion hija que espera su `end`; campo interno, nunca expuesto en UI/API.
   pendingChildEjecucionId String?
   createdAt        DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime        @updatedAt @db.Timestamptz(6)
@@ -295,9 +267,7 @@ model Artefacto {
   @@index([pasoEjecucionId])
 }
 
-// ============================================================
-// Acta de evidencia (HU-5.x) — 1-a-1 con ejecución
-// ============================================================
+// Acta de evidencia (1-a-1 con ejecución)
 
 model Acta {
   id          String    @id @default(uuid())
@@ -311,9 +281,7 @@ model Acta {
   ejecucion Ejecucion @relation(fields: [ejecucionId], references: [id], onDelete: Restrict)
 }
 
-// ============================================================
-// Credenciales (HU-7.x) — prioridad baja
-// ============================================================
+// Credenciales
 
 model Credencial {
   id            String    @id @default(uuid())
@@ -331,21 +299,14 @@ model Credencial {
   @@index([proyectoId])
 }
 
-// ============================================================
-// Modo grabador — HU-G21
-// SesionGrabacion: 1 fila por intento de grabación iniciada.
-//   token HMAC persistido para reconexión post-reinicio (tokenUsado=true one-shot).
-//   storageState: snapshot Playwright descifrado server-side (no se persiste el `valor`
-//   de Credencial; el snapshot se usa solo mientras la sesión está activa).
-// ============================================================
+// Modo grabador; SesionGrabacion: un intento de grabación (token HMAC reutilizable para reconexión)
 
 model SesionGrabacion {
   id              String    @id @default(uuid())
   proyectoId      String
   usuarioId       String
   casoPruebaId    String?
-  /// Caso padre (ej. login) que se ejecuta ANTES de iniciar la grabación
-  /// para obtener un storageState fresco y arrancar el navegador autenticado.
+  /// Caso padre (ej. login) que se ejecuta antes de grabar para obtener un storageState fresco.
   parentCaseId    String?
   nombre          String
   urlInicial      String
@@ -357,14 +318,9 @@ model SesionGrabacion {
   tokenUsado      Boolean   @default(false)
   estado          String
   mensajeError    String?
-  /// Pivot playwright-codegen (V2): spec.ts crudo emitido por `npx playwright codegen`.
-  /// Single source of truth del script. Los PasoGrabado rows se derivan en parseo
-  /// best-effort, NO se usan para regenerar el spec.
-  /// ACTA-Plan-Pivot-Playwright-Codegen (fase2/).
+  /// Spec crudo de codegen: fuente de verdad del script (los PasoGrabado son solo un parseo de apoyo).
   specCode        String?   @db.Text
-  /// Path absoluto al .spec.ts que escribe playwright-codegen. Permite replay
-  /// si la DB se pierde, o debug local. VIVE en OS tempdir (linux/macOS /tmp,
-  /// Windows %TEMP%) y se borra al reiniciar el SO.
+  /// Ruta absoluta del .spec.ts de codegen; vive en el tempdir del SO y se pierde al reiniciar.
   codegenFilePath String?
   startedAt       DateTime?
   endedAt         DateTime?
@@ -386,11 +342,7 @@ model SesionGrabacion {
   @@index([parentCaseId])
 }
 
-// ============================================================
-// PasoGrabado — unidad mínima del modo grabador (HU-G21, HU-G3)
-// Cada paso se persiste mientras la grabación está activa; se cablea
-// desde el recorder-worker cuando G3 implemente el traductor de eventos.
-// ============================================================
+// PasoGrabado: unidad mínima del modo grabador, persistida mientras la grabación está activa
 
 model PasoGrabado {
   id                 String   @id @default(uuid())
@@ -414,10 +366,7 @@ model PasoGrabado {
   @@index([casoPruebaId])
 }
 
-// ============================================================
-// ParametroGrabacion — clave/valor capturado durante la grabación (HU-G21, HU-G7)
-// `origen='credencial'` indica que el valor proviene de Credencial.valor descifrado.
-// ============================================================
+// ParametroGrabacion: clave/valor de la grabación; origen='credencial' = valor de Credencial.valor descifrado
 
 model ParametroGrabacion {
   id           String   @id @default(uuid())
@@ -437,9 +386,7 @@ model ParametroGrabacion {
   @@index([casoPruebaId])
 }
 
-// ============================================================
-// JuegoDeDatos — datos tabares para ejecución data-driven (HU-G13, stub)
-// ============================================================
+// JuegoDeDatos: datos tabulares para ejecución data-driven (stub)
 
 model JuegoDeDatos {
   id            String   @id @default(uuid())
@@ -453,18 +400,14 @@ model JuegoDeDatos {
   @@index([casoPruebaId])
 }
 
-// ============================================================
-// Tabla auxiliar — correlativo anual atómico (HU-5.3)
-// ============================================================
+// Correlativo anual atómico
 
 model ConsecutivoAnual {
   anio   Int @id
   ultimo Int
 }
 
-// ============================================================
-// Rate limiting de login (SEG-05)
-// ============================================================
+// Rate limiting de login
 
 model IntentoLogin {
   id        String   @id @default(uuid())

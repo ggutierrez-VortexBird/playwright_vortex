@@ -1,7 +1,4 @@
-// __tests__/lib/worker/script-temp.test.ts
-// Motor Fase 1: script-temp.ts ya no escribe a disco (eso se movió a
-// vortest-engine/src/execution/script-writer.ts) — solo sobrevive el
-// templating de texto que arma `ExecuteJobMessage.scriptText`.
+// script-temp solo conserva el templating de texto de ExecuteJobMessage.scriptText.
 
 import { buildScriptText } from "@/lib/worker/script-temp";
 

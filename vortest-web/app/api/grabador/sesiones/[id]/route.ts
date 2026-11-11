@@ -1,25 +1,4 @@
-/**
- * GET /api/grabador/sesiones/[id]
- * PATCH /api/grabador/sesiones/[id]   (HU-G2: cambiar estado — detener/descartar)
- * DELETE /api/grabador/sesiones/[id]  (HU-G2: descartar — cascade delete)
- *
- * Auth: requiere ser owner de la sesión (usuarioId = session.userId).
- *
- * GET: devuelve el estado actual de una sesión (para rehidratación post-refresh).
- *
- * PATCH body: { estado: 'detenida' | 'descartada' }
- *   - 'detenida': marca endedAt=now, mantiene las filas (sigue editable en HU-G8).
- *   - 'descartada': cascade-delete de SesionGrabacion + PasoGrabado.
- *
- * DELETE: cascade-delete de la sesión y todos sus pasos grabados
- *         (cascade en el FK de PasoGrabado.sesionId).
- *
- * Response 200: GET → SesionEstado, PATCH → {ok: true}, DELETE → {ok: true}
- * Response 401: {error:'No autenticado'}
- * Response 403: {error:'forbidden'}
- * Response 404: {error:'not_found'}
- * Response 400: {error:'validation'} para PATCH con estado inválido
- */
+/** GET estado de la sesión, PATCH la detiene o descarta, DELETE la elimina en cascada. Solo el dueño. */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -71,15 +50,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   return NextResponse.json(out);
 }
 
-/**
- * PATCH /api/grabador/sesiones/[id]
- *
- * Cambia el estado de una sesión a 'detenida' o 'descartada'.
- *   - 'detenida': marca endedAt (persiste la grabación para HU-G8 review).
- *   - 'descartada': cascade-delete (UX de "Descartar" en el topbar).
- *
- * Si la sesión ya está en estado terminal, responde 200 idempotente.
- */
+/** PATCH: cambia el estado a 'detenida' o 'descartada'; idempotente si ya es terminal. */
 export async function PATCH(request: Request, { params }: RouteParams) {
   const session = await getSession();
   if (!session.userId) {
@@ -122,15 +93,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // 'descartada' → cascade delete (SesionGrabacion + PasoGrabado via FK).
-  // El WS client ya cerró localmente; en DB simplemente borramos.
+  // 'descartada': borrado en cascada (el WS ya cerró en el cliente).
   if (estado === "descartada") {
     await prisma.sesionGrabacion.delete({ where: { id } });
     return NextResponse.json({ ok: true, deleted: true });
   }
 
-  // 'detenida' → marcar endedAt y estado.
-  // Idempotente: si ya está detenida/descartada, no tocamos endedAt de nuevo.
+  // 'detenida': marca endedAt; si ya es terminal no se vuelve a tocar.
   if (sesion.estado === "detenida" || sesion.estado === "descartada") {
     return NextResponse.json({ ok: true, alreadyTerminal: true });
   }
@@ -143,13 +112,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   return NextResponse.json({ ok: true });
 }
 
-/**
- * DELETE /api/grabador/sesiones/[id]
- *
- * Elimina la sesión y todos sus pasos grabados (cascade).
- * Es el comportamiento de "Descartar" — equivalente a PATCH con
- * estado='descartada' pero más directo (sin parsear body).
- */
+/** DELETE: elimina la sesión y sus pasos en cascada (equivale a PATCH 'descartada'). */
 export async function DELETE(_request: Request, { params }: RouteParams) {
   const session = await getSession();
   if (!session.userId) {

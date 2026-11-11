@@ -1,21 +1,4 @@
-// __tests__/lib/ejecuciones/actions.test.ts
-// Tests for HU-3 Motor de Ejecución Playwright — AC-1, AC-5, AC-6
-// (dispararEjecucion with lock) + Motor Fase 1 (RabbitMQ dispatch).
-//
-// El contrato real de la implementación (lib/ejecuciones/actions.ts):
-// - `dispararEjecucion(casoPruebaId)` recibe 1 solo argumento (no session)
-// - Obtiene la sesión internamente vía `getSession()` y llama `requireProyectoAccess(session, proyectoId)`
-// - Verifica que el caso existe con `prisma.casoPrueba.findUnique` (con `include: { parentCase: true }`)
-// - Dentro de `prisma.$transaction` toma un lock por caso (`pg_advisory_xact_lock`) y cuenta las ejecuciones en curso
-// - Si la transacción tiene éxito: crea Ejecucion(estado=pendiente), la pasa a
-//   'corriendo' (mismo punto donde antes el worker viejo la "tomaba"), y
-//   publica su job a RabbitMQ (o el del caso padre, si hay encadenamiento)
-// - Si ya hay una ejecución pendiente o corriendo del caso → throw YA_EXISTE_EJECUCION_EN_CURSO_ERROR (Error instance)
-// - Si el caso no existe → throw NOT_FOUND_ERROR (Error instance)
-// - requireProyectoAccess tira FORBIDDEN_ERROR si el usuario no tiene acceso
-//
-// Los marker errors (YA_EXISTE_EJECUCION_EN_CURSO_ERROR, FORBIDDEN_ERROR, NOT_FOUND_ERROR)
-// son comparados por identidad (===).
+// dispararEjecucion: lock por caso, creación de la Ejecucion y publicación del job a RabbitMQ.
 
 import { dispararEjecucion, detenerEjecucion } from "@/lib/ejecuciones/actions";
 import {
@@ -74,7 +57,7 @@ function mockTransaction() {
   );
 }
 
-describe("dispararEjecucion — happy path (AC-1), sin encadenamiento padre/hijo", () => {
+describe("dispararEjecucion — happy path, sin encadenamiento padre/hijo", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);
@@ -111,8 +94,7 @@ describe("dispararEjecucion — happy path (AC-1), sin encadenamiento padre/hijo
         data: expect.objectContaining({ casoPruebaId: "caso-1", estado: "pendiente" }),
       })
     );
-    // Transición a 'corriendo' apenas se publica — mismo punto donde antes
-    // tryClaimPendingExecution del worker viejo tomaba el trabajo.
+    // Pasa a 'corriendo' apenas se publica el job
     expect(prisma.ejecucion.update).toHaveBeenCalledWith({
       where: { id: "ejec-1" },
       data: { estado: "corriendo", inicioAt: expect.any(Date) },
@@ -178,8 +160,7 @@ describe("dispararEjecucion — happy path (AC-1), sin encadenamiento padre/hijo
     const result = await dispararEjecucion("caso-1");
 
     expect(result).toEqual({ id: "ejec-3", estado: "errorMotor" });
-    // Last call is the errorMotor update (after publishExecuteJob failed).
-    // First call was to transition to 'corriendo' before publishing.
+    // La última llamada es el update a errorMotor, tras fallar publishExecuteJob.
     expect(prisma.ejecucion.update).toHaveBeenLastCalledWith({
       where: { id: "ejec-3" },
       data: expect.objectContaining({
@@ -212,8 +193,7 @@ describe("dispararEjecucion — encadenamiento padre/hijo", () => {
     (prisma.$executeRaw as jest.Mock).mockResolvedValue(undefined);
     (prisma.ejecucion.create as jest.Mock)
       .mockResolvedValueOnce({ id: "ejec-hijo", casoPruebaId: "caso-hijo", estado: "pendiente" })
-      // Segunda llamada a ejecucion.create: la fila sintetizada del padre
-      // (esta la hace dispararEjecucion directamente, fuera del $transaction).
+      // Segunda ejecucion.create: fila sintetizada del padre, fuera del $transaction.
       .mockResolvedValueOnce({ id: "ejec-padre", casoPruebaId: "caso-padre", estado: "corriendo" });
     mockTransaction();
 
@@ -238,7 +218,7 @@ describe("dispararEjecucion — encadenamiento padre/hijo", () => {
   });
 });
 
-describe("dispararEjecucion — AC-5 concurrencia", () => {
+describe("dispararEjecucion concurrencia", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getSession as jest.Mock).mockResolvedValue(mockSession);

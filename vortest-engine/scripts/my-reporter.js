@@ -1,27 +1,5 @@
-// Reporter custom para Playwright — emite eventos JSON por stdout para que el
-// worker los parsee e inserte como PasoEjecucion / PasoSubaccion.
-//
-// Emite 5 tipos de evento directamente:
-//   env, step, substep, assertion, end
-// Los eventos 'log' se emiten vía fixture global (ver lib/fixtures/log-capture.ts)
-//
-// NOTA: Playwright Reporter API requiere una Clase.
-//
-// Sub-pasos: solo se emite un evento 'substep' por acción real del caso
-// (click, fill, navigate, expect...). Playwright ya llama a onStepEnd() una
-// vez por cada TestStep del árbol, sin importar el nivel de anidamiento, así
-// que NO hace falta (ni conviene) recorrer step.steps[] a mano: hacerlo
-// duplicaba cada substep (una vez por su propio onStepEnd, otra vez al
-// recorrer los hijos de su padre).
-//
-// Se descarta un step si su propia categoría es 'hook', 'fixture' o
-// 'test.attach', o si CUALQUIER ancestro (step.parent) tiene categoría
-// 'hook' o 'fixture'. Eso saca de encima:
-//   - Before Hooks / After Hooks / Worker Cleanup (categoría 'hook')
-//   - Fixture "browser"/"context"/"page" y su Launch/Create/Close interno
-//     (categoría 'fixture' y sus hijos 'pw:api')
-// y deja solo lo que un QA reconoce como paso: pw:api (click, fill, goto...)
-// y expect (aserciones), estén o no agrupados dentro de un test.step().
+// Reporter de Playwright: emite eventos JSON por stdout para runner.ts
+// Solo emite substeps de acciones reales: descarta hooks, fixtures y sus hijos
 
 // El valor tecleado en campos de clave termina en la UI y en el Acta: se enmascara antes de emitirlo.
 const CAMPO_SENSIBLE = /pass|contrase|clave|secret|token|\bpin|\botp|cvv/i
@@ -38,15 +16,9 @@ class JsonReporter {
     this.testCounter = 0
     this.substepCounters = new Map() // testCounter -> substep number
     this.assertionCounters = { total: 0, ok: 0, fail: 0 }
-    // HU-G18 — wall-clock origin for video chapter timestamps. Captured
-    // in onBegin() so each test can compute its offset from the run start
-    // (≈ when Playwright began recording video). The runner stores these
-    // as PasoEjecucion.videoInicioMs/videoFinMs and the UI uses them to
-    // build the segmented chapter bar.
+    // Origen de tiempo para los offsets de video por test
     this.runStartMs = 0
-    // Map<testCounter, { testStartMs }> — captured in onTestBegin so we
-    // can stamp the chapter start without depending on Date drift across
-    // the worker ↔ runner boundary.
+    // testCounter -> { testStartMs }
     this.testStartMs = new Map()
   }
 
@@ -68,15 +40,14 @@ class JsonReporter {
   onTestBegin(test) {
     this.testCounter++
     this.substepCounters.set(this.testCounter, 0)
-    // HU-G18 — capture the per-test offset from run start so onTestEnd
-    // can emit videoInicioMs without a second Date.now() race.
+    // Offset del test respecto al inicio de la corrida
     this.testStartMs.set(this.testCounter, Date.now())
   }
 
   onStepEnd(test, result, step) {
     if (!this._isMeaningfulStep(step)) return
 
-    // emit assertion event for expect steps (accounting de ok/fail)
+    // Evento assertion para steps expect (conteo ok/fail)
     if (step.category === 'expect') {
       this.assertionCounters.total++
       const ok = !step.error
@@ -96,9 +67,7 @@ class JsonReporter {
     this._emitSubstep(test, step)
   }
 
-  // Descarta hooks, fixtures y cualquier step anidado dentro de ellos
-  // (ver comentario al inicio del archivo). No mira step.steps[] porque
-  // cada hijo llega a onStepEnd() por su cuenta.
+  // Descarta hooks, fixtures y steps anidados en ellos
   _isMeaningfulStep(step) {
     if (step.category === 'hook' || step.category === 'fixture' || step.category === 'test.attach') {
       return false
@@ -111,7 +80,7 @@ class JsonReporter {
     return true
   }
 
-  // Helper para emitir un evento substep
+  // Emite un evento substep
   _emitSubstep(test, step) {
     const parentTestId = this.testCounter
     const prev = this.substepCounters.get(parentTestId) ?? 0
@@ -141,8 +110,7 @@ class JsonReporter {
   // Extrae captura actual y referencia de los attachments de un step
   // toHaveScreenshot genera: foo-actual.png, foo-expected.png, foo-diff.png
   _extractCapturePaths(attachments) {
-    // Aceptar tanto contentType de imagen como extensiones de archivo .png/.webp
-    // Playwright a veces no setea contentType correctamente en attachments
+    // Acepta contentType de imagen o extensiones .png/.webp (Playwright no siempre lo setea)
     const imageAttachments = attachments.filter(a => {
       if (a.path && /\.(png|webp)$/i.test(a.path)) return true
       if (a.contentType?.startsWith('image/')) return true
@@ -153,8 +121,7 @@ class JsonReporter {
       return { capturaActualPath: null, capturaReferenciaPath: null }
     }
 
-    // Buscar por nombre de attachment (name) y por path
-    // toHaveScreenshot naming: foo-actual.png, foo-expected.png, foo-diff.png
+    // Busca por nombre de attachment y por path
     const actual = imageAttachments.find(a =>
       /actual/i.test(a.name) || (a.path && /actual/i.test(a.path))
     )
@@ -177,8 +144,7 @@ class JsonReporter {
     }
   }
 
-  // Clasifica el tipo de step según categoría y título.
-  // 'hook' nunca llega acá: _isMeaningfulStep() lo descarta antes.
+  // Clasifica el tipo de step según categoría y título
   _classifyStepType(category, title) {
     if (category === 'expect') return 'assertion'
     const t = (title || '').toLowerCase()
@@ -208,17 +174,11 @@ class JsonReporter {
 
     const resultadoEsperado = this._deriveResultadoEsperado(test)
 
-    // HU-G18 — chapter timestamps for the video bar. We use
-    // (testStartMs - runStartMs) as the start of the chapter, and add
-    // result.duration (Playwright-measured test wall-clock) to derive the
-    // end. If Playwright setup eats some time between tests (project
-    // fixtures, retries), that gap is silently rolled into the *next*
-    // chapter start — visually correct since the user sees the gap as
-    // blank screen, which is exactly what the segment width would imply.
+    // Offsets del capítulo de video: inicio = testStartMs - runStartMs, fin = inicio + result.duration
     const testStart = this.testStartMs.get(this.testCounter) ?? Date.now()
     const videoInicioMs = Math.max(0, testStart - this.runStartMs)
     const videoFinMs = videoInicioMs + (result.duration ?? 0)
-    // After emit, this test's start is no longer needed.
+    // El inicio del test ya no se necesita
     this.testStartMs.delete(this.testCounter)
 
     const event = {
@@ -236,8 +196,7 @@ class JsonReporter {
     }
     this._emit(event)
 
-    // Emitir evento captura-test con las imágenes de nivel test (screenshot: 'on')
-    // Estas capturas vienen en result.attachments, no en step.attachments
+    // Evento captura-test con las imágenes de nivel test (result.attachments)
     const testAttachments = (result.attachments || []).filter(a => {
       if (a.path && /\.(png|webp)$/i.test(a.path)) return true
       if (a.contentType?.startsWith('image/')) return true
@@ -275,12 +234,7 @@ class JsonReporter {
   }
 
   _emit(event) {
-    // PW-08: prefijo centinela para que runner.ts solo parsee líneas
-    // emitidas por este reporter y descarte stdout de otros orígenes (scripts
-    // del usuario, librerías, console.log de la página).
-    // HU-FIX: sanitizar cualquier \n dentro del JSON para que no rompa el
-    // parsing línea-por-línea del runner. Playwright steps pueden tener
-    // newlines en titles o error messages.
+    // Prefijo centinela para que runner.ts ignore otro stdout; se sanean los saltos de línea del JSON
     const json = JSON.stringify(event).replace(/\n/g, '\\n')
     process.stdout.write('__VORTEST__' + json + '\n')
   }
@@ -310,9 +264,7 @@ class JsonReporter {
   _extractErrorMsg(error) {
     if (!error) return null
     const raw = typeof error === 'string' ? error : (error.message ?? error.toString?.() ?? null)
-    // Playwright colorea los mensajes de expect() aunque FORCE_COLOR=0 (los
-    // workers lo reactivan); se quitan los escapes ANSI para que la UI y el
-    // Acta muestren texto plano.
+    // Playwright colorea expect() aunque FORCE_COLOR=0; se quitan los escapes ANSI
     // eslint-disable-next-line no-control-regex
     return raw == null ? null : raw.replace(/\u001b\[[0-9;]*m/g, '')
   }

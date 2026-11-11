@@ -3,7 +3,7 @@ import { ProjectProvider, useProject } from "@/components/project-context";
 import type { ProyectoWithEspacio } from "@/types/proyecto";
 import React from "react";
 
-// Test component to access context
+// Componente de prueba para acceder al contexto
 function TestConsumer() {
   const { activeProject, setActiveProject } = useProject();
   return (
@@ -81,7 +81,7 @@ describe("ProjectContext", () => {
   });
 
   it("throws error when useProject is used outside provider", () => {
-    // Suppress console.error for this test
+    // Se silencia console.error en este test
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     
     expect(() => {

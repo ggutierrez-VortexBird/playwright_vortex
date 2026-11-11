@@ -1,6 +1,3 @@
-/**
- * Tests for components/proyectos/create-proyecto-form.tsx.
- */
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CreateProyectoForm } from "@/components/proyectos/create-proyecto-form";
 

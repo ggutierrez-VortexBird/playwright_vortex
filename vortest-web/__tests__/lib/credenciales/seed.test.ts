@@ -1,15 +1,4 @@
-/**
- * Tests for seedCredencialDemo — idempotent creator of a demo Credencial
- * (storageState vacío para `about:blank`) que permite que el demo funcione
- * out-of-the-box sin requerir credenciales reales.
- *
- * Comportamiento esperado:
- *   - Primera llamada: crea una Credencial con tipo='storageState' y
- *     valor = encryptCredencial(JSON.stringify({cookies:[], origins:[]}))
- *   - Segunda llamada (ya existe): no crea duplicado, retorna la existente
- *   - El valor cifrado descifrado es exactamente {cookies:[], origins:[]}
- *   - Si ya existe una credencial con mismo nombre, NO se duplica
- */
+// seedCredencialDemo es idempotente: crea la credencial demo (storageState vacío) una sola vez.
 
 import { decryptCredencialJson } from "@/lib/credenciales/decrypt";
 
@@ -18,7 +7,7 @@ beforeAll(() => {
     process.env.SESSION_SECRET || "test-secret-32chars-min-AAA-BBB-CCC-DDD-EEE-FFF";
 });
 
-// Mock prisma — we test the seeding logic, not the DB
+// Se mockea prisma: se prueba la lógica del seed, no la BD
 const mockFindFirst = jest.fn();
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();

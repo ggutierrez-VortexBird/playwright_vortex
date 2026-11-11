@@ -22,9 +22,7 @@ function validateScriptFileName(fileName: string | null | undefined): string | n
   return fileName.trim();
 }
 
-/**
- * Valida que un caso padre sea válido y no genere ciclos.
- */
+/** Valida que un caso padre sea válido y no genere ciclos. */
 export async function validateParentCaseId(
   parentCaseId: string | null | undefined,
   proyectoId: string,
@@ -55,11 +53,7 @@ export async function validateParentCaseId(
   return parentCaseId.trim();
 }
 
-/**
- * Create a new caso de prueba within a proyecto.
- * Requiere superadmin, admin del espacio del proyecto, o tester con acceso
- * al proyecto.
- */
+/** Crea un caso de prueba en un proyecto (superadmin, admin del espacio o tester con acceso). */
 export async function createCaso(
   input: CasoPruebaFormData,
   session: SessionData
@@ -72,7 +66,7 @@ export async function createCaso(
 
   await requireProyectoAccess(session, proyectoId.trim());
 
-  // Validate required fields
+  // Valida campos obligatorios
   if (!codigo || typeof codigo !== "string" || codigo.trim() === "") {
     throw { status: 400, body: { error: "validation", message: "codigo is required" } };
   }
@@ -128,12 +122,7 @@ export async function createCaso(
   }
 }
 
-/**
- * List active casos de prueba, optionally filtered by proyectoId. Si se
- * pasa `usuario`, se filtra además por su alcance (admin: casos de
- * proyectos de sus espacios; tester: solo de sus proyectos asignados).
- * Computes estado from latest ejecucion.
- */
+/** Lista casos activos, opcionalmente por proyecto y por alcance del `usuario`; calcula el estado desde la última ejecución. */
 // `null` = sesión sin usuario activo (borrado o desactivado): nunca listar sin filtro; `undefined` queda para usos internos sin alcance.
 export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | null): Promise<CasoPruebaListItem[]> {
   if (usuario === null) return [];
@@ -191,10 +180,7 @@ export async function listCasos(proyectoId?: string, usuario?: UsuarioActual | n
   });
 }
 
-/**
- * List cases eligible to be a parent for a given proyecto.
- * Excludes a specific case when editing (to avoid self-reference).
- */
+/** Casos elegibles como padre en un proyecto; excluye el caso en edición. */
 export async function listParentCaseOptions(
   proyectoId: string,
   excludeId?: string
@@ -211,11 +197,7 @@ export async function listParentCaseOptions(
   return casos;
 }
 
-/**
- * Get a single caso by ID with proyecto and responsable names.
- * Aplica `requireProyectoAccess` internamente (EST-02): ningún llamador puede
- * olvidarse del guard. Lanza FORBIDDEN_ERROR / NOT_FOUND_ERROR / {status:404}.
- */
+/** Obtiene un caso por id con nombres de proyecto y responsable; aplica `requireProyectoAccess` internamente. */
 export async function getCasoById(id: string, session: SessionData) {
   const caso = await prisma.casoPrueba.findUnique({
     where: { id },
@@ -256,10 +238,7 @@ export async function getCasoById(id: string, session: SessionData) {
   };
 }
 
-/**
- * Update an existing caso.
- * Requires superadmin role.
- */
+/** Actualiza un caso existente. */
 export async function updateCaso(
   id: string,
   input: Partial<CasoPruebaFormData>,
@@ -297,8 +276,7 @@ export async function updateCaso(
   }
   if (input.proyectoId !== undefined) {
     const nuevoProyectoId = input.proyectoId.trim();
-    // Mover un caso a otro proyecto requiere acceso al proyecto DESTINO
-    // también — el guard de arriba solo cubrió el proyecto de origen.
+    // Mover un caso a otro proyecto exige acceso también al proyecto destino.
     if (nuevoProyectoId !== existing.proyectoId) {
       await requireProyectoAccess(session, nuevoProyectoId);
     }
@@ -340,10 +318,7 @@ export async function updateCaso(
   }
 }
 
-/**
- * Soft delete a caso (sets activo: false).
- * Requires superadmin role.
- */
+/** Baja lógica de un caso (activo: false). Requiere superadmin. */
 export async function deleteCaso(id: string, session: SessionData) {
   const existing = await prisma.casoPrueba.findUnique({
     where: { id },
@@ -363,23 +338,19 @@ export async function deleteCaso(id: string, session: SessionData) {
   return { success: true };
 }
 
-/**
- * Compute estado for a caso based on its ejecuciones.
- */
+/** Calcula el estado de un caso a partir de sus ejecuciones. */
 function computeEstado(ejecuciones: Array<{ estado: string; finAt: Date | null; inicioAt: Date | null }>): "sin ejecuciones" | "paso" | "fallo" | "errorMotor" {
   if (ejecuciones.length === 0) {
     return "sin ejecuciones";
   }
 
-  // ejecuciones are ordered by finAt desc from Prisma
+  // Prisma ordena las ejecuciones por finAt desc
   const latest = ejecuciones[0];
   const estado = latest.estado as "paso" | "fallo" | "errorMotor";
   return estado;
 }
 
-/**
- * Compute fechaUltimaEjecucion for a caso based on its ejecuciones.
- */
+/** Calcula fechaUltimaEjecucion de un caso a partir de sus ejecuciones. */
 function computeFechaUltimaEjecucion(ejecuciones: Array<{ finAt: Date | null; inicioAt: Date | null }>): string | null {
   if (ejecuciones.length === 0) {
     return null;

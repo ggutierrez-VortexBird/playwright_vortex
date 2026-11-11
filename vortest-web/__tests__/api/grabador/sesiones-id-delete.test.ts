@@ -1,14 +1,4 @@
-/**
- * Integration test: DELETE /api/grabador/sesiones/[id]
- *
- * Covers HU-G2 — Direct cascade delete (same effect as PATCH
- * estado='descartada' but without parsing body).
- *
- * The PasoGrabado FK has `onDelete: Cascade` at the Prisma schema level,
- * so deleting a SesionGrabacion automatically deletes its pasos. We assert
- * that the prisma call happens with the correct `where` and that auth
- * gates work (401 / 403 / 404).
- */
+// DELETE /api/grabador/sesiones/[id]: auth y borrado en cascada de los pasos.
 
 import { DELETE } from "@/app/api/grabador/sesiones/[id]/route";
 import { getSession } from "@/lib/auth";
@@ -112,7 +102,6 @@ describe("DELETE /api/grabador/sesiones/[id]", () => {
 
     expect(mockDelete).toHaveBeenCalledTimes(1);
     expect(mockDelete).toHaveBeenCalledWith({ where: { id: "ses-1" } });
-    // Cascade on PasoGrabado.sesionId is at the schema level — we don't
-    // call prisma.pasoGrabado.deleteMany here; the FK does it.
+    // El borrado de pasos lo hace la FK en cascada del esquema.
   });
 });

@@ -1,5 +1,4 @@
-// __tests__/app/api/ejecuciones/[id]/route.test.ts
-// Tests for HU-4.2 — GET /api/ejecuciones/[id] includes artefactos in response
+// GET /api/ejecuciones/[id]: incluye los artefactos en la respuesta.
 
 import { GET } from "@/app/api/ejecuciones/[id]/route";
 import { getEjecucionConPasos } from "@/lib/ejecuciones/queries";
@@ -13,7 +12,7 @@ jest.mock("@/lib/auth", () => ({
   requireProyectoAccess: jest.fn(),
 }));
 
-// Mock NextResponse.json to return a standard Response with readable body in jsdom
+// NextResponse.json devuelve una Response estándar con body legible en jsdom
 jest.mock("next/server", () => {
   const actual = jest.requireActual("next/server");
   return {
@@ -130,7 +129,7 @@ describe("GET /api/ejecuciones/[id]", () => {
     expect(body.artefactos).toEqual([]);
   });
 
-  it("expone subacciones y nuevos campos de paso en la respuesta (HU-4.5)", async () => {
+  it("expone subacciones y nuevos campos de paso en la respuesta", async () => {
     const mockEjecucion = {
       id: "ejec-1",
       estado: "fallo",
@@ -209,7 +208,7 @@ describe("GET /api/ejecuciones/[id]", () => {
     expect(body.pasos[0].subacciones[0].descripcion).toBe("Sub-paso navegar");
   });
 
-  it("HU-G17: expone casoPrueba.origen en la respuesta JSON", async () => {
+  it("expone casoPrueba.origen en la respuesta JSON", async () => {
     const mockEjecucion = {
       id: "ejec-1",
       estado: "paso",
@@ -221,7 +220,7 @@ describe("GET /api/ejecuciones/[id]", () => {
         id: "caso-1",
         nombre: "Caso Grabado",
         codigo: "CP-G-01",
-        origen: "grabador", // HU-G17
+        origen: "grabador",
         proyecto: { id: "p", nombre: "P", espacio: { id: "e", nombre: "E" } },
       },
       pasos: [],

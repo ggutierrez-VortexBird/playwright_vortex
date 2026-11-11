@@ -1,7 +1,3 @@
-/**
- * RecordingInstructions — tests de la tarjeta instructiva del slot
- * izquierdo del grabador. Cubre los stats visibles y el error display.
- */
 import { render, screen } from "@testing-library/react";
 import { RecordingInstructions } from "@/components/grabador/recording-instructions";
 

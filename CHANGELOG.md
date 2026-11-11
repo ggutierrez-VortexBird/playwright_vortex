@@ -1,60 +1,60 @@
 # Cambios
 
-Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Las referencias entre corchetes (SEG-01, UX-02…) son hallazgos de [`AUDIT.md`](./AUDIT.md).
+Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
-## [Sin publicar] — Auditoría de calidad (rama `feature/auditoria-ux`)
+## [Sin publicar] — Calidad, seguridad y experiencia de uso
 
 ### Agregado
-- **Credenciales**: la pantalla deja de ser "Próximamente". El superadmin lista, agrega (pegando o cargando el `storageState`, validado y cifrado) y elimina credenciales, viendo cuántos casos dependen de cada una [UX-12].
+- **Credenciales**: la pantalla deja de ser "Próximamente". El superadmin lista, agrega (pegando o cargando el `storageState`, validado y cifrado) y elimina credenciales, viendo cuántos casos dependen de cada una.
 - **Ejecución en vivo**: cronómetro, aviso al terminar con el resultado, estado en el título de la pestaña, aviso de conexión perdida o sesión vencida [UX-02, BUG-06].
-- **Filtros de ejecuciones**: un buscador y chips por estado con totales reales de la base [UX-05].
-- **Visor de evidencias** con la captura completa, zoom y descarga [UX-04].
-- **Pasos en vivo** mientras se graba [UX-09].
-- **Tema oscuro** con selector Claro · Oscuro · Sistema [UI-10].
+- **Filtros de ejecuciones**: un buscador y chips por estado con totales reales de la base.
+- **Visor de evidencias** con la captura completa, zoom y descarga.
+- **Pasos en vivo** mientras se graba.
+- **Tema oscuro** con selector Claro · Oscuro · Sistema.
 - **Migas** Espacio › Proyecto › Caso › Ejecución y título propio en cada pestaña [UX-06, UX-07].
-- **Tabla de casos** ordenable y con columna Proyecto [UX-10].
-- Avisos (toasts) al crear, guardar y eliminar en todas las pantallas [UX-11].
-- Documentación en [`docs/`](./docs): componentes y tecnologías (versiones e imágenes Docker), arquitectura, modelo de datos, API, sistema de diseño y guía de contribución [DOC-01].
+- **Tabla de casos** ordenable y con columna Proyecto.
+- Avisos (toasts) al crear, guardar y eliminar en todas las pantallas.
+- Documentación en [`docs/`](./docs): componentes y tecnologías (versiones e imágenes Docker), arquitectura, modelo de datos, API, sistema de diseño y guía de contribución.
 
 ### Cambiado
 - **Identidad**: la paleta sale del logo (teal `#135C65` y ámbar `#EEAA0B`); los títulos van en tinta y el teal queda para lo accionable. Tokens en un solo archivo (`app/tokens.css`) [UI-01, UI-02].
 - **Vocabulario de resultados único**: "Conforme / No conforme", "En cola", "Ejecutando", "Error del motor", "Cancelada", siempre con ícono además del color [UI-04, UI-05].
-- Componentes base nuevos (Button con carga, Field, Alert, Toast, Card, Tabs, Spinner) en lugar de copias por pantalla [UI-06].
-- Formularios (login, casos, proyectos, espacios, usuarios, credenciales, perfil y grabación): error en línea, foco al primer error y aviso antes de cerrar con cambios sin guardar [UX-08].
+- Componentes base nuevos (Button con carga, Field, Alert, Toast, Card, Tabs, Spinner) en lugar de copias por pantalla.
+- Formularios (login, casos, proyectos, espacios, usuarios, credenciales, perfil y grabación): error en línea, foco al primer error y aviso antes de cerrar con cambios sin guardar.
 - En móvil las migas muestran sólo la ubicación actual; la tabla de casos indica "Página 1 de 2" [UX-07, UX-10].
-- "Detener" confirma con el diálogo de la app en vez del `window.confirm` del navegador [UX-03].
+- "Detener" confirma con el diálogo de la app en vez del `window.confirm` del navegador.
 - La 404 y las pantallas de error explican qué pasó en español, con código de soporte y salidas claras [UI-08, UX-01].
-- Textos en español neutro (sin voseo ni jerga técnica) [UX-13].
-- El inicio calcula sus indicadores sobre todas las ejecuciones, no sobre las últimas 20 [BUG-15].
+- Textos en español neutro (sin voseo ni jerga técnica).
+- El inicio calcula sus indicadores sobre todas las ejecuciones, no sobre las últimas 20.
 - La API responde 400 ante un cuerpo que no es JSON (en todas las rutas) y 403 ante falta de permisos (antes 500) [BUG-12, BUG-13].
 - `npm run lint` vuelve a funcionar (`eslint .`, configuración de Next 16): 0 errores en web y motor [COD-01, COD-02].
 
 ### Corregido
-- Un mismo caso podía ejecutarse dos veces en paralelo; ahora la segunda solicitud responde 409 con enlace a la ejecución en curso [BUG-01].
-- Doble clic en "Ejecutar" lanzaba dos ejecuciones o abría otra ejecución distinta [BUG-11].
+- Un mismo caso podía ejecutarse dos veces en paralelo; ahora la segunda solicitud responde 409 con enlace a la ejecución en curso.
+- Doble clic en "Ejecutar" lanzaba dos ejecuciones o abría otra ejecución distinta.
 - Artefactos de más de 10 MB llegaban cortados; dos `video.webm` de la misma ejecución se pisaban [BUG-02, BUG-10].
 - El watchdog podía pisar un resultado recién llegado; un evento repetido podía lanzar dos veces el caso hijo; un evento que siempre fallaba bloqueaba la cola [BUG-07, BUG-08].
-- Dos "Guardar" del grabador creaban dos casos; dos "Generar acta" gastaban dos consecutivos [BUG-16].
-- "Guardar como caso" en la revisión recargaba la página y descartaba lo editado [BUG-04].
-- Eliminar un espacio o proyecto que fallaba no mostraba nada [BUG-14].
-- El aviso de cambios sin guardar del perfil nunca aparecía [BUG-18].
-- Las migraciones no se versionaban: un clon limpio no podía crear la base [BUG-03].
+- Dos "Guardar" del grabador creaban dos casos; dos "Generar acta" gastaban dos consecutivos.
+- "Guardar como caso" en la revisión recargaba la página y descartaba lo editado.
+- Eliminar un espacio o proyecto que fallaba no mostraba nada.
+- El aviso de cambios sin guardar del perfil nunca aparecía.
+- Las migraciones no se versionaban: un clon limpio no podía crear la base.
 
 ### Seguridad
-- El script de un caso ya no recibe las variables de entorno del motor (`RABBITMQ_URL`, `ENGINE_INTERNAL_SECRET`) [SEG-01].
-- El listado de ejecuciones enviaba al navegador el `storageState` (cookies del sitio bajo prueba) y el script [SEG-02].
-- Límite de intentos de login por email, no por la IP que manda el cliente [SEG-03]; `from` del login sólo acepta rutas internas [SEG-04].
-- Un admin ya no puede suspender usuarios fuera de sus espacios [SEG-05].
-- Lo tecleado en campos de clave se enmascara antes de llegar a la interfaz y al Acta [SEG-06].
-- Las respuestas ya no incluyen mensajes de Prisma o Chromium ni rutas del servidor [SEG-07].
-- `CREDENCIALES_ENCRYPTION_KEY` documentada y obligatoria en producción [SEG-08].
-- CSP aplicada (antes sólo en modo reporte), sin `X-Powered-By`, HSTS en producción [SEG-09].
-- El grabador sólo acepta un `wsUrl` que apunte al grabador configurado [SEG-10].
+- El script de un caso ya no recibe las variables de entorno del motor (`RABBITMQ_URL`, `ENGINE_INTERNAL_SECRET`).
+- El listado de ejecuciones enviaba al navegador el `storageState` (cookies del sitio bajo prueba) y el script.
+- Límite de intentos de login por email, no por la IP que manda el cliente; `from` del login sólo acepta rutas internas.
+- Un admin ya no puede suspender usuarios fuera de sus espacios.
+- Lo tecleado en campos de clave se enmascara antes de llegar a la interfaz y al Acta.
+- Las respuestas ya no incluyen mensajes de Prisma o Chromium ni rutas del servidor.
+- `CREDENCIALES_ENCRYPTION_KEY` documentada y obligatoria en producción.
+- CSP aplicada (antes sólo en modo reporte), sin `X-Powered-By`, HSTS en producción.
+- El grabador sólo acepta un `wsUrl` que apunte al grabador configurado.
 
 ### Rendimiento
-- Métricas de proyectos en lote: 2 consultas en vez de 2 por proyecto [REN-01].
-- Fuentes con `next/font`, sin la hoja de Google Fonts que bloqueaba el render [REN-02].
-- Índices para el listado, la última ejecución por caso y el watchdog; se quitan los redundantes [REN-03].
+- Métricas de proyectos en lote: 2 consultas en vez de 2 por proyecto.
+- Fuentes con `next/font`, sin la hoja de Google Fonts que bloqueaba el render.
+- Índices para el listado, la última ejecución por caso y el watchdog; se quitan los redundantes.
 
 ### Eliminado
 - Restos de la auto-reparación (estado `reparado`, columnas `selfHealed` y `selectoresRespaldo`) [migración `20261006230000`].
@@ -77,7 +77,7 @@ Todos los tests pasan: `vortest-web` 960/960 (122 suites, sin errores de TypeScr
 - Etiquetas "Conforme" / "No conforme · paso N", redirección a `/api/logout`, `updateCaso` que ya no borra el caso padre, IDOR que responde 403 en vez de lanzar.
 - Motor: `runner.spec.ts` no compilaba (propiedad `hasUnhealedFailure` de la auto-reparación) ni cargaba (`@nestjs/common` es ESM) y sus fixtures no llevaban el prefijo `__VORTEST__`.
 
-## [Fase 1] — Separación del motor (rama `feature/separacion-monolito`)
+## [Fase 1] — Separación del motor
 
 ### Cambiado
 - El motor de Playwright sale de la web a `vortest-engine` (NestJS), comunicado por RabbitMQ y HTTP interno, sin acceso a la base de datos.

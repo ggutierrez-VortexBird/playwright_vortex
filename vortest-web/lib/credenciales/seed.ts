@@ -1,9 +1,4 @@
-/**
- * Crea una Credencial de muestra (storageState vacío para `about:blank`)
- * que permite que el demo funcione out-of-the-box sin requerir credenciales
- * reales. Es idempotente: si ya existe una Credencial con el mismo nombre
- * en el proyecto, retorna la existente sin duplicarla.
- */
+/** Crea una Credencial de muestra (storageState vacío); idempotente por nombre en el proyecto. */
 import { prisma } from "@/lib/db";
 import { encryptCredencial } from "./crypto";
 
@@ -30,10 +25,7 @@ export async function seedCredencialDemo(proyectoId: string): Promise<Credencial
     return existing as CredencialDemo;
   }
 
-  // W4 — Prisma 6 + Node 22 type narrowing fix: Buffer (Uint8Array<ArrayBufferLike>)
-  // no es asignable a Uint8Array<ArrayBuffer>. Prisma espera el genérico
-  // estricto con ArrayBuffer; Buffer's underlying storage es ArrayBufferLike.
-  // Cast explícito (la memoria subyacente es la misma — solo difiere el genérico).
+  // Cast explícito: Buffer no es asignable al genérico estricto Uint8Array<ArrayBuffer> de Prisma.
   const ciphertext = encryptCredencial(DEMO_STORAGE_STATE);
   return (await prisma.credencial.create({
     data: {

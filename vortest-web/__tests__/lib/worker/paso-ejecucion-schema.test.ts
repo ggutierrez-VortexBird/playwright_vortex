@@ -1,12 +1,11 @@
-// __tests__/lib/worker/paso-ejecucion-schema.test.ts
-// TDD RED: Assert Prisma schema includes new models and fields for HU-4.5
+// El esquema de Prisma incluye los modelos y campos del detalle de pasos.
 
 import * as fs from 'fs'
 import * as path from 'path'
 
 const schemaPath = path.resolve(process.cwd(), 'prisma', 'schema.prisma')
 
-describe('Prisma Schema — HU-4.5 accordion step detail', () => {
+describe('Prisma Schema — accordion step detail', () => {
   let schema: string
 
   beforeAll(() => {

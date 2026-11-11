@@ -1,5 +1,4 @@
-// __tests__/app/api/actas/[id]/download/route.test.ts
-// Tests for GET /api/actas/[id]/download — PDF streaming with auth.
+// GET /api/actas/[id]/download: streaming del PDF con auth.
 
 import { GET } from "@/app/api/actas/[id]/download/route";
 import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";

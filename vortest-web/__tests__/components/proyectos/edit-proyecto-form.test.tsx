@@ -1,12 +1,8 @@
-/**
- * Tests for components/proyectos/edit-proyecto-form.tsx.
- */
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { EditProyectoForm } from "@/components/proyectos/edit-proyecto-form";
 import type { ProyectoWithMetrics } from "@/types/proyecto";
 
-// El componente usa <Switch> (Radix), que internamente requiere
-// ResizeObserver. jsdom no lo provee — polyfill local en este test.
+// <Switch> (Radix) requiere ResizeObserver, que jsdom no provee.
 beforeAll(() => {
   if (typeof globalThis.ResizeObserver === "undefined") {
     (globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =

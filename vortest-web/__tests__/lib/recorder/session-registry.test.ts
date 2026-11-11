@@ -1,18 +1,4 @@
-/**
- * Tests for the in-memory session registry used by recorder-worker.
- *
- * Contract from design.md:
- *   - add(entry): inserts if size < MAX_SESSIONS, else throws RegistryFullError
- *   - remove(sessionId): deletes entry, idempotent
- *   - get(sessionId): returns entry or undefined
- *   - attachClient(sessionId, ws): adds ws to entry.clients
- *   - detachClient(sessionId, ws): removes ws from entry.clients
- *   - count(): current size
- *   - lock per sessionId to avoid race conditions on add/remove
- *   - cleanupOrphans(): on startup, marks SesionGrabacion con estado
- *     'iniciando'/'activa' y tokenUsado=true (más de N min sin heartbeat)
- *     como estado='error', mensajeError='worker reiniciado'
- */
+// Registro en memoria de sesiones del recorder-worker: límite MAX_SESSIONS, locks por sesión y cleanupOrphans.
 
 const ORIGINAL_MAX = process.env.RECORDER_MAX_SESSIONS;
 
@@ -28,7 +14,7 @@ afterAll(() => {
   }
 });
 
-// Mock prisma — registry tests don't actually need DB (except for cleanupOrphans)
+// Mock de prisma: solo cleanupOrphans usa BD
 const mockSesionUpdateMany = jest.fn();
 
 jest.mock("@/lib/db", () => ({
@@ -58,7 +44,7 @@ function fakeEntry(sessionId: string) {
     sessionId,
     userId: `user-${sessionId}`,
     urlInicial: "https://example.com",
-    // V2: handle es un subprocess handle, no un BrowserContext.
+    // El handle es un subprocess, no un BrowserContext
     handle: {
       specPath: `/tmp/grabador-${sessionId}.spec.ts`,
       pid: 1000,
@@ -76,7 +62,7 @@ function fakeEntry(sessionId: string) {
 }
 
 function fakeWs(id: string): any {
-  // Mock WS socket — solo necesitamos un objeto con `close()` y readyState
+  // Mock de socket WS: basta con close() y readyState
   return {
     id,
     readyState: 1, // OPEN
@@ -91,7 +77,7 @@ function fakeWs(id: string): any {
 beforeEach(() => {
   jest.clearAllMocks();
   _resetForTests();
-  // Reset env to known value
+  // Entorno en un valor conocido
   process.env.RECORDER_MAX_SESSIONS = "3";
 });
 
@@ -113,7 +99,7 @@ describe("recorder/session-registry", () => {
       addEntry(entry);
       removeEntry("ses-1");
       expect(getEntry("ses-1")).toBeUndefined();
-      // idempotent: second call doesn't throw
+      // Idempotente: la segunda llamada no lanza
       expect(() => removeEntry("ses-1")).not.toThrow();
     });
 
@@ -204,7 +190,7 @@ describe("recorder/session-registry", () => {
       mockSesionUpdateMany.mockResolvedValue({ count: 2 });
       const count = await cleanupOrphans();
       expect(mockSesionUpdateMany).toHaveBeenCalledTimes(1);
-      // Verify it filters by estado IN ('iniciando','activa')
+      // Filtra por estado IN ('iniciando','activa')
       const call = mockSesionUpdateMany.mock.calls[0][0];
       expect(call).toBeDefined();
       expect(count).toBe(2);
@@ -225,7 +211,7 @@ describe("recorder/session-registry", () => {
       armHeartbeatTimer("ses-1", 50, (expiredId) => {
         try {
           expect(expiredId).toBe("ses-1");
-          // After the timer fires, the entry's heartbeatTimer field is cleared.
+          // Tras disparar el timer se limpia heartbeatTimer
           const e = getEntry("ses-1");
           expect(e).toBeDefined();
           expect(e!.heartbeatTimer).toBeUndefined();
@@ -245,17 +231,16 @@ describe("recorder/session-registry", () => {
         callCount++;
       };
 
-      // Arm with 80ms timeout
+      // Se arma con timeout de 80ms
       armHeartbeatTimer("ses-1", 80, onExpire);
-      // After 40ms, reset to 80ms — total elapsed ~120ms > 80ms.
-      // Without reset, the timer would fire at ~80ms.
+      // A los 40ms se reinicia a 80ms (total ~120ms); sin reinicio dispararía a los ~80ms.
       setTimeout(() => {
         armHeartbeatTimer("ses-1", 80, onExpire);
       }, 40);
 
       setTimeout(() => {
         try {
-          // Should not have fired yet because the timer was reset.
+          // Aún no debe haber disparado: el timer se reinició
           expect(callCount).toBe(0);
         } catch (err) {
           done(err);
@@ -263,7 +248,7 @@ describe("recorder/session-registry", () => {
         }
       }, 100);
 
-      // After 130ms, original deadline (80ms) has passed but reset pushed it to ~120ms.
+      // A los 130ms venció el plazo original (80ms), pero el reinicio lo movió a ~120ms.
       setTimeout(() => {
         try {
           // Should still not have fired yet because reset pushed it to ~120ms.
@@ -275,7 +260,7 @@ describe("recorder/session-registry", () => {
         }
       }, 130);
 
-      // Fire at ~160ms — well past the reset deadline of ~120ms.
+      // Dispara a ~160ms, bastante después del plazo reiniciado de ~120ms.
       setTimeout(() => {
         try {
           expect(callCount).toBe(1);
@@ -330,7 +315,7 @@ describe("recorder/session-registry", () => {
     });
 
     it("armHeartbeatTimer is a no-op when the session doesn't exist", () => {
-      // Should not throw — gracefully handles unknown sessionId.
+      // No debe lanzar: ignora el sessionId desconocido
       expect(() => armHeartbeatTimer("ses-unknown", 50, () => {})).not.toThrow();
     });
   });

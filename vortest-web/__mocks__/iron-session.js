@@ -1,4 +1,4 @@
-// Mock for iron-session (ESM-only module that causes Jest parse errors)
+// Mock de iron-session (módulo solo ESM que rompe el parser de Jest)
 module.exports = {
   getIronSession: jest.fn(() => ({
     userId: undefined,

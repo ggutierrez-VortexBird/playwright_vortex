@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/ejecucion-detalle-client.test.tsx
-// Tests for HU-4.2 — Execution detail client component with real video/screenshots
-
 import { render, screen } from "@testing-library/react";
 import { EjecucionDetalleClient } from "@/components/ejecuciones/ejecucion-detalle-client";
 import { BreadcrumbProvider } from "@/components/breadcrumb-context";
@@ -96,7 +93,7 @@ describe("EjecucionDetalleClient", () => {
     expect(chapters[2]).toHaveStyle({ width: "25%" });
   });
 
-  it("HU-G17: muestra chip 'Origen: Grabador' cuando casoPrueba.origen='grabador'", () => {
+  it("muestra chip 'Origen: Grabador' cuando casoPrueba.origen='grabador'", () => {
     const ejecucion = mockEjecucion({
       casoPrueba: { nombre: "Caso Grabado", codigo: "CP-G-01", origen: "grabador" },
     });
@@ -108,7 +105,7 @@ describe("EjecucionDetalleClient", () => {
     expect(chip).toHaveTextContent("Origen: Grabador");
   });
 
-  it("HU-G17: muestra chip 'Origen: Subir Script' cuando casoPrueba.origen='subirScript'", () => {
+  it("muestra chip 'Origen: Subir Script' cuando casoPrueba.origen='subirScript'", () => {
     const ejecucion = mockEjecucion({
       casoPrueba: { nombre: "Caso Subido", codigo: "CP-S-01", origen: "subirScript" },
     });
@@ -118,9 +115,8 @@ describe("EjecucionDetalleClient", () => {
     expect(chip).toHaveTextContent("Origen: Subir Script");
   });
 
-  it("HU-G17: NO muestra chip si casoPrueba.origen no está set (backwards compat)", () => {
-    // Cuando el origen no viene (casos viejos antes de HU-G17), el chip
-    // no debe renderizar para no romper el layout.
+  it("NO muestra chip si casoPrueba.origen no está set (backwards compat)", () => {
+    // Sin origen (casos viejos) el chip no debe renderizar.
     const ejecucion = mockEjecucion({
       casoPrueba: { nombre: "Caso Legacy", codigo: "CP-L-01" },
     });
@@ -129,7 +125,7 @@ describe("EjecucionDetalleClient", () => {
     expect(screen.queryByTestId("origen-chip")).not.toBeInTheDocument();
   });
 
-  describe("HU-G18 — video chapter bar", () => {
+  describe("video chapter bar", () => {
     function mockEjecWithChapters(): ReturnType<typeof mockEjecucion> {
       return mockEjecucion({
         estado: "paso",

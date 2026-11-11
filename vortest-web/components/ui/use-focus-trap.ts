@@ -17,13 +17,7 @@ function getFocusable(container: HTMLElement): HTMLElement[] {
   );
 }
 
-/**
- * Atrapa el foco dentro de `containerRef` mientras `open` es true:
- * guarda el elemento activo al abrir, enfoca el primer elemento enfocable
- * (o el contenedor, que debe tener `tabIndex={-1}`), cicla Tab/Shift+Tab en
- * los extremos y restaura el foco previo al cerrar. Si ya hay foco dentro
- * del contenedor (autoFocus o foco manual del hijo), no lo pisa.
- */
+/** Atrapa el foco en `containerRef` mientras `open`: enfoca el primero, cicla Tab y restaura el foco previo al cerrar. */
 export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, open: boolean) {
   useEffect(() => {
     if (!open) return;

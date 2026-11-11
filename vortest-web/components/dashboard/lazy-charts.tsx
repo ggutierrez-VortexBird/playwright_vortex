@@ -1,10 +1,6 @@
 "use client";
 
-/**
- * REN-08 — Wrappers cliente que cargan Recharts bajo demanda.
- * `next/dynamic` con `ssr: false` no puede usarse en Server Components, por
- * eso el dashboard (Server Component) consume estos wrappers.
- */
+/** Wrappers cliente que cargan Recharts bajo demanda (next/dynamic ssr:false no sirve en Server Components). */
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EspacioDatum } from "./ejecuciones-por-espacio-chart";

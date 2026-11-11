@@ -70,5 +70,5 @@ erDiagram
 ## Migraciones
 
 - Todas las migraciones se versionan en `vortest-web/prisma/migrations/`; `web` las aplica al arrancar (`prisma migrate deploy`).
-- En entornos no interactivos (CI, agentes), `prisma migrate dev` no puede responder su confirmación de pérdida de datos: se escribe el SQL a mano (o con `prisma migrate diff --from-schema-datamodel … --to-schema-datamodel … --script`) en `prisma/migrations/<timestamp>_<nombre>/migration.sql`.
+- En entornos no interactivos (CI), `prisma migrate dev` no puede responder su confirmación de pérdida de datos: se escribe el SQL a mano (o con `prisma migrate diff --from-schema-datamodel … --to-schema-datamodel … --script`) en `prisma/migrations/<timestamp>_<nombre>/migration.sql`.
 - Una migración que pierde datos necesita aprobación explícita antes de aplicarse.

@@ -1,6 +1,3 @@
-// __tests__/app/(dashboard)/ejecuciones/[id]/page.test.tsx
-// TDD RED/GREEN for HU-4.5 page.tsx mapping
-
 import { render, screen } from "@testing-library/react";
 import EjecucionDetallePage from "@/app/(dashboard)/ejecuciones/[id]/page";
 import { getEjecucionConPasos } from "@/lib/ejecuciones/queries";

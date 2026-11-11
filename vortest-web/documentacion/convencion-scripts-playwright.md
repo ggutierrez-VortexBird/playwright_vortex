@@ -152,8 +152,8 @@ La convención exige **dos momentos de validación** para detectar roturas de ru
 
 | Momento | Quién | Qué valida | Respuesta ante fallo |
 |---------|-------|------------|----------------------|
-| **Eager** (registro) | Server Action / API route (`HU-2.3`) | Regex de seguridad + existencia con `fs.access` | Rechazo HTTP 400 con mensaje descriptivo |
-| **Lazy** (ejecución) | Worker (`HU-3.1`, `HU-3.3`) | Existencia con `fs.access` antes de lanzar Playwright | Estado `errorMotor` con mensaje descriptivo |
+| **Eager** (registro) | Server Action / API route | Regex de seguridad + existencia con `fs.access` | Rechazo HTTP 400 con mensaje descriptivo |
+| **Lazy** (ejecución) | Worker | Existencia con `fs.access` antes de lanzar Playwright | Estado `errorMotor` con mensaje descriptivo |
 
 ### 6.2 Regex de sanitización
 

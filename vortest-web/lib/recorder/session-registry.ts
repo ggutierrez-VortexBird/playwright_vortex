@@ -1,14 +1,4 @@
-/**
- * In-memory session registry for the recorder-worker.
- *
- * Holds Map<sessionId, SessionEntry> with:
- *   - hard cap = RECORDER_MAX_SESSIONS (default 3)
- *   - per-session lock to avoid race conditions on add/remove
- *   - orphan cleanup at startup (marks stale active sessions as 'error')
- *
- * The Map is in-memory by design: if the worker crashes, sessions are
- * reaped by cleanupOrphans() on the next start (DB is source of truth).
- */
+// Registro en memoria de sesiones del recorder-worker (tope RECORDER_MAX_SESSIONS, lock por sesión); cleanupOrphans repara los huérfanos al arrancar.
 
 import type { WebSocket as WsServerSocket } from "ws";
 import { prisma } from "@/lib/db";
@@ -45,22 +35,19 @@ async function withLock<T>(key: string, fn: () => Promise<T> | T): Promise<T> {
     return await fn();
   } finally {
     release();
-    // Cleanup lock entry if no later lock is queued
+    // Limpia el lock si no hay otro encolado
     if (locks.get(key) === prev.then(() => next)) {
       locks.delete(key);
     }
   }
 }
 
-/**
- * Inserts (or replaces) an entry in the registry.
- * Throws RegistryFullError if the cap is reached and the sessionId is new.
- */
+/** Inserta (o reemplaza) una entry; lanza RegistryFullError si se alcanzó el tope y el sessionId es nuevo. */
 export function addEntry(entry: SessionEntry): void {
   const max = getMaxSessions();
-  // Replace-in-place case: same sessionId is allowed even when full.
+  // Reemplazo en el lugar: el mismo sessionId se permite aunque esté lleno
   if (sessions.has(entry.sessionId)) {
-    // Clean up timer of old entry
+    // Limpia el timer de la entry anterior
     const old = sessions.get(entry.sessionId)!;
     clearTimeout(old.heartbeatTimer);
     sessions.set(entry.sessionId, entry);
@@ -72,68 +59,55 @@ export function addEntry(entry: SessionEntry): void {
   sessions.set(entry.sessionId, entry);
 }
 
-/** Removes an entry and clears its heartbeat timer. Idempotent. */
+/** Quita una entry y limpia su timer de heartbeat; idempotente. */
 export function removeEntry(sessionId: string): void {
   const entry = sessions.get(sessionId);
   if (!entry) return;
   clearTimeout(entry.heartbeatTimer);
-  // Close any remaining WS clients (best-effort)
+  // Cierra los clientes WS restantes (best-effort)
   for (const ws of entry.clients) {
     try {
       ws.close();
     } catch {
-      // ignore
+      // ignorar
     }
   }
   sessions.delete(sessionId);
 }
 
-/** Returns the entry for a sessionId, or undefined. */
+/** Devuelve la entry de un sessionId, o undefined. */
 export function getEntry(sessionId: string): SessionEntry | undefined {
   return sessions.get(sessionId);
 }
 
-/** Iterator de todas las entries — usado por el shutdown del worker. */
+/** Iterador de todas las entries, usado en el apagado del worker. */
 export function* listEntries(): IterableIterator<[string, SessionEntry]> {
   for (const [id, e] of sessions.entries()) yield [id, e];
 }
 
-/** Adds a WS to the session's clients set. No-op if session doesn't exist. */
+/** Agrega un WS al set de clientes de la sesión; no hace nada si no existe. */
 export function attachClient(sessionId: string, ws: WsServerSocket): void {
   const entry = sessions.get(sessionId);
   if (!entry) return;
   entry.clients.add(ws);
 }
 
-/** Removes a WS from the session's clients set. No-op if session doesn't exist. */
+/** Quita un WS del set de clientes de la sesión; no hace nada si no existe. */
 export function detachClient(sessionId: string, ws: WsServerSocket): void {
   const entry = sessions.get(sessionId);
   if (!entry) return;
   entry.clients.delete(ws);
 }
 
-/** Current count of registered sessions. */
+/** Cantidad de sesiones registradas. */
 export function countEntries(): number {
   return sessions.size;
 }
 
-/**
- * Callback fired when a session's heartbeat timer expires (C2).
- * The recorder-worker uses this to persist `estado='detenida'`, close
- * the BrowserContext, and notify connected WS clients.
- */
+/** Callback cuando expira el heartbeat de una sesión. */
 export type HeartbeatExpireCallback = (sessionId: string) => void | Promise<void>;
 
-/**
- * Arms (or re-arms) the per-session heartbeat timer. After `timeoutMs`
- * of inactivity (no reset), the callback fires with the sessionId.
- *
- * The timer is reactive: each `armHeartbeatTimer` call clears any pending
- * timer and starts a fresh one. Call this from the WS server on every
- * `{type:'heartbeat'}` message from the client.
- *
- * No-op when the session doesn't exist (returns undefined).
- */
+/** Arma (o re-arma) el timer de heartbeat de la sesión; no hace nada si la sesión no existe. */
 export function armHeartbeatTimer(
   sessionId: string,
   timeoutMs: number,
@@ -142,31 +116,24 @@ export function armHeartbeatTimer(
   const entry = sessions.get(sessionId);
   if (!entry) return undefined;
 
-  // Clear any existing timer (re-arm case).
+  // Limpia el timer existente (re-armado)
   if (entry.heartbeatTimer) {
     clearTimeout(entry.heartbeatTimer);
   }
   entry.lastHeartbeatAt = Date.now();
   const timer = setTimeout(() => {
-    // Clear the reference so a future re-arm doesn't try to clearTimeout
-    // on an already-fired handle.
+    // Se limpia la referencia para no hacer clearTimeout sobre un handle ya disparado
     const e = sessions.get(sessionId);
     if (e) e.heartbeatTimer = undefined;
     void onExpire(sessionId);
   }, timeoutMs);
-  // Don't keep the process alive solely for this timer — the worker has
-  // other long-lived handles (WS server, HTTP server) so this is mostly
-  // defensive.
+  // No mantener vivo el proceso solo por este timer
   if (typeof timer.unref === "function") timer.unref();
   entry.heartbeatTimer = timer;
   return timer;
 }
 
-/**
- * Cancels the per-session heartbeat timer (if any). Idempotent.
- * Called by `removeEntry` automatically, but exposed for callers that
- * want to disarm without removing the entry.
- */
+/** Cancela el timer de heartbeat de la sesión (idempotente); `removeEntry` ya lo llama. */
 export function disarmHeartbeatTimer(sessionId: string): void {
   const entry = sessions.get(sessionId);
   if (!entry || !entry.heartbeatTimer) return;
@@ -174,14 +141,7 @@ export function disarmHeartbeatTimer(sessionId: string): void {
   entry.heartbeatTimer = undefined;
 }
 
-/**
- * Al arrancar, marca sesiones colgadas como error.
- * "Colgada" = estado IN ('iniciando','activa') sin heartbeat (updatedAt) en
- * los últimos 5 minutos (HU-G22). No depende del flag tokenUsado: el token
- * es reutilizable para reconexión, así que su estado no indica vida/muerte.
- *
- * Returns the number of sessions cleaned up.
- */
+/** Al arrancar, marca como error las sesiones colgadas (iniciando/activa sin heartbeat en 5 min); devuelve cuántas limpió. */
 export async function cleanupOrphans(): Promise<number> {
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
   const result = await prisma.sesionGrabacion.updateMany({
@@ -198,7 +158,7 @@ export async function cleanupOrphans(): Promise<number> {
   return result.count;
 }
 
-/** Test-only: reset internal state. Do not call from production code. */
+/** Solo para tests: reinicia el estado interno. */
 export function _resetForTests(): void {
   for (const e of sessions.values()) {
     clearTimeout(e.heartbeatTimer);
@@ -207,5 +167,5 @@ export function _resetForTests(): void {
   locks.clear();
 }
 
-// Re-export so callers don't import `withLock` directly
+// Re-export para que los llamadores no importen `withLock` directamente
 export { withLock };

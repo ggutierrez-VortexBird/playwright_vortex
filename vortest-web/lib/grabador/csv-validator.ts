@@ -1,22 +1,4 @@
-/**
- * lib/grabador/csv-validator.ts — parser + validador de CSV para
- * data-driven (HU-G13).
- *
- * Decisión: NO usamos papaparse (no está en el repo y el ACTA-plan
- * permite "simple custom parser — no es tan difícil para MVP").
- *
- * Soporta:
- *   - Header row obligatorio (primera fila).
- *   - Comillas dobles para escapar comas y saltos de línea.
- *   - Comillas escapadas vía doble comilla "".
- *   - Filas con menos columnas que el header → celdas vacías.
- *   - Filas con más columnas que el header → error "columna X extra".
- *
- * NO soporta (out of MVP):
- *   - Delimitadores distintos a coma.
- *   - BOM / encoding detection.
- *   - Tipos numéricos (todo se persiste como string en `filas`).
- */
+/** Parser y validador de CSV para data-driven: encabezado obligatorio, comillas dobles, sin delimitadores distintos de coma ni BOM. */
 
 export interface CsvValidationError {
   type: "missing_column" | "extra_column" | "empty_header" | "empty_csv" | "no_header";
@@ -32,10 +14,7 @@ export interface CsvValidationResult {
   errors: CsvValidationError[];
 }
 
-/**
- * Parsea el texto CSV y devuelve headers + filas como records.
- * Si `expectedHeaders` se pasa, además valida que coincidan exactamente.
- */
+/** Parsea el CSV y devuelve encabezados + filas; con `expectedHeaders` valida además que coincidan exactamente. */
 export function parsearCsv(
   texto: string,
   expectedHeaders?: string[],
@@ -71,7 +50,7 @@ export function parsearCsv(
     };
   }
 
-  // Detect per-column empty header cells (HU-G13: required for valid match).
+  // Detecta celdas de encabezado vacías
   const hasEmptyHeader = headers.some((h) => h === "");
   if (hasEmptyHeader) {
     headers.forEach((h, idx) => {
@@ -85,7 +64,7 @@ export function parsearCsv(
     });
   }
 
-  // Validate against expected headers if provided.
+  // Valida contra los encabezados esperados si se pasaron
   if (expectedHeaders !== undefined) {
     const expectedSet = new Set(expectedHeaders);
     const actualSet = new Set(headers);
@@ -109,11 +88,11 @@ export function parsearCsv(
     }
   }
 
-  // Build rows (skip the header row).
+  // Construye las filas (sin la fila de encabezado)
   const filas: Array<Record<string, string>> = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    // Skip totally blank rows (e.g. trailing newline).
+    // Se omiten las filas totalmente vacías (p. ej. salto de línea final)
     if (row.length === 1 && row[0] === "") continue;
     const record: Record<string, string> = {};
     for (let j = 0; j < headers.length; j++) {
@@ -130,10 +109,7 @@ export function parsearCsv(
   };
 }
 
-/**
- * Split CSV text into rows, respecting quoted fields that may contain
- * newlines or commas.
- */
+/** Divide el texto CSV en filas respetando campos entre comillas con saltos de línea o comas. */
 function splitCsvRows(texto: string): string[][] {
   const rows: string[][] = [];
   let current: string[] = [];
@@ -144,7 +120,7 @@ function splitCsvRows(texto: string): string[][] {
     const ch = texto[i];
     if (inQuotes) {
       if (ch === '"') {
-        // Escaped quote inside quotes.
+        // Comilla escapada dentro de comillas
         if (texto[i + 1] === '"') {
           field += '"';
           i++;
@@ -166,7 +142,7 @@ function splitCsvRows(texto: string): string[][] {
       continue;
     }
     if (ch === "\r") {
-      // Skip carriage return (handle CRLF).
+      // Se omite el retorno de carro (CRLF)
       continue;
     }
     if (ch === "\n") {
@@ -178,7 +154,7 @@ function splitCsvRows(texto: string): string[][] {
     }
     field += ch;
   }
-  // Final field/row.
+  // Último campo/fila
   if (field !== "" || current.length > 0) {
     current.push(field);
     rows.push(current);

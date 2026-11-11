@@ -1,15 +1,4 @@
-// __tests__/components/ejecuciones/detener-button.test.tsx
-// Tests for HU-3 Botón Detener — DetenerButton client component
-//
-// Contrato (components/ejecuciones/detener-button.tsx):
-// - Props: { ejecucionId, visible, onDetenida? }
-// - Si `visible === false`, no renderiza nada
-// - Al hacer clic abre un ConfirmDialog ("¿Detener la ejecución?"); no hay fetch hasta confirmar
-// - Confirmar → POST /api/ejecuciones/:id/detener
-//   * 2xx → toast "Ejecución detenida" y llama onDetenida
-//   * 409/403/404/otro → toast "No se pudo detener" con el motivo en español
-//   * excepción → toast "Sin conexión con el servidor"
-// - Mientras envía, el botón de confirmar queda en "Deteniendo…" y deshabilitado
+// Sin `visible` no renderiza; confirmar hace POST /api/ejecuciones/:id/detener y avisa con toast.
 
 import "@testing-library/jest-dom";
 import { render, screen, waitFor, within } from "@testing-library/react";
@@ -31,7 +20,7 @@ async function abrirYConfirmar(user: ReturnType<typeof userEvent.setup>) {
   await user.click(within(dialogo).getByRole("button", { name: /^detener$/i }));
 }
 
-describe("DetenerButton (HU-3 Botón Detener)", () => {
+describe("DetenerButton (Botón Detener)", () => {
   beforeEach(() => {
     global.fetch = jest.fn();
   });

@@ -9,14 +9,7 @@ interface ScopeBarWithContextProps {
   items: SidebarNavItem[];
 }
 
-/**
- * Breadcrumb de "dónde estoy parado" en la app (Inicio, Espacios, Casos...),
- * derivado de la ruta actual — no del espacio/proyecto seleccionado (eso ya
- * lo muestran los switchers). Pantallas anidadas (p. ej. el detalle de un
- * caso) pueden agregar segmentos propios vía BreadcrumbProvider — ver
- * useBreadcrumbExtra. Cada segmento intermedio es clickeable; el último es
- * la ubicación actual.
- */
+/** Breadcrumb de ubicación derivado de la ruta; las pantallas anidadas agregan segmentos vía BreadcrumbProvider. */
 export function ScopeBarWithContext({ items }: ScopeBarWithContextProps) {
   const pathname = usePathname();
   const { extra, reemplazaBase } = useBreadcrumbExtra();

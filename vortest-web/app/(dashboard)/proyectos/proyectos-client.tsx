@@ -43,7 +43,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
             }
           }
         } catch {
-          // Ignore fetch errors for individual espacios
+          // Se ignoran los errores por espacio
         }
       })
     );
@@ -96,8 +96,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
     setEditingProyecto(null);
   }
 
-  // Group proyectos by espacio (ya filtrados por la búsqueda local) — busca
-  // por nombre, ambiente, descripción o código (#PRY-XXXX), no solo nombre.
+  // Agrupa por espacio; busca por nombre, ambiente, descripción o código.
   const q = busqueda.trim().toLowerCase();
   const proyectosFiltrados = q
     ? proyectos.filter(
@@ -117,9 +116,7 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
   }
 
   const espacioMap = new Map(espacios.map((e) => [e.id, e]));
-  // Un tester puede tener proyectos asignados de espacios a los que no tiene
-  // acceso directo (no le corresponde ver Espacios) — por eso la agrupación
-  // se arma a partir de los proyectos visibles, no de la lista de espacios.
+  // Un tester puede tener proyectos de espacios sin acceso directo, por eso se agrupa desde los proyectos visibles.
   const espacioIdsConProyectos = Array.from(proyectosByEspacio.keys());
   const espacioCount = espacios.length > 0 ? espacios.length : espacioIdsConProyectos.length;
 
@@ -168,7 +165,6 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
         <SectionSearch value={busqueda} onChange={setBusqueda} placeholder="Buscar proyecto…" />
       </div>
 
-      {/* Create form */}
       {showForm && (
         <CreateProyectoForm
           espacios={espacios.map((e) => ({ id: e.id, nombre: e.nombre, color: e.color }))}
@@ -177,7 +173,6 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
         />
       )}
 
-      {/* Edit form */}
       {editingProyecto && (
         <EditProyectoForm
           proyecto={editingProyecto}
@@ -186,7 +181,6 @@ export function ProyectosClient({ espacios, proyectosIniciales, canEdit }: Proye
         />
       )}
 
-      {/* Proyectos grouped by espacio */}
       {proyectos.length === 0 ? (
         <div className="rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest p-8 text-center">
           <p className="text-m3-on-surface-variant">

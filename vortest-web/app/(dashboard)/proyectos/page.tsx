@@ -11,9 +11,7 @@ export default async function ProyectosPage() {
   const session = await getSession();
   const usuario = await getUsuarioActual(session);
 
-  // listProyectosActivos ya aplica el alcance correcto por rol: superadmin
-  // ve todo, admin los de sus espacios, tester solo los suyos asignados
-  // (esto es lo que le da visibilidad aunque no tenga acceso a Espacios).
+  // listProyectosActivos ya filtra por rol (el tester ve solo sus asignados).
   const [espacios, proyectos] = await Promise.all([
     listEspacios(usuario),
     listProyectosActivos(usuario),

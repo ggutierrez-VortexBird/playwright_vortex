@@ -1,6 +1,4 @@
-/**
- * Tipos para la generación del acta de evidencia (HU-G19).
- */
+/** Tipos para la generación del acta de evidencia. */
 
 export interface ActaTemplatePaso {
   numero: number

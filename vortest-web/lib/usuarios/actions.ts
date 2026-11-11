@@ -46,13 +46,7 @@ function serializeUsuario(u: {
   };
 }
 
-/**
- * Crea un usuario nuevo.
- * - superadmin puede crearlo con rol `admin` o `tester`.
- * - admin solo puede crearlo con rol `tester` (se fuerza sin importar lo
- *   que pida el body).
- * - tester no puede crear usuarios.
- */
+/** Crea un usuario; el admin solo puede crear testers (se fuerza el rol). */
 export async function createUsuario(input: CreateUsuarioInput, session: SessionData) {
   const actor = await getUsuarioActual(session);
   if (!actor || actor.rol === "tester") {
@@ -92,16 +86,7 @@ export async function createUsuario(input: CreateUsuarioInput, session: SessionD
   return usuario;
 }
 
-/**
- * Lista usuarios según el alcance de quien pregunta. Sirve tanto para la
- * página de gestión de usuarios como para el selector de "responsable" al
- * crear un caso (por eso siempre incluye al usuario que pregunta):
- * - superadmin: todos.
- * - admin: él mismo, más los testers asignados a un proyecto de alguno de
- *   los espacios que administra (nunca otros admins ni superadmins, y
- *   nunca testers de espacios ajenos).
- * - tester: solo él mismo.
- */
+/** Lista usuarios según el alcance de quien pregunta (siempre incluye al solicitante); admin ve testers de sus espacios. */
 export async function listUsuarios(session: SessionData) {
   const actor = await getUsuarioActual(session);
   if (!actor) {
@@ -152,14 +137,7 @@ export interface UpdateUsuarioRolEstadoInput {
   activo?: boolean;
 }
 
-/**
- * Edita el rol y/o el estado (activo/suspendido) de OTRO usuario.
- * - superadmin: puede tocar admin/tester (nunca a otro superadmin ni
- *   ponerle rol superadmin a nadie — eso solo lo hace el seed).
- * - admin: solo puede tocar usuarios con rol tester, y solo el campo
- *   `activo` (no puede cambiarles el rol).
- * - Nadie puede editarse a sí mismo desde acá — es autogestión (/perfil).
- */
+/** Edita rol y/o estado de OTRO usuario; el admin solo toca el `activo` de testers; nadie se edita a sí mismo (es /perfil). */
 export async function updateUsuarioRolEstado(
   usuarioId: string,
   input: UpdateUsuarioRolEstadoInput,
@@ -222,11 +200,7 @@ export async function updateUsuarioRolEstado(
   return serializeUsuario(usuario);
 }
 
-/**
- * Espacios que administra un usuario (usuario-céntrico — la contraparte de
- * `listAdminsEspacio`, que es espacio-céntrico). Solo tiene sentido para
- * usuarios con rol admin. Requiere superadmin.
- */
+/** Espacios que administra un usuario con rol admin. Requiere superadmin. */
 export async function listEspaciosDeUsuario(usuarioId: string, session: SessionData) {
   await requireSuperadmin(session);
 
@@ -244,12 +218,7 @@ export async function listEspaciosDeUsuario(usuarioId: string, session: SessionD
   return filas.map((f) => f.espacio);
 }
 
-/**
- * Reemplaza el conjunto completo de espacios que administra un usuario.
- * Solo aplica a usuarios con rol admin (misma regla que
- * `asignarAdminEspacio`: "solo se pueden asignar usuarios con rol admin").
- * Requiere superadmin.
- */
+/** Reemplaza los espacios que administra un usuario con rol admin. Requiere superadmin. */
 export async function setEspaciosDeUsuario(usuarioId: string, espacioIds: string[], session: SessionData) {
   await requireSuperadmin(session);
 

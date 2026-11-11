@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
-/**
- * Server Component — SesionGrabacionPage (V2 — Pivot playwright-codegen).
- *
- * Carga la sesion (con su specCode persistido, si lo hay) y monta el
- * GrabadorClient con el WS URL derivado del token de la sesión.
- *
- * V2 simplification: ya no server-loads PasoGrabado[] — el /grabar solo
- * muestra el spec en vivo (single source of truth: specCode).
- */
+/** Sesión de grabación en vivo: monta el GrabadorClient con el WS derivado del token. */
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -78,7 +70,7 @@ export default async function SesionGrabacionPage({
   }
 
   const recorderPublico = process.env.RECORDER_PUBLIC_URL ?? "ws://localhost:3100";
-  // El wsUrl del querystring sólo se acepta si apunta al grabador configurado: un enlace manipulado no puede llevar el WebSocket a otro host.
+  // Solo se acepta el wsUrl del grabador configurado (evita redirigir el WebSocket a otro host).
   const finalWsUrl =
     wsUrl && mismoOrigen(wsUrl, recorderPublico)
       ? wsUrl

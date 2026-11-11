@@ -1,13 +1,4 @@
-/**
- * GET /api/proyectos/[id]/credenciales
- *
- * Lista las credenciales de un proyecto sin exponer el `valor` cifrado.
- * Auth: superadmin.
- *
- * Response 200: [{id, nombre, tipo, vence}, ...]
- * Response 401: {error:'No autenticado'}
- * Response 403: {error:'Sin permisos'}
- */
+/** GET: lista las credenciales del proyecto sin el valor cifrado (solo superadmin). */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession, requireSuperadmin, FORBIDDEN_ERROR } from "@/lib/auth";

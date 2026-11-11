@@ -1,5 +1,4 @@
-// __tests__/app/api/proyectos/[id]/credenciales/route.test.ts
-// Tests for GET /api/proyectos/[id]/credenciales — superadmin-only credential listing.
+// GET /api/proyectos/[id]/credenciales: listado solo para superadmin.
 
 import { GET } from "@/app/api/proyectos/[id]/credenciales/route";
 import { getSession, requireSuperadmin, FORBIDDEN_ERROR } from "@/lib/auth";

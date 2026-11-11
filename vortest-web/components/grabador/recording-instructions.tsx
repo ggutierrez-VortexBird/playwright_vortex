@@ -1,16 +1,4 @@
-/**
- * RecordingInstructions — tarjeta hero de la sesión activa.
- *
- * Look & feel: réplica de la "Hero Card de Sesión Activa Externa" del
- * mockup documentacion/referencias-diseño/cambios/grabador.html — un
- * mockup ilustrativo de "ventana externa" (Playwright codegen headed)
- * seguido de una grilla de telemetría de la sesión.
- *
- * Explica al QA que la grabación corre en una ventana separada del
- * navegador (Chromium headed que abrió Playwright codegen) y que
- * interactúe ahí. Esta es la decisión de arquitectura #8 del plan
- * ACTA-Plan-Browser-Headed-Real.md.
- */
+/** Tarjeta hero de la sesión activa: indica que la grabación corre en una ventana separada de Chromium. */
 import type { SpecLineKind } from "@/lib/recorder/parse-spec";
 import { Alert } from "@/components/ui/alert";
 
@@ -64,7 +52,6 @@ export function RecordingInstructions({
         className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-m3-info-container opacity-40 blur-3xl"
       />
 
-      {/* Mockup de ventana externa (Playwright codegen headed) */}
       <div className="relative mb-6 overflow-hidden rounded-md border border-m3-outline-variant bg-m3-surface-container-low shadow-sm">
         <div className="flex items-center justify-between border-b border-m3-outline-variant bg-m3-surface-container px-4 py-2.5">
           <div className="flex items-center gap-3">
@@ -126,7 +113,6 @@ export function RecordingInstructions({
         </div>
       </div>
 
-      {/* Telemetría de la sesión */}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Pasos grabados" value={String(pasosCount)} testid="recording-pasos-count" />
         <Stat label="Aserciones" value={String(assertionCount)} testid="recording-assertions-count" />

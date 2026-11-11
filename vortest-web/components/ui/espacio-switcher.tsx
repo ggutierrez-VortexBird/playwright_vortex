@@ -16,7 +16,7 @@ export function EspacioSwitcher({ espacios }: EspacioSwitcherProps) {
   const router = useRouter();
   const segments = useSelectedLayoutSegments();
 
-  // Detect active espacio from URL pattern: espacios/[id]
+  // Detecta el espacio activo desde la URL: espacios/[id]
   const activeEspacioIdFromUrl = segments.length >= 2 && segments[0] === 'espacios'
     ? segments[1]
     : undefined;

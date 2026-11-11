@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/entorno-details.test.tsx
-// TDD RED/GREEN for HU-4.5 EntornoDetails
-
 import { render, screen } from "@testing-library/react";
 import { EntornoDetails } from "@/components/ejecuciones/entorno-details";
 

@@ -1,17 +1,4 @@
-// src/execution/runner.ts
-// Port near-1:1 de vortest-web/lib/worker/runner.ts — mismo spawn de
-// `playwright test` como child process, mismo parseo NDJSON línea-por-línea
-// desde stdout, mismo timeout global (ahora configurable vía job.timeoutMs
-// en vez de hardcodeado a 10 min), mismo soporte de abort/cancelación
-// (ahora vía AbortSignal disparado por el controller HTTP en vez de un
-// polling `isAborted()` contra la DB — la cancelación ahora es push, no
-// poll, porque ya no hay una fila `Ejecucion.estado` local que consultar).
-//
-// Cada `prisma.*` de los handlers de evento del original se reemplaza acá
-// por una llamada a `EventsPublisherService` (publicar el evento) y, para
-// capturas, una subida previa vía `ArtifactsService` (el motor sube el
-// artefacto ANTES de emitir el evento que lo referencia, devolviendo un
-// Token = artefactoId en vez de un path local).
+// Lanza playwright test como proceso hijo y retransmite los eventos del reporter
 import { Logger } from '@nestjs/common'
 import { spawn, type ChildProcess } from 'child_process'
 import * as path from 'path'
@@ -24,26 +11,15 @@ import type { ArtifactsService } from '../artifacts/artifacts.service'
 
 const logger = new Logger('Runner')
 
-/**
- * Prefijo centinela (PW-08): el reporter antepone esto a cada línea JSON que
- * emite. Cualquier línea de stdout sin el prefijo (salida de un test, de una
- * librería, de un `console.log` del usuario) se ignora en vez de
- * interpretarse como evento, evitando que un script pueda falsear eventos
- * con un JSON que casualmente tenga `type: 'step'`, etc.
- */
+/** Prefijo de las líneas JSON del reporter; el resto de stdout se ignora */
 export const REPORTER_LINE_PREFIX = '__VORTEST__'
 
-/** Ruta del directorio de salida de un job — única fuente de verdad (runner + limpieza). */
+/** Directorio de salida de un job */
 export function getJobOutputDir(jobId: string): string {
   return path.resolve(process.cwd(), 'runtime', 'ejecuciones', 'output', jobId)
 }
 
-// ============================================================
-// Tipos de evento emitidos por scripts/my-reporter.js (formato de cable
-// entre el subproceso de Playwright y este runner — NO confundir con el
-// EngineEvent que sale hacia RabbitMQ, definido en queue/events.publisher.ts).
-// Idénticos a los de vortest-web/lib/worker/runner.ts.
-// ============================================================
+// Eventos del reporter (formato entre Playwright y el runner)
 
 export interface EnvEvent {
   type: 'env'
@@ -101,7 +77,7 @@ export interface CapturaTestEvent {
   parentTestId: number
   capturaActualPath: string | null
   capturaReferenciaPath: string | null
-  /** Número del último subpaso del test al momento de la captura (FIA-11). Opcional. */
+  /** Número del último subpaso al momento de la captura */
   substepNumero?: number | null
 }
 
@@ -145,13 +121,7 @@ export function parseReporterEvent(line: string): ReporterEvent | null {
   }
 }
 
-/**
- * Error lanzado cuando el runner detecta una cancelación disparada por
- * POST /internal/cancel/:jobId (ver InternalHttpController). El caller
- * (ExecutionService) la captura y NO emite un evento `end` — el estado
- * `cancelado` ya vive en vortest-web de forma optimista (detenerEjecucion),
- * el motor no necesita reportarlo de vuelta.
- */
+/** Cancelación disparada por /internal/cancel; no se emite evento end */
 export class EjecucionCanceladaError extends Error {
   constructor(message: string) {
     super(message)
@@ -159,9 +129,7 @@ export class EjecucionCanceladaError extends Error {
   }
 }
 
-// ============================================================
-// RunnerState — estado mutable acumulado durante una sola corrida.
-// ============================================================
+// Estado de una corrida
 
 interface RunnerState {
   jobId: string
@@ -171,11 +139,11 @@ interface RunnerState {
   substepLogBuffers: Map<string, LogEntry[]>
   assertionCounters: { total: number; ok: number; fail: number }
   envCaptured: boolean
-  /** Promesas de trabajo en vuelo (uploads de artefactos + emit) a esperar antes de resolver. */
+  /** Promesas en vuelo (uploads y emit) a esperar antes de resolver */
   pendingEmits: Promise<unknown>[]
-  /** true si algún upload de artefacto agotó reintentos sin éxito. */
+  /** Un upload de artefacto agotó reintentos */
   artifactUploadFailed: boolean
-  /** Estado del evento `end` del reporter, si llegó (FIA-16: distingue resultado real de proceso interrumpido). */
+  /** Estado del evento end del reporter, si llegó */
   reporterEndEstado: EndEvent['estado'] | null
 }
 
@@ -202,11 +170,7 @@ export interface RunnerDeps {
   artifactsService: Pick<ArtifactsService, 'uploadArtifact'>
 }
 
-// ============================================================
-// Event handlers — mismo dispatch por tipo que el original; cada
-// `prisma.*` se reemplaza por `eventsPublisher.emit*` (+ upload previo de
-// artefactos referenciados).
-// ============================================================
+// Handlers de eventos
 
 function handleEnvEvent(state: RunnerState, event: EnvEvent, deps: RunnerDeps): void {
   if (state.envCaptured) return
@@ -247,12 +211,7 @@ function handleStepEvent(state: RunnerState, event: StepEvent, deps: RunnerDeps)
   })
 }
 
-/**
- * Sube una captura referenciada por un evento (si hay path) y retorna su
- * Token (artefactoId). Reemplaza a `ensureArtefacto` del original — ya no
- * hay DB para deduplicar por sha256+ejecucionId, eso lo hace ahora el
- * endpoint de subida en vortest-web (ver ArtifactsService.uploadArtifact).
- */
+/** Sube la captura de un evento (si hay path) y retorna su artefactoId */
 async function uploadCaptureIfPresent(
   state: RunnerState,
   deps: RunnerDeps,
@@ -327,9 +286,7 @@ function handleLogEvent(state: RunnerState, event: LogEvent, deps: RunnerDeps): 
     state.logBuffers.set(event.parentTestId, capLogs(current, entry, 200))
   }
 
-  // Relay en vivo — el canal engine.events reemplaza por completo la lectura
-  // local de stdout que hacía el worker viejo, así que cualquier tipo de
-  // evento que el reporter emitía debe seguir llegando al otro lado.
+  // Relay en vivo de todos los tipos de evento
   deps.eventsPublisher.emitLog(state.jobId, {
     parentTestId: event.parentTestId,
     parentSubstepId: event.parentSubstepId,
@@ -371,12 +328,7 @@ function handleCapturaTestEvent(state: RunnerState, event: CapturaTestEvent, dep
 
 function handleEndEvent(state: RunnerState, event: EndEvent): void {
   state.reporterEndEstado = event.estado
-  // El 'end' del reporter (NDJSON) solo alimenta los contadores de
-  // aserciones si el reporter los reportó — el EngineEvent 'end' real hacia
-  // engine.events lo emite ExecutionService DESPUÉS de que el proceso cierra
-  // y se leyó el storageState resultante (ver execution.service.ts), igual
-  // que el original: handleEndEvent (mid-stream) solo actualizaba
-  // contadores; persistExecutionResult (post-proceso) hacía el resto.
+  // El end del reporter solo alimenta los contadores; el end real lo emite ExecutionService
   if (event.asercionesTotal > 0) {
     state.assertionCounters.total = event.asercionesTotal
     state.assertionCounters.ok = event.asercionesOk
@@ -384,26 +336,19 @@ function handleEndEvent(state: RunnerState, event: EndEvent): void {
   }
 }
 
-// ============================================================
-// Main runner
-// ============================================================
+// Runner principal
 
 const STDERR_TAIL_BYTES = 2048
 
 export interface RunPlaywrightOptions {
-  /** Disparada por InternalHttpController al cancelar el job. */
+  /** Disparada al cancelar el job */
   abortSignal?: AbortSignal
   inputStorageState?: unknown
-  /** Reemplaza al 10 min hardcodeado del original — viene del job message. */
+  /** Timeout total del job */
   timeoutMs: number
   /** Nombre del proyecto Playwright (chromium | firefox | webkit). */
   projectName?: string
-  /**
-   * Llamado apenas se spawnea el proceso — usado por ExecutionService para
-   * registrar {proc, abortController} en ActiveJobsRegistry ANTES de ackear
-   * el mensaje de RabbitMQ (ver el comentario de ack manual en
-   * execute-job.consumer.ts).
-   */
+  /** Llamado al spawnear; registra el proceso antes de ackear el mensaje */
   onSpawn?: (proc: ChildProcess) => void
 }
 
@@ -419,7 +364,7 @@ export interface RunPlaywrightResult {
   artifactUploadFailed: boolean
 }
 
-// El script del caso lo escribe un usuario: sólo recibe lo que Playwright y el sistema necesitan, nunca RABBITMQ_URL ni ENGINE_INTERNAL_SECRET.
+// El script solo recibe las variables que necesita, nunca RABBITMQ_URL ni ENGINE_INTERNAL_SECRET
 const VARIABLES_DEL_SCRIPT = new Set([
   'PATH', 'PATHEXT', 'HOME', 'USERPROFILE', 'TMPDIR', 'TEMP', 'TMP', 'LANG', 'LC_ALL', 'TZ', 'NODE_ENV',
   'SystemRoot', 'SYSTEMROOT', 'ComSpec', 'COMSPEC', 'APPDATA', 'LOCALAPPDATA', 'DISPLAY', 'XDG_RUNTIME_DIR',
@@ -441,9 +386,7 @@ export async function runPlaywrightTest(
   const outputDir = getJobOutputDir(jobId)
   fs.mkdirSync(outputDir, { recursive: true })
 
-  // HU-PARENT: escribir el storageState del caso padre a disco para que
-  // playwright.config.ts lo cargue; después de la ejecución leeremos el
-  // storageState resultante (afterEach lo persiste).
+  // Escribe el storageState del caso padre para que playwright.config.ts lo cargue
   const storageStatePath = path.resolve(process.cwd(), 'runtime', 'storage-state', `${jobId}.json`)
   if (inputStorageState !== undefined) {
     writeStorageState(jobId, inputStorageState)
@@ -472,9 +415,7 @@ export async function runPlaywrightTest(
       env.PLAYWRIGHT_STORAGE_STATE = storageStatePath
     }
 
-    // PW-01: el timeout por test de Playwright se alinea con el presupuesto
-    // del job (menos 60 s de margen para que Playwright falle limpio antes de
-    // que el watchdog global de abajo mate el árbol de procesos).
+    // Timeout por test: presupuesto del job menos 60 s de margen
     const perTestTimeoutMs = Math.max(30_000, timeoutMs - 60_000)
 
     const proc = spawn(
@@ -497,7 +438,7 @@ export async function runPlaywrightTest(
     onSpawn?.(proc)
 
     let stdout = ''
-    // FIA-18: solo se conserva la cola de stderr (se usa slice(-200) al fallar).
+    // Solo se conserva la cola de stderr
     let stderr = ''
     let aborted = false
     let processExited = false
@@ -561,14 +502,7 @@ export async function runPlaywrightTest(
       stderr = (stderr + data.toString()).slice(-STDERR_TAIL_BYTES)
     })
 
-    // Cancelación: ahora push-based. InternalHttpController es quien EJECUTA
-    // el kill real (SIGTERM → 5s de gracia → SIGKILL, vía kill-tree.ts) al
-    // recibir POST /internal/cancel/:jobId; acá solo escuchamos la señal para
-    // settlear la promesa como EjecucionCanceladaError en vez de como error
-    // genérico cuando el proceso finalmente cierre. Reemplaza el polling
-    // `isAborted()` de 1.5s del original, que existía porque antes la
-    // cancelación se detectaba consultando una fila de DB en vez de recibir
-    // un HTTP call directo.
+    // Cancelación: el kill lo hace InternalHttpController; acá se rechaza con EjecucionCanceladaError
     function onAbort() {
       aborted = true
     }
@@ -583,7 +517,7 @@ export async function runPlaywrightTest(
       processExited = true
       cleanup()
 
-      // Procesar cualquier evento pendiente en stdout que no terminó con \n
+      // Procesa eventos pendientes sin salto de línea final
       if (stdout.trim()) {
         const event = parseReporterEvent(stdout.trim())
         if (event) dispatch(event)
@@ -603,11 +537,7 @@ export async function runPlaywrightTest(
         `Job ${jobId} finalizado. Eventos: env=${eventCounts.env}, steps=${eventCounts.step}, substeps=${eventCounts.substep}, assertions=${eventCounts.assertion}, logs=${eventCounts.log}, capturas=${eventCounts['captura-test']}, end=${eventCounts.end}`,
       )
 
-      // FIA-16: si el proceso ya había terminado con un resultado real (el
-      // reporter emitió `end` paso/fallo y salió con 0/1) cuando llegó la
-      // cancelación, se conserva ese resultado: ExecutionService emite `end`
-      // y vortest-web lo descarta si la fila ya está `cancelado`. Si el
-      // proceso seguía corriendo (interrumpido), es una cancelación real.
+      // Si el proceso ya terminó con resultado real se conserva; si no, es cancelación
       const hasRealResult =
         (code === 0 || code === 1) &&
         (state.reporterEndEstado === 'paso' || state.reporterEndEstado === 'fallo')
@@ -647,10 +577,7 @@ export async function runPlaywrightTest(
 
     globalTimeoutId = setTimeout(
       async () => {
-        // Guard defensivo: si el proceso ya cerró y se resolvió/rechazó la
-        // promesa justo cuando este timer disparaba (clearTimeout no llega a
-        // tiempo de cancelarlo), evitamos hacer terminateProcess/esperas de
-        // más sobre un proceso que ya no existe.
+        // Evita terminar un proceso ya cerrado
         if (settled) return
         logger.warn(`[${jobId}] Global timeout (${timeoutMs}ms) reached, terminating process tree`)
         await terminateProcess(false)

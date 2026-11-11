@@ -47,8 +47,7 @@ export async function GET(
 
   const stream = fs.createReadStream(artefacto.path)
 
-  // Node's fs.ReadStream doesn't structurally match the web ReadableStream
-  // type Response expects; `unknown` makes the cast explicit instead of `any`.
+  // ReadStream de Node no encaja con el ReadableStream web; cast vía unknown.
   return new Response(stream as unknown as ReadableStream, {
     status: 200,
     headers: {

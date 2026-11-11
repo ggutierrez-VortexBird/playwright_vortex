@@ -1,18 +1,9 @@
-/**
- * Tests for components/ejecuciones/reparados-counter.tsx (HU-G15 UI).
- *
- * Verifies:
- *   - Renders nothing when 0 reparados.
- *   - Renders "Reparados: N" when N >= 1.
- *   - Plural / singular agreement (always "Reparados:" — label is fixed).
- *   - data-count attribute reflects N.
- *   - Counts only steps where selfHealed=true.
- */
+// Cuenta solo los pasos con selfHealed=true; no renderiza nada con 0.
 
 import { render, screen } from "@testing-library/react";
 import { ReparadosCounter } from "@/components/ejecuciones/reparados-counter";
 
-describe("ReparadosCounter — HU-G15", () => {
+describe("ReparadosCounter", () => {
   it("does not render when no steps are selfHealed", () => {
     const { container } = render(
       <ReparadosCounter

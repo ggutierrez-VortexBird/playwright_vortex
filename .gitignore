@@ -1,21 +1,16 @@
-# Dependencies (matches at any depth: vortest-web/node_modules, vortest-engine/node_modules)
+# Dependencias
 node_modules/
 
 # Next.js
 .next/
 out/
 
-# NestJS / TypeScript build output (vortest-engine)
+# Build de NestJS / TypeScript
 dist/
 
-# Environment variables (matches at any depth in both subprojects)
+# Variables de entorno
 .env
 .env.*.local
-
-# Prisma (vortest-web) — patrones con "/" en medio quedan anclados al
-# directorio del .gitignore (repo root), así que deben incluir el prefijo
-# vortest-web/ explícitamente para seguir matcheando tras la reorganización.
-# Las migraciones de Prisma se versionan todas: sin ellas un clon limpio no puede crear la base.
 
 # Docker
 postgres-data/
@@ -32,28 +27,28 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Coverage (unanchored: matches vortest-web/coverage y vortest-engine/coverage)
+# Cobertura
 coverage/
 
-# Cache incremental de TypeScript (tsc --incremental) — cambia en cada build
-# local y no debería versionarse.
+# Cache incremental de TypeScript
 *.tsbuildinfo
 
-# Runtime: archivos temporales del worker de ejecuciones (no commitear)
+# Temporales de ejecución
 runtime/
 playwright-report/
 test-results/
 .playwright/
 
-# Artefactos de ejecución (videos y capturas) — generados por el motor de
-# ejecución. Ruta anclada explícita porque un patrón con "/" en medio no
-# matchea por profundidad (ver nota de Prisma arriba).
+# Artefactos de ejecución (videos y capturas)
 vortest-web/storage/artefactos/
 
-# Fixtures: scripts de prueba generados manualmente (no commitear)
+# Actas generadas
+vortest-web/storage/actas/
+
+# Scripts de prueba manuales
 fixtures/
 
-# Debug scripts: scripts one-off creados durante el desarrollo (no commitear)
+# Scripts de depuración
 vortest-web/scripts/check-ejecucion.ts
 vortest-web/scripts/cleanup-and-seed-simple.ts
 vortest-web/scripts/cleanup-test-cases.ts
@@ -63,15 +58,3 @@ vortest-web/scripts/create-pending-ejecucion.ts
 vortest-web/scripts/create-two-concurrent.ts
 vortest-web/scripts/debug-ejecucion.ts
 vortest-web/scripts/seed-test-script.ts
-
-# Configuración local del entorno de cada desarrollador (no se versiona)
-CLAUDE.md
-AGENTS.md
-.claude/
-.agents/
-.opencode/
-opencode.json
-.atl/
-openspec/
-sdd/
-skills-lock.json

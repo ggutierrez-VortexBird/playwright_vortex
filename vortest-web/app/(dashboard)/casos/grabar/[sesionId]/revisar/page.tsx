@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-/**
- * /casos/grabar/[sesionId]/revisar — revisión de caso grabado (HU-G8, V2).
- *
- * Pivot playwright-codegen: cargamos `specCode` (raw .spec.ts) del
- * recorder-worker y se lo pasamos al RevisarCliente. NO se cargan
- * PasoGrabado[] ni ParametroGrabacion[] — esos modelos existen en DB
- * pero el grabador V2 ya no escribe rows nuevos.
- */
+/** Revisión del caso grabado: carga el specCode de la sesión. */
 
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -18,9 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 export const metadata: Metadata = { title: "Revisar grabación" };
 interface PageProps {
   params: Promise<{ sesionId: string }>;
-  /** `motivo` explica por qué terminó la grabación. Lo agrega el grabador
-   *  al redirigir; interesa sobre todo cuando terminó sola, porque el
-   *  usuario cerró la ventana del navegador. */
+  /** Motivo por el que terminó la grabación; lo agrega el grabador al redirigir. */
   searchParams?: Promise<{ motivo?: string }>;
 }
 

@@ -11,7 +11,7 @@ jest.mock("iron-session", () => ({
   ),
 }));
 
-// Mock Request/Response for jsdom environment
+// Mock de Request/Response para jsdom
 global.Request = class Request {
   url: string;
   method: string;

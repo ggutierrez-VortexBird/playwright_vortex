@@ -1,6 +1,3 @@
-// __tests__/lib/worker/log-cap.test.ts
-// TDD RED/GREEN/TRIANGULATE for log-cap helper
-
 import { capLogs, LogEntry } from "@/lib/worker/log-cap";
 
 function makeEntry(msg: string, ts = "2026-08-20T10:00:00Z"): LogEntry {

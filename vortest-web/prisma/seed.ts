@@ -27,8 +27,7 @@ async function main() {
     console.log(`Usuario ${email} ya existe. Saltando creación de usuario.`);
   }
 
-  // HU-G22: crear Credencial de demo (storageState vacío) para que el modo
-  // grabador funcione out-of-the-box. Idempotente: si ya existe, no duplica.
+  // Credencial de demo (storageState vacío) para que el grabador funcione de entrada; idempotente.
   const proyectoDemo = await prisma.proyecto.findFirst({
     orderBy: { createdAt: "asc" },
   });

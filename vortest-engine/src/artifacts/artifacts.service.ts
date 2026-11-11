@@ -1,11 +1,4 @@
-// src/artifacts/artifacts.service.ts
-// Escanea el directorio de salida de Playwright, computa SHA256 (streamed,
-// nunca bufferiza el archivo completo), y sube cada artefacto por HTTP
-// (multipart, streamed) a vortest-web. Mirror del escaneo/heurística de
-// vortest-web/lib/worker/artifacts.ts — SIN la mitad de vinculación a DB
-// (eso se queda en el handler de upload de vortest-web, que recibe
-// `ejecucionId` + `metadata` y decide cómo linkear a PasoEjecucion/
-// PasoSubaccion).
+// Escanea el output de Playwright, calcula SHA256 y sube cada artefacto por HTTP a vortest-web
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -57,11 +50,7 @@ function detectPhase(fileName: string): 'captura-actual' | 'captura-referencia' 
   return null
 }
 
-/**
- * Heurística de matching por nombre de archivo, idéntica a
- * vortest-web/lib/worker/artifacts.ts: "step-N" (naming manual) o
- * "...-N.png" (screenshots automáticos de Playwright).
- */
+/** Matching por nombre de archivo: "step-N" o "...-N.png" */
 function detectStepNum(fileName: string): number | null {
   const stepMatch = fileName.match(/^step-(\d+)/i)
   if (stepMatch) return parseInt(stepMatch[1], 10)
@@ -79,13 +68,7 @@ export class ArtifactsService {
     private readonly config: ConfigService,
   ) {}
 
-  /**
-   * Sube un único artefacto con reintentos acotados (3 intentos, backoff
-   * exponencial 1s/2s). Cada intento reconstruye el FormData/ReadStream
-   * porque un stream ya consumido no se puede reenviar. Retorna null si
-   * todos los intentos fallan — el caller decide qué hacer (marcar
-   * `artifactUploadFailed`, no crashear el job entero).
-   */
+  /** Sube un artefacto con hasta 3 intentos (backoff 1s/2s); retorna null si todos fallan */
   async uploadArtifact(params: UploadArtifactParams): Promise<UploadArtifactResult | null> {
     const { jobId, filePath, fileName, tipo, metadata } = params
 
@@ -141,18 +124,7 @@ export class ArtifactsService {
     return null
   }
 
-  /**
-   * Barrido post-ejecución del outputDir de Playwright — captura sobre todo
-   * el video (nunca referenciado por ningún evento en tiempo real) y
-   * cualquier screenshot automático que el runner no haya subido ya vía
-   * substep/captura-test (se re-sube igual: el endpoint de vortest-web
-   * dedupea por sha256+ejecucionId y devuelve el mismo artefactoId).
-   *
-   * `totalSteps` reemplaza la consulta a `prisma.pasoEjecucion.findMany` del
-   * original — el motor no tiene DB, así que valida el heurístico de
-   * stepNum contra el conteo de pasos que efectivamente emitió el runner
-   * en esta misma corrida, en vez de contra filas persistidas.
-   */
+  /** Barrido post-ejecución del outputDir (sobre todo el video); el endpoint dedupea por sha256 */
   async collectAndUploadArtifacts(
     jobId: string,
     outputDir: string,

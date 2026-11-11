@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/paso-accordion-item.test.tsx
-// TDD RED/GREEN/TRIANGULATE for HU-4.5 PasoAccordionItem
-
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { PasoAccordionItem } from "@/components/ejecuciones/paso-accordion-item";
 
@@ -87,9 +84,7 @@ describe("PasoAccordionItem", () => {
     expect(screen.getByText(/Timeout/)).toBeInTheDocument();
   });
 
-  // ============================================================
-  // FIX HU-4.5: sub-pasos dentro del panel
-  // ============================================================
+  // Sub-pasos dentro del panel
 
   it("renders sub-pasos section inside expanded panel", () => {
     const paso = makePaso({

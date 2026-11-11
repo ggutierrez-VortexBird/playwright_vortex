@@ -2,31 +2,24 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
-  /** Page title — rendered as h1 with font-headline */
+  /** Título de la página (h1) */
   title: string;
-  /** Optional breadcrumb trail rendered above the title */
+  /** Migas de pan sobre el título */
   breadcrumbs?: Array<{ label: string; href?: string }>;
-  /** Optional badge rendered inline with the title (e.g. "6 miembros") */
+  /** Insignia junto al título (p. ej. "6 miembros") */
   badge?: { value: number | string; label: string };
   /** Contextual sub-line below the title (e.g. "Espacio · Proyecto · Contexto") */
   subtitle?: ReactNode;
-  /** Longer descriptive text below the subtitle */
+  /** Texto descriptivo bajo el subtítulo */
   description?: string;
-  /** Slot for CTA buttons aligned to the right */
+  /** Espacio para botones de acción alineados a la derecha */
   actions?: ReactNode;
-  /** 'default' = border-b + bg-m3-surface; 'flat' = no border, no bg */
+  /** 'default' = borde y fondo; 'flat' = sin borde ni fondo */
   variant?: 'default' | 'flat';
   className?: string;
 }
 
-/**
- * Canonical page header — resolves Issue #3 (alta): 5 pages with inconsistent
- * hand-rolled headers. Anatomy:
- *   -mx-4 -mt-4 border-b border-m3-outline-variant bg-m3-surface px-4 py-3
- *   lg:-mx-6 lg:-mt-6 lg:px-6 lg:py-4
- *
- * Follows taste-brief Section 2 typography (Archivo) and Impeccable Directions.
- */
+/** Encabezado canónico de página: migas, título con insignia, descripción y acciones. */
 export function PageHeader({
   title,
   breadcrumbs,
@@ -46,7 +39,6 @@ export function PageHeader({
   return (
     <div className={containerClass.trimEnd()}>
       <div className="min-w-0 flex-1">
-        {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav
             aria-label="Breadcrumb"
@@ -71,7 +63,6 @@ export function PageHeader({
           </nav>
         )}
 
-        {/* Title row: h1 + optional badge */}
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="font-wide font-headline text-headline-lg font-semibold tracking-tight text-m3-on-surface truncate">
             {title}
@@ -84,7 +75,6 @@ export function PageHeader({
           )}
         </div>
 
-        {/* Subtitle / description */}
         {subtitle && (
           <div className="mt-1 font-body text-body-md text-m3-on-surface-variant">{subtitle}</div>
         )}
@@ -95,7 +85,6 @@ export function PageHeader({
         )}
       </div>
 
-      {/* Actions slot — aligned right */}
       {actions && (
         <div className="flex shrink-0 items-center gap-2">{actions}</div>
       )}

@@ -24,7 +24,7 @@ jest.mock("@/lib/casos/actions", () => ({
   createCaso: jest.fn(),
 }));
 
-// Polyfill File.prototype.text for Jest environment
+// Polyfill de File.prototype.text para el entorno de Jest
 if (!File.prototype.text) {
   Object.defineProperty(File.prototype, "text", {
     value: function () {

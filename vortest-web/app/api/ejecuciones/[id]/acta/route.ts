@@ -1,21 +1,4 @@
-/**
- * POST /api/ejecuciones/[id]/acta
- *
- * HU-G19 — Genera el PDF del acta de evidencia para una ejecución
- *   1) Lee la ejecución + caso + proyecto + espacio
- *   2) Calcula el siguiente consecutivo anual (tabla ConsecutivoAnual)
- *   3) Renderiza HTML con la plantilla (lib/acta/template.ts)
- *   4) Renderiza HTML → PDF con Playwright (lib/acta/render-pdf.ts)
- *   5) Persiste/actualiza la fila Acta (1-a-1 con ejecución)
- *   6) Devuelve { ok, actaId, consecutivo, pdfPath, downloadUrl }
- *
- * Auth: requiere acceso al proyecto de la ejecución (superadmin, admin del
- * espacio o tester asignado) — ver requireProyectoAccess más abajo.
- *
- * Idempotente: si ya existe un Acta para esta ejecución, regenera el PDF
- * con el mismo consecutivo (no incrementa el correlativo). El cliente
- * siempre obtiene el PDF más reciente.
- */
+/** POST: genera el PDF del acta de una ejecución (idempotente: regenera con el mismo consecutivo). */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
@@ -65,16 +48,14 @@ export async function POST(_request: Request, { params }: RouteParams) {
   try {
     await requireProyectoAccess(session, ejecucion.casoPrueba.proyectoId);
   } catch (err) {
-    // Comparamos por identidad Y por mensaje porque en tests se mockea
-    // @/lib/auth y el FORBIDDEN_ERROR mockeado es una instancia distinta
-    // del real (pero ambos tienen el mismo mensaje).
+    // Se compara por identidad y por mensaje: en tests el FORBIDDEN_ERROR mockeado es otra instancia.
     if (err === FORBIDDEN_ERROR || (err as { message?: string })?.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
     }
     throw err;
   }
 
-  // Mapear a la shape de la plantilla (string fechas ya convertidas).
+  // Mapea a la forma de la plantilla.
   const ejecucionTemplate: ActaTemplateEjecucion = {
     id: ejecucion.id,
     estado: ejecucion.estado,

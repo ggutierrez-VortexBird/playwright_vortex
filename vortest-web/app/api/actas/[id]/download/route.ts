@@ -1,11 +1,4 @@
-/**
- * GET /api/actas/[id]/download
- *
- * Sirve el PDF del acta. La ruta se resuelve desde el modelo Acta
- * (1-a-1 con Ejecucion) leyendo la ruta del filesystem.
- *
- * Auth: requiere sesión activa + acceso al proyecto de la ejecución.
- */
+/** GET /api/actas/[id]/download: sirve el PDF del acta (requiere acceso al proyecto). */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession, requireProyectoAccess, FORBIDDEN_ERROR } from "@/lib/auth";

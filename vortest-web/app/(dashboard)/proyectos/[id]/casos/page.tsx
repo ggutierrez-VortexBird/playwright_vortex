@@ -56,9 +56,7 @@ export default async function ProyectoCasosPage({ params }: PageProps) {
     getUsuarioActual(session),
   ]);
 
-  // El guard de arriba ya confirmó que el usuario tiene acceso a este
-  // proyecto (superadmin, admin del espacio o tester asignado) — cualquiera
-  // de los tres puede crear/editar casos y grabar.
+  // El guard ya confirmó acceso: cualquiera de los tres roles puede crear/editar casos y grabar.
   const canEdit = Boolean(usuario);
 
   return (

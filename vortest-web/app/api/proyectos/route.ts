@@ -29,7 +29,6 @@ export async function GET(request: Request) {
   }
   const proyectos = await listProyectosByEspacio(espacioId, usuario);
 
-  // Enrich with metrics
   const proyectosWithMetrics = await Promise.all(
     proyectos.map(async (proyecto) => {
       const metrics = await getMetrics(proyecto.id);

@@ -17,7 +17,7 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginForm({ action, callbackUrl }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(action, {});
-  // Controlados a propósito: React 19 resetea los campos no controlados de un <form action> al resolver, y se perdía el email tras un error.
+  // Controlados: React 19 resetea los campos no controlados de un <form action> y se perdía el email tras un error.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorLocal, setErrorLocal] = useState<{ field: "email" | "password"; error: string } | null>(null);

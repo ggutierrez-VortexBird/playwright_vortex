@@ -29,9 +29,7 @@ export default async function CasosPage() {
     }),
   ]);
 
-  // Casos y Ejecuciones los puede crear/editar cualquier rol autenticado
-  // con acceso al proyecto puntual — el guard real vive en la acción
-  // (`requireProyectoAccess`), acá solo controla si se muestran los botones.
+  // El guard real está en la acción; aquí solo se decide si mostrar los botones.
   const canEdit = Boolean(usuario);
 
   const proyectosOptions: ProyectoOption[] = proyectos.map((p) => ({

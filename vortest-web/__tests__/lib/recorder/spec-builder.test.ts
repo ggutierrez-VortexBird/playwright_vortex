@@ -1,12 +1,4 @@
-/**
- * Tests de lib/recorder/spec-builder.ts.
- *
- * Lo que se protege acá es la FIDELIDAD del archivo generado respecto de
- * lo que escribe `npx playwright codegen --target=playwright-test`. El
- * grabador entrega las líneas de acción ya formateadas e indentadas; lo
- * único nuestro es el envoltorio y el orden. Si esto se desvía, el caso
- * guardado deja de ser el script que el usuario vio grabar.
- */
+// Fidelidad del archivo generado respecto de `playwright codegen --target=playwright-test`.
 
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,9 +25,7 @@ describe("recorder/spec-builder.renderSpec", () => {
   });
 
   it("intercala las acciones entre header y footer sin re-indentarlas", () => {
-    // El grabador ya entrega las líneas con dos espacios de sangría
-    // (JavaScriptFormatter con offset 2). Volver a indentarlas rompería
-    // la fidelidad con el binario.
+    // El grabador ya entrega las líneas con dos espacios de sangría: reindentarlas rompería la fidelidad.
     const acciones = [
       "  await page.goto('https://example.com');",
       "  await page.getByRole('button', { name: 'Login' }).click();",
@@ -53,8 +43,7 @@ describe("recorder/spec-builder.renderSpec", () => {
   });
 
   it("descarta las acciones de texto vacío en vez de dejar líneas en blanco", () => {
-    // `openPage` y `closePage` generan "" cuando el objetivo es
-    // playwright-test; codegen las filtra con `filter(Boolean)`.
+    // openPage y closePage generan "" con playwright-test; codegen las filtra con filter(Boolean).
     const out = renderSpec(["  await page.goto('https://x');", "", ""]);
     expect(out).toBe(
       [SPEC_HEADER, "  await page.goto('https://x');", SPEC_FOOTER].join("\n"),
@@ -98,8 +87,7 @@ describe("recorder/spec-builder.SpecBuilder", () => {
   });
 
   it("la actualización cae sobre la acción correcta aunque haya textos vacíos", () => {
-    // Las acciones de texto vacío se guardan igual para que el reemplazo
-    // no se corra de posición; el filtrado ocurre al renderizar.
+    // Las acciones de texto vacío se guardan para no desplazar el reemplazo; se filtran al renderizar.
     const b = new SpecBuilder();
     b.add("  await page.goto('https://x');");
     b.add(""); // openPage
@@ -151,8 +139,7 @@ describe("recorder/spec-builder.ThrottledSpecFile", () => {
   });
 
   it("flush escribe de inmediato, sin esperar el timer", () => {
-    // Es el camino del cierre del navegador y del apagado ordenado: no hay
-    // margen para esperar la cadencia.
+    // Camino del cierre del navegador y del apagado ordenado: no espera la cadencia.
     const path = join(dir, "out.spec.ts");
     const file = new ThrottledSpecFile(path, 250);
     file.setContent("final");

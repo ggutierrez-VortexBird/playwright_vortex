@@ -1,8 +1,4 @@
-/**
- * parse-spec.test.ts — tests unitarios del parser de .spec.ts a pasos.
- * Cubre cada tipo de acción que Playwright codegen emite y los casos borde
- * que rompían la UI del grabador.
- */
+// Parser de .spec.ts a pasos: cada acción de codegen y los casos borde.
 import {
   parseSpec,
   parseSpecToSteps,

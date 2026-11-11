@@ -1,19 +1,6 @@
 "use client";
 
-/**
- * ReparadosCounter — HU-G15 UI counter.
- *
- * Muestra "Reparados: N" en la pantalla de detalle de una ejecución.
- * N = pasos donde `selfHealed=true` (la runner usó un selector de respaldo
- * para continuar en vez de fallar).
- *
- * Visibilidad:
- *   - Solo aparece cuando N >= 1 (no se muestra si nadie fue reparado).
- *   - Color ámbar/dorado para distinguir del verde "paso" normal.
- *
- * Reutiliza el helper puro `countReparadosFromPasos` de `lib/worker/auto-repair`
- * — así la lógica es testeable sin DOM.
- */
+/** Muestra "Reparados: N" (pasos con selfHealed=true); solo aparece si N >= 1. */
 
 import { countReparadosFromPasos, type PasoEjecucionLite } from "@/lib/worker/auto-repair";
 

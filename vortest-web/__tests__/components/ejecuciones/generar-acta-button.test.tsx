@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/generar-acta-button.test.tsx
-// HU-G19 — botón generar acta de evidencia
-
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GenerarActaButton } from "@/components/ejecuciones/generar-acta-button";
 

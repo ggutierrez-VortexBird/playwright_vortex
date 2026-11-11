@@ -1,21 +1,4 @@
-/**
- * HU-G18 — Segmentación del video de una ejecución en capítulos por paso.
- *
- * El reporter emite `videoInicioMs`/`videoFinMs` por paso (relativos al
- * arranque del video ≈ arranque del run). Este módulo convierte esa lista
- * cruda en segmentos listos para renderizar:
- *
- *   - Si todos los pasos tienen timestamps válidos → los usamos tal cual,
- *     ordenando por `videoInicioMs`.
- *   - Si faltan timestamps (eventos legacy / tests) → caemos a una
- *     distribución proporcional usando `duracionMs` (modo legacy, igual
- *     al comportamiento previo a HU-G18).
- *   - Si no hay video (`videoDurationMs == 0`) → devolvemos [] y la UI
- *     muestra el placeholder.
- *
- * Mantenemos el módulo puro (sin imports de Prisma) para poder testarlo
- * sin DB.
- */
+// Segmenta el video de una ejecución en capítulos por paso (timestamps del reporter, o proporcional a duracionMs); módulo puro, sin Prisma.
 
 export interface PasoConCapitulo {
   id: string
@@ -36,19 +19,15 @@ export interface ChapterSegment {
   descripcion: string
   /** Estado del paso (paso / fallo). */
   estado: string
-  /** Offset en ms desde el inicio del video. */
+  /** Offset de inicio en ms desde el inicio del video. */
   inicioMs: number
-  /** Offset en ms desde el inicio del video. */
+  /** Offset de fin en ms desde el inicio del video. */
   finMs: number
   /** Ancho como porcentaje del video total (0-100, redondeado). */
   anchoPct: number
 }
 
-/**
- * Detecta si los pasos tienen timestamps válidos para usar capítulos
- * absolutos. Devuelve `true` si al menos un paso tiene `videoInicioMs`
- * no nulo y los timestamps son monótonamente crecientes.
- */
+/** Indica si los pasos tienen timestamps válidos y crecientes para usar capítulos absolutos. */
 export function pasosTienenCapitulosValidos(pasos: PasoConCapitulo[]): boolean {
   let lastFin = -1
   for (const p of pasos) {
@@ -60,18 +39,7 @@ export function pasosTienenCapitulosValidos(pasos: PasoConCapitulo[]): boolean {
   return pasos.length > 0
 }
 
-/**
- * Calcula los segmentos del chapter bar.
- *
- * @param pasos        Lista de pasos en orden de ejecución.
- * @param videoDurationMs Duración total del video en ms. Si los pasos
- *                        ya tienen `videoInicioMs`/`videoFinMs` válidos,
- *                        usamos el mayor `videoFinMs` como duración
- *                        efectiva (cubre el caso jsdom/tests donde el
- *                        <video> nunca no carga metadata). Si no hay
- *                        timestamps y `videoDurationMs <= 0`,
- *                        devolvemos [] (no hay bar).
- */
+/** Calcula los segmentos del chapter bar; devuelve [] si no hay video ni timestamps. */
 export function computeChapterSegments(
   pasos: PasoConCapitulo[],
   videoDurationMs: number,
@@ -79,8 +47,7 @@ export function computeChapterSegments(
   if (pasos.length === 0) return []
 
   if (pasosTienenCapitulosValidos(pasos)) {
-    // Capítulo por timestamp absoluto. Usamos el mayor videoFinMs como
-    // duración efectiva cuando el caller no la conoce (test mode).
+    // Capítulo por timestamp absoluto; el mayor videoFinMs hace de duración efectiva si el llamador no la conoce
     const lastFin = Math.max(
       videoDurationMs,
       pasos[pasos.length - 1].videoFinMs ?? 0,
@@ -102,13 +69,13 @@ export function computeChapterSegments(
 
   if (videoDurationMs <= 0) return []
 
-  // Fallback legacy: distribución por duracionMs.
+  // Respaldo: distribución proporcional por duracionMs
   const totalDuracion = pasos.reduce(
     (acc, p) => acc + Math.max(0, p.duracionMs ?? 0),
     0,
   )
   if (totalDuracion <= 0) {
-    // Si no hay duración en ningún paso, dividimos en N segmentos iguales.
+    // Sin duración en ningún paso, se divide en N segmentos iguales
     const equalWidth = Math.round(100 / pasos.length)
     let cursor = 0
     return pasos.map((p) => {
@@ -145,11 +112,7 @@ export function computeChapterSegments(
   })
 }
 
-/**
- * Dado un tiempo en ms dentro del video, devuelve el segmento activo
- * (paso cuyo rango contiene ese tiempo) o `null` si estamos en un gap
- * entre pasos.
- */
+/** Segmento activo para un tiempo en ms del video, o `null` si cae entre pasos. */
 export function findChapterAtTime(
   segments: ChapterSegment[],
   timeMs: number,

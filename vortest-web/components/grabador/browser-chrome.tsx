@@ -1,20 +1,6 @@
 "use client";
 
-/**
- * BrowserChrome — barra de URL editable + botones de navegación.
- *
- * Look & feel: réplica de la "BrowserUrlBar" del mockup
- * documentacion/referencias-diseño/cambios/grabador.html — tarjeta blanca
- * con controles de navegación simulados + caja de URL con candado +
- * acciones de utilidad (Copiar / Visitar).
- *
- * Sin navegación real: solo permite tipear una URL y presiona Enter →
- * `onNavigate(url)`. El worker es el que manda al browser real el goto,
- * no hay routing interno.
- *
- * Origin checks: cuando la URL cambia por un goto del browser real, el
- * worker lo broadcastea como `url_changed` y eso actualiza `pageUrl`.
- */
+/** Barra de URL con botones de navegación; no navega, solo notifica con onNavigate(url) al pulsar Enter. */
 import { useState, useEffect, FormEvent } from "react";
 
 export interface BrowserChromeProps {
@@ -22,7 +8,7 @@ export interface BrowserChromeProps {
   pageUrl: string;
   /** URL que se va a navegar cuando se teca Enter. */
   onNavigate: (url: string) => void;
-  /** Disabled cuando la sesión no está live. */
+  /** Deshabilitado cuando la sesión no está en vivo. */
   disabled: boolean;
   /** La navegación real ocurre en la ventana del grabador: sólo se muestra la URL actual, sin controles simulados. */
   soloLectura?: boolean;
@@ -37,7 +23,7 @@ export function BrowserChrome({
   const [draft, setDraft] = useState(pageUrl);
   const [copied, setCopied] = useState(false);
 
-  // Mantiene el draft en sync si pageUrl cambia desde afuera.
+  // Mantiene el borrador sincronizado si pageUrl cambia desde afuera.
   const [pageUrlAntes, setPageUrlAntes] = useState(pageUrl);
   if (pageUrlAntes !== pageUrl) {
     setPageUrlAntes(pageUrl);

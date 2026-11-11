@@ -1,12 +1,4 @@
-// src/execution/kill-tree.ts
-// Mata todo el árbol de procesos de forma robusta.
-// En Windows usa `taskkill /T /F` (mata CMD intermedio + hijos).
-// En Unix usa SIGTERM/SIGKILL.
-//
-// Ported VERBATIM from vortest-web/lib/worker/kill-tree.ts — both branches
-// preserved untouched (the architecture doc's Risks section explicitly
-// calls out testing both, since production runs the POSIX branch inside
-// the Linux container while local dev on this machine exercises Windows).
+// Mata el árbol de procesos: taskkill /T /F en Windows, SIGTERM/SIGKILL en Unix
 
 import { spawn } from 'child_process'
 

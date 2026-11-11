@@ -6,15 +6,15 @@ export type KpiDensity = "compact" | "comfortable";
 interface KpiTileProps {
   label: string;
   value: number | string;
-  /** Optional sub-value or context line (e.g. "42 ok · 3 fallos") */
+  /** Subvalor o línea de contexto (p. ej. "42 ok · 3 fallos") */
   sub?: string;
-  /** Optional trend indicator */
+  /** Indicador de tendencia opcional */
   trend?: { direction: "up" | "down" | "neutral"; value: string };
-  /** Semantic accent for the value color */
+  /** Acento semántico para el color del valor */
   accent?: KpiAccent;
-  /** Visual weight variant */
+  /** Variante de peso visual */
   density?: KpiDensity;
-  /** Optional Material Symbol icon rendered above the label */
+  /** Ícono Material Symbol opcional sobre la etiqueta */
   icon?: string;
   className?: string;
 }
@@ -39,18 +39,7 @@ const TREND_COLORS: Record<string, string> = {
   neutral: "text-m3-on-surface-variant",
 };
 
-/**
- * Canonical KPI stat card — resolves Issue #17 (media): 4 stat cards identical.
- *
- * Anatomy (comfortable):
- *   rounded-md shadow-card p-5 bg-m3-surface-container-lowest
- *   accent variant adds border-left 4px
- *   label: font-label text-label-sm title-case uppercase tracking-wide
- *   value: font-headline text-display-md (or text-headline-lg for accent)
- *
- * Hover: shadow-card-hover + translateY(-1px) spring physics
- * prefers-reduced-motion: only shadow transition, no translate
- */
+/** Tarjeta KPI: acento con borde izquierdo y hover con elevación (solo sombra con prefers-reduced-motion). */
 export function KpiTile({
   label,
   value,
@@ -74,16 +63,13 @@ export function KpiTile({
         className
       )}
     >
-      {/* Reduced motion: skip translate */}
       <div
         className={cn(
           "transition-transform duration-200",
-          // No translate on hover for reduced-motion users
           "group-hover:translate-y-[-1px]",
           "motion-reduce:group-hover:translate-y-0"
         )}
       >
-        {/* Icon */}
         {icon && (
           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-m3-surface-container-high">
             <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-m3-on-surface-variant">
@@ -92,18 +78,15 @@ export function KpiTile({
           </div>
         )}
 
-        {/* Label */}
         <div className="font-label text-label-sm font-medium uppercase tracking-wide text-m3-on-surface-variant">
           {label}
         </div>
 
-        {/* Value row */}
         <div className="mt-1 flex items-end justify-between gap-2">
           <div className={cn("font-headline leading-none", isAccent ? "text-display-md font-bold" : "text-headline-lg font-bold", ACCENT_CLASSNAMES[accent])}>
             {value}
           </div>
 
-          {/* Trend badge */}
           {trend && (
             <div className={cn("flex items-center gap-0.5 font-label text-label-sm", TREND_COLORS[trend.direction])}>
               <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
@@ -114,7 +97,6 @@ export function KpiTile({
           )}
         </div>
 
-        {/* Sub-context line */}
         {sub && (
           <div className="mt-1.5 font-body text-body-xs text-m3-on-surface-variant">
             {sub}

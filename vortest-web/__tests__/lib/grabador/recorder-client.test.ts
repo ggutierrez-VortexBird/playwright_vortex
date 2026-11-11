@@ -1,13 +1,4 @@
-/**
- * Tests para `lib/grabador/recorder-client.ts`.
- *
- * El bug más común: `RECORDER_PUBLIC_URL` es `ws://...` y terminaba
- * usándose como HTTP base, lo que hace que `fetch()` falle con
- * "fetch failed" sin un mensaje accionable. Cubrimos:
- *  - defaultRecorderHttpUrl resuelve correctamente (env + fallback)
- *  - detecta esquemas ws/wss temprano sin hacer fetch
- *  - mapeo 200 / 5xx / network error a las exceptions correctas
- */
+// RECORDER_PUBLIC_URL (ws://) no debe usarse como base HTTP: se detecta antes de hacer fetch.
 import { callInternalStart, RecorderUnavailableError } from "@/lib/grabador/recorder-client";
 
 const REAL_FETCH = global.fetch;

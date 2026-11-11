@@ -11,10 +11,9 @@ const config = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
-    // Mock iron-session (ESM-only) to prevent uncrypto parse error
+    // iron-session es ESM-only
     "^iron-session$": "<rootDir>/__mocks__/iron-session.js",
-    // Monaco no corre en jsdom y no aporta nada a un test unitario — se
-    // sustituye por un <textarea> con el mismo contrato de props.
+    // Monaco no corre en jsdom: se sustituye por un <textarea>
     "^@monaco-editor/react$": "<rootDir>/__mocks__/@monaco-editor/react.js",
   },
   testPathIgnorePatterns: [

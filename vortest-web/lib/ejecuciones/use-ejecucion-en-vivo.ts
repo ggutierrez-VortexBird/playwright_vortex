@@ -8,10 +8,7 @@ export type EstadoConexion = 'ok' | 'reintentando' | 'sesion-vencida'
 const INTERVALO_MS = 2000
 const ESPERA_MAXIMA_MS = 30000
 
-/**
- * Refresca la ejecución mientras está en cola o corriendo y se detiene sola al terminar.
- * Pausa con la pestaña oculta y espera más entre reintentos cuando el servidor no responde.
- */
+/** Refresca la ejecución mientras está en cola o corriendo y se detiene al terminar; pausa con la pestaña oculta y espera más si el servidor no responde. */
 export function useEjecucionEnVivo<T extends { estado: string }>(ejecucionId: string, inicial: T) {
   const [ejecucion, setEjecucion] = useState<T>(inicial)
   const [conexion, setConexion] = useState<EstadoConexion>('ok')

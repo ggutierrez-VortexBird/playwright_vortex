@@ -1,26 +1,4 @@
-/**
- * POST /api/grabador/sesiones/[id]/parametros
- *
- * Crea un ParametroGrabacion para una sesión.
- *
- * Body (JSON):
- *   {
- *     nombre: string,           // snake_case recomendado, validado
- *     valorDefecto: string | null,
- *     origen: 'manual' | 'credencial' | 'auto',
- *     credencialId?: string | null,
- *   }
- *
- * Auth: requiere ser owner de la sesión (usuarioId = session.userId).
- *
- * Responses:
- *   - 201 { parametro: <ParametroGrabacion> }  OK
- *   - 400 { error: 'validation', message }
- *   - 401 { error: 'No autenticado' }
- *   - 403 { error: 'forbidden' }
- *   - 404 { error: 'not_found' }
- *   - 409 { error: 'duplicate', message }
- */
+/** POST: crea un ParametroGrabacion para la sesión (solo el dueño). */
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -82,7 +60,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Ownership
   const sesion = await prisma.sesionGrabacion.findUnique({
     where: { id: sesionId },
     select: { id: true, usuarioId: true },

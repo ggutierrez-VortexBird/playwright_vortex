@@ -7,7 +7,7 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    // Los tests no se modifican (regla del proyecto): mocks con require() y any son el patrón establecido ahí.
+    // Tests: mocks con require() y any son el patrón establecido
     files: ["__tests__/**", "__mocks__/**", "e2e/**", "**/*.test.{ts,tsx,js}", "jest.setup.ts"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
@@ -29,7 +29,6 @@ export default defineConfig([
     "runtime/**",
     "test-results/**",
     "playwright-report/**",
-    "sdd/**",
     "next-env.d.ts",
   ]),
 ]);

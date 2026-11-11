@@ -11,13 +11,10 @@ describe("lib/worker/kill-tree", () => {
 
   it("no lanza en Unix cuando pid no existe (ESRCH)", async () => {
     if (process.platform === "win32") {
-      // En Windows se delega a taskkill — el código de error es distinto
-      // y la función no lo testea aquí (no tenemos un taskkill mockeado).
+      // En Windows se delega a taskkill, que no está mockeado aquí.
       return;
     }
-    // En Unix, process.kill con un PID inexistente lanza ESRCH;
-    // nuestra función captura ESRCH y retorna silenciosamente.
-    // Probamos con un PID muy alto improbable que exista.
+    // En Unix un PID inexistente lanza ESRCH y la función lo captura; se usa un PID muy alto.
     const pid = 999_999;
     await expect(killProcessTree(pid)).resolves.toBeUndefined();
   });
@@ -29,9 +26,7 @@ describe("lib/worker/kill-tree", () => {
   });
 
   it("acepta pid numérico en Windows (smoke test sin matar nada)", async () => {
-    // En Windows con taskkill: smoke-test con un PID ficticio. La promesa
-    // resuelve por el setTimeout(3s) interno si taskkill tarda.
-    // NO usamos process.pid (sería destructivo para el worker de jest).
+    // En Windows: smoke-test con un PID ficticio; no se usa process.pid (mataría al worker de jest).
     if (process.platform !== "win32") return;
     const fakePid = 999_997;
     await expect(killProcessTree(fakePid, true)).resolves.toBeUndefined();

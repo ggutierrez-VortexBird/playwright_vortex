@@ -1,44 +1,22 @@
-/**
- * dom-utils — serialización de elementos DOM compartidos entre
- * el browser-side init-script y el Node-side recorder-worker.
- *
- * HU-G5: el cliente puede pedir `elementFromPoint(x, y)` desde Node vía
- * `page.evaluate(...)`. Para que el payload resultante sea consistente con
- * lo que ya emite el init-script (SerializadoElemento en translator.ts),
- * exponemos la misma forma `serializeElement` acá en TypeScript.
- *
- * NOTA: este módulo NO se ejecuta en el browser (no se inyecta vía
- * addInitScript). Solo se usa desde Node para serializar elementos que
- * vienen como respuesta de `page.evaluate(({x,y}) => elementFromPoint(...))`.
- * El init-script sigue conteniendo su propio `serializeElement` en JS plano
- * (mantenerlo así evita una dependencia cruzada browser↔Node).
- *
- * La forma retornada es compatible con `SerializedElement` en
- * `lib/grabador/translator.ts` y con `SerializedElement` en init-script.
- */
-/**
- * Candidato de selector. `name` solo se usa cuando `strategy === "role"`:
- * lleva el *accessible name* del elemento para que el codegen pueda emitir
- * `getByRole('searchbox', { name: 'Buscar en Wikipedia' })` — que es
- * exactamente lo que produce `playwright codegen`.
- */
+/** Serialización de elementos DOM en Node (no se inyecta en el browser); misma forma que emite el init-script. */
+/** Candidato de selector; `name` solo se usa con strategy "role" (accessible name para `getByRole`). */
 export interface SelectorCandidate {
   strategy: string;
   value: string;
-  /** Accessible name — solo para strategy='role'. */
+  /** Accessible name; solo para strategy='role'. */
   name?: string;
 }
 
 export interface SerializedElementFull {
-  /** Nombre del tag lowercased. */
+  /** Nombre del tag en minúsculas. */
   tag: string;
-  /** Rol del elemento (`role` attr, rol ARIA implícito, o tagName). */
+  /** Rol del elemento (atributo `role`, rol ARIA implícito o tagName). */
   role: string;
   /** Texto visible truncado a 50 chars. */
   text: string;
   /** Atributo `data-testid`. */
   testId: string;
-  /** `aria-label`, `name`, o `id` (en ese orden). */
+  /** `aria-label`, `name` o `id` (en ese orden). */
   aria: string;
   /** Atributo `name` (input/select/textarea). */
   name: string;
@@ -52,30 +30,17 @@ export interface SerializedElementFull {
 
 /** Longitud mínima de un texto para servir como selector (`>2 chars`). */
 export const TEXT_SELECTOR_MIN_LEN = 3;
-/** Longitud máxima (exclusiva). Textos más largos son casi siempre
- *  `textContent` de un contenedor con los hijos pegados. */
+/** Longitud máxima (exclusiva); los textos más largos suelen ser el `textContent` de un contenedor. */
 export const TEXT_SELECTOR_MAX_LEN = 30;
 
-/**
- * Normaliza un texto capturado del DOM para usarlo como selector.
- *
- * Hace, en orden:
- *   1. Normalización Unicode NFC (los acentos compuestos de Wikipedia
- *      llegan a veces como `a` + combining accent).
- *   2. Reemplaza NBSP / narrow-NBSP por espacio normal.
- *   3. Elimina zero-width, BOM y separadores de línea Unicode.
- *   4. Reemplaza caracteres de control por espacio.
- *   5. Colapsa runs de whitespace a UN espacio y trimea.
- *
- * Debe mantenerse en sync con `normalizeText()` del init-script del browser.
- */
+/** Normaliza un texto del DOM para usarlo como selector (NFC, NBSP, zero-width, control, colapsa whitespace); en sync con `normalizeText()` del init-script. */
 export function normalizeSelectorText(raw: string | null | undefined): string {
   if (typeof raw !== "string") return "";
   let s = raw;
   try {
     s = s.normalize("NFC");
   } catch {
-    // Entornos sin ICU completo — seguimos con el string original.
+    // Entornos sin ICU completo: se sigue con el string original
   }
   s = s.replace(/[\u00a0\u1680\u2000-\u200a\u2007\u202f\u205f\u3000]/g, " ");
   s = s.replace(/[\u200b-\u200f\u2028\u2029\u2060\ufeff]/g, "");
@@ -84,16 +49,7 @@ export function normalizeSelectorText(raw: string | null | undefined): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
-/**
- * ¿Sirve este texto como selector `getByText`?
- *
- * Rechaza:
- *   - <3 chars (ruido: "x", "•", "1")
- *   - >=30 chars (es `textContent` de un contenedor, con los hijos pegados:
- *     "Juliciudad en Puno, PerúJulián Alvarezfutbolista a…")
- *   - patrones "pegados" tipo `PerúJulián` (minúscula seguida de mayúscula
- *     sin espacio) — señal inequívoca de concatenación de nodos hermanos.
- */
+/** ¿Sirve el texto como selector `getByText`? Rechaza <3 chars, >=30 chars y textos pegados tipo `PerúJulián`. */
 export function isUsableTextSelector(text: string | null | undefined): boolean {
   const t = normalizeSelectorText(text);
   if (t.length < TEXT_SELECTOR_MIN_LEN) return false;
@@ -102,11 +58,7 @@ export function isUsableTextSelector(text: string | null | undefined): boolean {
   return true;
 }
 
-/**
- * Versión "lite" de un elemento serializado — la que se persiste en
- * `PasoGrabado.selectorPrincipal`. Expuesta como tipo aparte para que los
- * tests puedan verificar shapes sin ambigüedad.
- */
+/** Versión "lite" de un elemento serializado, la que se persiste en `PasoGrabado.selectorPrincipal`. */
 export interface SerializedElementLite {
   tag: string | null;
   text: string | null;
@@ -114,19 +66,12 @@ export interface SerializedElementLite {
   testId: string | null;
 }
 
-/**
- * Normaliza un texto para uso como selector (recorta, escapa comillas dobles).
- * Mantiene el mismo contrato que el init-script del browser.
- */
+/** Normaliza un texto como selector (recorta, escapa comillas dobles); mismo contrato que el init-script. */
 function escapeSelectorText(text: string): string {
   return text.replace(/"/g, '\\"');
 }
 
-/**
- * Genera un selector CSS tipo "html > body > div#foo > button" — fallback
- * cuando no hay testId / aria / id / name. Implementa el mismo algoritmo
- * que la versión browser-side (path relativo con nth-of-type).
- */
+/** Genera un selector CSS de ruta ("html > body > div#foo > button") como último recurso, con nth-of-type. */
 export function buildCssPath(el: Element): string {
   if (!el || typeof el.nodeName !== "string") return "";
   const segments: string[] = [];
@@ -150,37 +95,15 @@ export function buildCssPath(el: Element): string {
   return segments.join(" > ");
 }
 
-/**
- * Determina si un elemento es un input de password. Útil para el flag
- * `esValorSensible` desde el lado de Node (defense in depth: aunque el
- * browser init-script ya enmascara, acá verificamos).
- */
+/** Indica si un elemento es un input de password (defensa extra para `esValorSensible`). */
 export function isPasswordField(el: Element | null): boolean {
   if (!el) return false;
   const t = (el as unknown as { type?: string }).type;
   return typeof t === "string" && t.toLowerCase() === "password";
 }
 
-/**
- * Serializa un elemento DOM a la misma forma que el init-script emite.
- *
- * Función pura — no muta el DOM. Si el input no es un Element válido,
- * retorna null (el caller debe manejar el fallback).
- *
- * @param el - elemento a serializar
- * @returns objeto SerializedElementFull o null si no es un Element válido
- */
-/**
- * Mapea el role ARIA implícito de un elemento HTML según su tag + `type`.
- *
- * Versión PURA basada en strings — no necesita un `Element`, así que se
- * puede reusar desde `paso-repo` (defense in depth cuando el init-script
- * del browser es viejo y no manda `role`).
- *
- * Esto matchea lo que `playwright codegen` hace internamente: para cada
- * elemento determina el role semántico (searchbox, combobox, button, link…)
- * y emite `page.getByRole(role, { name })`.
- */
+/** Serializa un elemento DOM a la forma del init-script; función pura, devuelve null si no es un Element válido. */
+/** Role ARIA implícito de un elemento HTML según tag + `type`; versión pura basada en strings. */
 export function implicitRoleFor(
   tag: string | null | undefined,
   inputType?: string | null,
@@ -237,13 +160,7 @@ export function implicitRoleFor(
   return null;
 }
 
-/**
- * Resuelve el role efectivo: el atributo `role` explícito gana; si no hay,
- * usamos el implícito del tag; si tampoco, `null`.
- *
- * `null` significa "este elemento no tiene role accesible" → el codegen
- * debe caer a otra estrategia (id / aria-label / text / css).
- */
+/** Role efectivo: el atributo `role` explícito gana, luego el implícito del tag, si no `null`. */
 export function resolveRole(
   tag: string | null | undefined,
   explicitRole?: string | null,
@@ -254,15 +171,7 @@ export function resolveRole(
   return implicitRoleFor(tag, inputType);
 }
 
-/**
- * Calcula el *accessible name* de un elemento, aproximando el algoritmo de
- * accname que usa Playwright para `getByRole(role, { name })`:
- *
- *   aria-label > aria-labelledby > <label for> / <label> ancestro >
- *   placeholder > title > alt > textContent (solo si no es form control)
- *
- * Devuelve "" cuando no hay nombre accesible utilizable.
- */
+/** Calcula el *accessible name* aproximando accname (aria-label > aria-labelledby > label > placeholder > title > alt > textContent); "" si no hay. */
 export function accessibleNameFor(el: Element | null | undefined): string {
   if (!el) return "";
   const attr = (n: string): string =>
@@ -290,7 +199,7 @@ export function accessibleNameFor(el: Element | null | undefined): string {
       const name = normalizeSelectorText(lbl?.textContent ?? "");
       if (name) return name;
     } catch {
-      // selector inválido (id con caracteres raros) — seguimos.
+      // selector inválido (id con caracteres raros): se sigue
     }
   }
 
@@ -302,7 +211,7 @@ export function accessibleNameFor(el: Element | null | undefined): string {
         if (name) return name;
       }
     } catch {
-      // ignore
+      // ignorar
     }
   }
 
@@ -326,25 +235,16 @@ export function serializeElement(
 
   const tag = (el.tagName || "").toLowerCase();
   const inputType = (el as unknown as { type?: string }).type ?? null;
-  // Role explicito gana sobre implicito. Si no hay ninguno, `role` cae al
-  // tag por compatibilidad del campo, pero NO se emite candidato 'role'.
+  // El role explícito gana sobre el implícito; sin ninguno, `role` cae al tag pero no se emite candidato 'role'
   const explicitRole = el.getAttribute?.("role") || "";
   const semanticRole = resolveRole(tag, explicitRole, inputType);
   const role = semanticRole ?? tag;
   const accessibleName = accessibleNameFor(el);
-  // Normalizar texto (whitespace, NBSP, zero-width, NFC). Sin esto el
-  // codegen emite selectores con el indentado del HTML que no matchean:
-  //   <label>Correo electronico\n      \n  </label>
-  //   -> getByText("Correo electronico") ✓
-  //   -> getByText("Correo electronico\n \n ") ✗
+  // Normaliza el texto (whitespace, NBSP, zero-width, NFC) para que getByText no lleve el indentado del HTML
   const rawText = normalizeSelectorText(el.textContent);
   const text = rawText.slice(0, 50);
 
-  // FIX bug: antes se colapsaba aria-label/name/id en un solo campo "aria"
-  // y siempre se etiquetaba el candidato como "aria-label". Eso causaba
-  // que `getByLabel("username")` se generara para un input que SOLO
-  // tenia id="username" (sin aria-label real) y por lo tanto Playwright
-  // esperaba 180s sin encontrar el locator.
+  // Se separan aria-label, name e id para no etiquetar como "aria-label" un input que solo tiene id
   const ariaLabelAttr = normalizeSelectorText(el.getAttribute?.("aria-label"));
   const idAttr = el.id || "";
   const nameAttr = el.getAttribute?.("name") || "";
@@ -357,11 +257,7 @@ export function serializeElement(
       value: `[data-testid="${escapeSelectorText(testIdAttr)}"]`,
     });
   }
-  // HU-G14 / FIX bug 3: `role` va SEGUNDO en la prioridad porque es lo que
-  // emite `playwright codegen`. Se emite siempre que exista un role
-  // semantico (explicito o implicito), incluso si coincide con el tag
-  // (`<button>` -> role 'button'): antes el guard `role !== tag` lo
-  // descartaba y el codegen caia a getByLabel/getByText.
+  // `role` va segundo en la prioridad (es lo que emite codegen); se emite siempre que exista un role, aunque coincida con el tag.
   if (semanticRole) {
     candidates.push({
       strategy: "role",
@@ -407,8 +303,7 @@ export function serializeElement(
     role,
     text,
     testId: testIdAttr,
-    // Mantener compat: `aria` queda como el aria-label real (o "" si
-    // no tiene). Antes era el fallback name/id — eso era el bug.
+    // `aria` queda como el aria-label real (o "" si no tiene)
     aria: ariaLabelAttr,
     name: nameAttr,
     accessibleName,
@@ -417,19 +312,12 @@ export function serializeElement(
   };
 }
 
-/**
- * Versión "lite" para persistir en `selectorPrincipal`. Solo los campos
- * más útiles para identificación humana (tag, text, aria, testId).
- *
- * Mantiene nulls en lugar de strings vacíos para que el JSON sea denso y
- * los queries de debugging distingan "ausente" de "vacío".
- */
+/** Versión "lite" para `selectorPrincipal` (tag, text, aria, testId); usa null en vez de strings vacíos. */
 export function serializeElementLite(
   el: Element | null | undefined,
 ): SerializedElementLite | null {
   if (!el || (el as Node).nodeType !== 1) return null;
-  // FIX: colapsar whitespace como en serializeElement (full). Si no,
-  // el selectorPrincipal queda con \n \n que el codegen emite literal.
+  // Colapsa el whitespace como en serializeElement para que el selectorPrincipal no lleve \n literales
   const normalizedText = ((el.textContent || "")).replace(/\s+/g, " ").trim();
   return {
     tag: ((el.tagName || "").toLowerCase()) || null,
@@ -439,10 +327,7 @@ export function serializeElementLite(
   };
 }
 
-/**
- * Convierte un elemento serializado a su `selectorPrincipal` JSON para
- * PasoGrabado — la misma forma que `paso-repo.mapearEventoAPaso` usa.
- */
+/** Convierte un elemento serializado a su `selectorPrincipal` JSON para PasoGrabado. */
 export function toSelectorPrincipal(
   el: SerializedElementFull | null,
 ): SerializedElementLite | null {
@@ -455,16 +340,7 @@ export function toSelectorPrincipal(
   };
 }
 
-/**
- * HU-G14: devuelve el mejor selector disponible siguiendo la prioridad:
- *   testid > role > id > aria-label > name > text > css.
- *
- * "testid" gana porque es el contrato de testing más estable.
- * "role" es el segundo más estable cuando el dev puso un role semántico.
- * "id" es estable mientras nadie lo renombre; los demás son frágiles.
- *
- * Usado por el codegen (HU-G11) para emitir el `page.<strategy>(...)` call.
- */
+/** Mejor selector disponible por prioridad: testid > role > id > aria-label > name > text > css. */
 export function pickBestSelector(
   candidates: Array<{ strategy: string; value: string }>,
 ): { strategy: string; value: string } | null {

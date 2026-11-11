@@ -1,24 +1,9 @@
-/**
- * HU-G19 — Renderizado de HTML → PDF para el acta de evidencia.
- *
- * Reusa Playwright (Chromium) ya instalado como dependencia del proyecto.
- * Lanza una instancia headless efímera, navega a `about:blank`, escribe
- * el HTML con `page.setContent`, y exporta a PDF A4.
- *
- * Diseño: la función `renderHtmlToPdf` es pura y testeable con un mock
- * de Playwright (`playwrightMock` opcional). En producción se usa
- * `chromium.launch()`.
- *
- * IMPORTANTE: este módulo se invoca desde la ruta Next.js
- * `/api/ejecuciones/[id]/acta`. Como Next.js corre en Node, podemos usar
- * Playwright directamente. Si en el futuro queremos aislarlo (p.ej. en
- * un worker), basta con envolver la llamada en una queue.
- */
+// Renderiza el HTML del acta a PDF A4 con Chromium headless de Playwright; la función es testeable con un mock.
 
 import type { ActaTemplateInput } from "./types";
 
 export interface RenderPdfOptions {
-  /** Output directory donde se persiste el PDF. Default: storage/actas/ */
+  /** Directorio donde se guarda el PDF (por defecto storage/actas/). */
   outputDir?: string
 }
 
@@ -36,11 +21,7 @@ export interface ActaConsecutivoInput {
   correlativo: number
 }
 
-/**
- * Calcula el siguiente consecutivo anual de forma atómica.
- * Usa `upsert` con `update: { ultimo: { increment: 1 } }` para que
- * PostgreSQL genere un valor único sin race conditions.
- */
+/** Siguiente consecutivo anual, atómico (upsert con increment) para evitar carreras. */
 export async function nextActaConsecutivo(
   prismaClient: unknown,
 ): Promise<{ anio: number; correlativo: number; consecutivo: string }> {
@@ -59,10 +40,7 @@ export async function nextActaConsecutivo(
   return { anio: row.anio, correlativo: row.ultimo, consecutivo }
 }
 
-/**
- * Firma de la función de render — testeable pasando un mock de Playwright.
- * Por defecto usa chromium de `playwright`.
- */
+/** Firma del render; testeable con un mock de Playwright (por defecto chromium). */
 export type ChromiumLike = {
   launch: (opts: Record<string, unknown>) => Promise<{
     newPage: () => Promise<{
@@ -74,15 +52,7 @@ export type ChromiumLike = {
   }>
 }
 
-/**
- * Renderiza el acta HTML a un PDF en disco.
- *
- * @param input           Datos para la plantilla del acta.
- * @param consecutivo     Consecutivo del acta (previamente calculado).
- * @param templateHtml    HTML producido por `renderActaHTML(input)`.
- * @param options         Output dir override.
- * @param playwright      Inyección de Playwright (default: `playwright`).
- */
+/** Renderiza el HTML del acta a un PDF en disco; Playwright es inyectable. */
 export async function renderActaToPdf(args: {
   templateHtml: string
   consecutivo: string

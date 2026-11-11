@@ -1,9 +1,3 @@
-// src/execution/kill-tree.spec.ts
-// Ported verbatim from vortest-web/__tests__/lib/worker/kill-tree.test.ts —
-// both branches preserved (Windows taskkill smoke-test, POSIX ESRCH
-// handling) since the architecture doc's Risks section explicitly calls
-// out testing both — production runs the POSIX branch (Linux container),
-// local dev on this machine exercises the Windows one.
 import { killProcessTree } from './kill-tree'
 
 describe('execution/kill-tree', () => {
@@ -17,12 +11,10 @@ describe('execution/kill-tree', () => {
 
   it('no lanza en Unix cuando pid no existe (ESRCH)', async () => {
     if (process.platform === 'win32') {
-      // En Windows se delega a taskkill — el código de error es distinto
-      // y la función no lo testea aquí (no tenemos un taskkill mockeado).
+      // En Windows se delega a taskkill; no se testea aquí
       return
     }
-    // En Unix, process.kill con un PID inexistente lanza ESRCH;
-    // nuestra función captura ESRCH y retorna silenciosamente.
+    // En Unix un PID inexistente lanza ESRCH y se ignora
     const pid = 999_999
     await expect(killProcessTree(pid)).resolves.toBeUndefined()
   })
@@ -34,8 +26,7 @@ describe('execution/kill-tree', () => {
   })
 
   it('acepta pid numérico en Windows (smoke test sin matar nada)', async () => {
-    // En Windows con taskkill: smoke-test con un PID ficticio. La promesa
-    // resuelve por el setTimeout(3s) interno si taskkill tarda.
+    // Windows: smoke-test con PID ficticio; resuelve por el timeout interno
     if (process.platform !== 'win32') return
     const fakePid = 999_997
     await expect(killProcessTree(fakePid, true)).resolves.toBeUndefined()

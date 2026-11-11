@@ -1,18 +1,4 @@
-/**
- * POST /api/grabador/sesiones/[id]/resume
- *
- * Reanuda una sesión pausada. Si la pausa duró >5s, inserta un paso
- * "Esperar «pausa»" con origen='auto' (HU-G7 acceptance criteria).
- *
- * Auth: requiere ser owner.
- *
- * Responses:
- *   - 200 { ok: true, estado: 'activa', autoEsperaCreada: boolean }
- *   - 400 { error: 'not_paused' }
- *   - 401 { error: 'No autenticado' }
- *   - 403 { error: 'forbidden' }
- *   - 404 { error: 'not_found' }
- */
+/** POST: reanuda una sesión pausada; si la pausa duró más de 5s inserta un paso de espera automático. */
 
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
@@ -64,7 +50,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
   const elapsedMs = pauseAt ? Date.now() - pauseAt : 0;
   const shouldAutoWait = elapsedMs > PAUSE_AUTO_WAIT_THRESHOLD_MS;
 
-  // Compute next numero + maybe create auto-wait step + flip to activa.
+  // Calcula el próximo numero, crea la auto-espera si aplica y pasa a activa.
   try {
     const result = await prisma.$transaction(async (tx) => {
       let autoWaitCreated = false;

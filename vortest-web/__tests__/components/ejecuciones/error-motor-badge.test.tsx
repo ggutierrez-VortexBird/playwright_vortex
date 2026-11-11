@@ -1,6 +1,3 @@
-/**
- * Tests for components/ejecuciones/error-motor-badge.tsx.
- */
 import { render, screen } from "@testing-library/react";
 import { ErrorMotorBadge } from "@/components/ejecuciones/error-motor-badge";
 
@@ -23,8 +20,7 @@ describe("ErrorMotorBadge", () => {
 
   it("uses a different layout (no message span) when message is omitted-like (falsy)", () => {
     const { container } = render(<ErrorMotorBadge message="" />);
-    // Solo hay 1 span visible (el del badge); el del mensaje está condicionado
-    // por `message && (...)`.
+    // Solo hay 1 span visible: el del mensaje depende de `message`.
     const outerDiv = container.firstChild as HTMLElement;
     expect(outerDiv).toBeInTheDocument();
   });

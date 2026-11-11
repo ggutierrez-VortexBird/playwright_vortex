@@ -1,12 +1,4 @@
-/**
- * Configuración compartida del Monaco Editor para editar specs de
- * Playwright (.spec.ts). Monaco corre su propio TS language service en el
- * browser sin acceso al `node_modules` real, así que nunca puede resolver
- * `import { test, expect } from '@playwright/test'` — sin este ajuste
- * marca esa línea con TS2307/TS2792 ("Cannot find module...") aunque el
- * script sea válido. Se ignoran esos códigos puntuales; el resto de la
- * validación de TypeScript (sintaxis, tipos locales, etc.) sigue activa.
- */
+/** Configuración compartida de Monaco para specs de Playwright; ignora TS2307/TS2792 porque Monaco no resuelve `@playwright/test`. */
 export function ignorePlaywrightModuleDiagnostics(monaco: {
   languages: {
     typescript: {
@@ -17,19 +9,14 @@ export function ignorePlaywrightModuleDiagnostics(monaco: {
   };
 }): void {
   monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-    // 2307: Cannot find module 'x' or its corresponding type declarations.
-    // 2792: Cannot find module 'x'. Did you mean to set moduleResolution...
+    // 2307/2792: módulo no encontrado
     diagnosticCodesToIgnore: [2307, 2792],
   });
 }
 
 export const VORTEST_DARK_THEME = "vortest-dark";
 
-/**
- * Tema oscuro con la misma paleta sólida (sin degradados) que
- * documentacion/referencias-diseño/cambios/editor-codigo.html: keywords en
- * violeta, strings en verde, números en naranja, comentarios en gris azulado.
- */
+/** Tema oscuro de paleta sólida: keywords violeta, strings verde, números naranja, comentarios gris azulado. */
 interface MonacoLike {
   languages: {
     typescript: {

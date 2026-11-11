@@ -56,7 +56,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Listen for the "Nuevo usuario" button click dispatched from PageHeader
+  // Escucha el click de "Nuevo usuario" que despacha el PageHeader
   useEffect(() => {
     function handleOpenModal() {
       setShowCreateModal(true);
@@ -182,7 +182,6 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
 
   return (
     <div className="flex flex-col gap-6">
-      {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiTile
           label="Total usuarios"
@@ -264,14 +263,12 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
       </div>
 
       <div className="overflow-hidden rounded-lg border border-m3-outline-variant bg-m3-surface-container-lowest shadow-card">
-        {/* Toolbar: filtros */}
         <div className="flex flex-col gap-4 border-b border-m3-outline-variant p-4">
           <div className="flex flex-wrap items-center gap-1 overflow-x-auto pb-1">
             {(
               [
                 { id: "todos" as const, label: "Todos", count: usuarios.length },
-                // Un admin nunca ve superadmins ni a otros admins (solo se ve a
-                // sí mismo) — filtrar por esos roles no tiene sentido en su vista.
+                // Un admin no ve superadmins ni otros admins: filtrar por esos roles no aplica.
                 ...(actorRol === "superadmin"
                   ? [
                       { id: "superadmin" as const, label: "Superadmins", count: usuarios.filter((u) => u.rol === "superadmin").length },
@@ -309,7 +306,6 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
           </div>
         </div>
 
-        {/* Tabla (md+) */}
         <div className="hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -357,7 +353,6 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
         </div>
       </div>
 
-      {/* Tarjetas (móvil) */}
       <div className="flex flex-col gap-3 md:hidden">
         {usuariosPagina.length === 0 ? (
           <EmptyState icon="group" title="No hay usuarios que coincidan con el filtro." />
@@ -406,12 +401,7 @@ export function UsuariosClient({ initialUsuarios, puedeElegirRol, actorId, actor
 }
 
 function RolBadge({ rol }: { rol: RolUsuario }) {
-  // Mismo patrón para las 3: fondo claro + texto saturado, nunca fondo
-  // oscuro con texto apagado. Los 3 tonos están repartidos lejos entre sí
-  // en el círculo cromático (ámbar / teal / rosa) — nada de tonos vecinos
-  // como índigo-morado, que a este tamaño de pill son difíciles de
-  // distinguir de un vistazo — y ninguno reutiliza los tokens de ESTADO
-  // (m3-success/m3-error/m3-info) para no confundirse con Pasó/Falló/Conforme.
+  // Fondo claro con texto saturado; tonos ámbar/teal/rosa lejos entre sí y distintos de los tokens de estado.
   const classes =
     rol === "superadmin"
       ? "bg-m3-secondary-container text-m3-on-secondary-container"
@@ -439,9 +429,7 @@ function EspaciosCell({ espacios }: { espacios: UsuarioRow["espacios"] }) {
 }
 
 function EstadoBadge({ activo }: { activo: boolean }) {
-  // "Suspendido" usa tone="neutral", no "error" — suspender una cuenta no es
-  // un estado de fallo, es simplemente inactividad (paridad con el tono
-  // "neutral" que usa StatusBadge para "sin ejecuciones" en caso-table).
+  // "Suspendido" usa tone neutral: no es un fallo, solo inactividad.
   return <StatusBadge tone={activo ? "success" : "neutral"} icon={activo ? "check_circle" : "pause_circle"}>{activo ? "Activo" : "Suspendido"}</StatusBadge>;
 }
 

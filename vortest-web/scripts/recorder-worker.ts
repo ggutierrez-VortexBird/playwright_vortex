@@ -1,38 +1,4 @@
-/**
- * recorder-worker.ts — proceso Node standalone del modo grabador (PIVOT V2).
- *
- * ACTA-Plan-Pivot-Playwright-Codegen + grabador sin Inspector:
- *   - Ya NO se inyecta init-script para capturar eventos DOM.
- *   - Spawnea `scripts/codegen-runner.ts`, que activa el grabador de
- *     Playwright en modo programático (sin ventana de Inspector) y escribe
- *     el `.spec.ts`. Antes se spawneaba `npx playwright codegen`, que abre
- *     esa ventana siempre y obligaba a ocultarla desde el sistema operativo.
- *   - Queda observando el archivo `.spec.ts` que el runner escribe.
- *   - Cada cambio → broadcast WS `{type:'spec_updated', content, ...}` al cliente.
- *   - Lo que se escribe es EXACTAMENTE lo que produce codegen (sin agregar
- *     comments, ni waits, ni asserts manuales — política ZERO modificación).
- *   - Cuando el runner termina solo, porque el usuario cerró la ventana del
- *     navegador, la grabación se cierra igual que con el botón Detener.
- *
- * Servicios que levanta:
- *   - HTTP API interna:
- *       POST /internal/start  — auth X-Internal-Secret, body {sessionId,userId,urlInicial,navegador}
- *       POST /internal/stop   — mata el subprocess de la sesión
- *       GET  /health
- *   - WebSocketServer:
- *       handshake con token (auth vía validateToken)
- *       relay de `spec_updated` events desde el watcher
- *       heartbeat ping/pong (C2)
- *   - Orphan cleanup al arrancar: sesiones activas sin subprocess vivo se
- *     marcan como 'error' para no bloquear reintentos.
- *
- * Env vars (con defaults):
- *   RECORDER_WS_PORT=3100
- *   RECORDER_PUBLIC_URL=ws://localhost:3100
- *   RECORDER_INTERNAL_SECRET=required
- *   RECORDER_MAX_SESSIONS=3
- *   RECORDER_HEARTBEAT_TIMEOUT_MS=600000 (10 min)
- */
+// Proceso del modo grabador: spawnea codegen-runner, vigila el `.spec.ts`, lo emite por WS y expone la API HTTP interna; env: RECORDER_WS_PORT, RECORDER_PUBLIC_URL, RECORDER_INTERNAL_SECRET, RECORDER_MAX_SESSIONS, RECORDER_HEARTBEAT_TIMEOUT_MS.
 
 import { WebSocketServer, WebSocket as WsServerSocket } from "ws";
 import { createHttpApi } from "../lib/recorder/http-api";
@@ -71,7 +37,7 @@ function sendMessage(ws: WsServerSocket, msg: WsServerMessage): void {
       ws.send(JSON.stringify(msg));
     }
   } catch {
-    // ignore
+    // ignorar
   }
 }
 
@@ -79,11 +45,11 @@ function closeWs(ws: WsServerSocket, code: number, reason: string): void {
   try {
     ws.close(code, reason);
   } catch {
-    // ignore
+    // ignorar
   }
 }
 
-/** Broadcast una message a TODOS los clientes WS de una sesión. */
+/** Envía un mensaje a todos los clientes WS de una sesión. */
 function broadcastToClients(
   sessionId: string,
   msg: WsServerMessage,
@@ -96,23 +62,19 @@ function broadcastToClients(
       try {
         client.send(payload);
       } catch {
-        // ignore
+        // ignorar
       }
     }
   }
 }
 
-/** Watcher registry — 1 watcher por sesión. */
+/** Registro de watchers: uno por sesión. */
 const watchers = new Map<
   string,
   { close: () => void; isActive: () => boolean }
 >();
 
-/**
- * Termina una grabación, sea por el botón Detener, por el cierre de la
- * ventana del navegador o por falta de señales de vida. La lógica vive en
- * `lib/recorder/stop-session.ts` para poder probarla sin levantar el worker.
- */
+/** Termina una grabación (Detener, cierre del navegador o falta de heartbeat); la lógica vive en `lib/recorder/stop-session.ts`. */
 const handleStop = createStopSession({
   getEntry,
   removeEntry,
@@ -150,33 +112,28 @@ async function main(): Promise<void> {
     return Number.isFinite(n) && n > 0 ? n : 600_000;
   })();
 
-  console.log(`[recorder-worker] Iniciando (PIVOT V2)`);
+  console.log(`[recorder-worker] Iniciando`);
   console.log(`[recorder-worker]   WS port: ${wsPort}`);
   console.log(`[recorder-worker]   Public URL: ${publicUrl}`);
   console.log(`[recorder-worker]   MAX_SESSIONS: ${process.env.RECORDER_MAX_SESSIONS ?? "3"}`);
   console.log(`[recorder-worker]   HEARTBEAT_TIMEOUT_MS: ${heartbeatTimeoutMs}`);
 
-  // 1. Orphan cleanup
+  // 1. Limpieza de huérfanos
   const cleaned = await cleanupOrphans();
   console.log(`[recorder-worker] Orphan cleanup: ${cleaned} sesiones`);
 
-  // 2. HTTP API
+  // 2. API HTTP
   const httpServer = createHttpApi({
     port: wsPort,
     internalSecret,
     wsPublicUrl: publicUrl,
     tokenTtlSec,
 
-    /**
-     * V2: antes onBrowserReady recibía el BrowserContext vivo y enganchaba
-     * CDP. Ahora simplemente arranca el subprocess de playwright-codegen,
-     * crea el watcher y arranca el entry en el registry (si addEntry
-     * no había fallado por max sessions).
-     */
+    /** Arranca el subprocess de codegen, crea el watcher y registra la entry. */
     onBrowserReady: async (sessionId, specPath) => {
       console.log(`[recorder-worker] Subprocess vivo para ${sessionId} @ ${specPath}`);
 
-      // Marcar la sesión como 'activa' en DB
+      // Marca la sesión como 'activa' en DB
       await prisma.sesionGrabacion
         .update({
           where: { id: sessionId },
@@ -190,12 +147,12 @@ async function main(): Promise<void> {
           console.error("[recorder-worker] DB update failed", err),
         );
 
-      // Watcher: cada write de Playwright broadcastea spec_updated.
+      // Watcher: cada escritura de Playwright emite spec_updated
       const watcher = watchCodegenSpec({
         specPath,
-        debounceMs: 75, // <- un pelin más generoso que V1; captura rafagas largas
+        debounceMs: 75, // algo más generoso para capturar ráfagas largas
         onUpdate: async (event) => {
-          // Persistir specCode en DB (single source of truth)
+          // Persiste specCode en DB (fuente de verdad)
           await prisma.sesionGrabacion
             .update({
               where: { id: sessionId },
@@ -207,9 +164,7 @@ async function main(): Promise<void> {
                 err,
               ),
             );
-          // Calcular URL actual del spec — primer `page.goto("...")` o
-          // `await page.goto(...)` que aparece en el contenido. Si no
-          // hay goto aún, mandamos el urlInicial de la sesión.
+          // URL actual: primer `page.goto("...")` del contenido; si no hay, la urlInicial de la sesión
           const sessionEntry = getEntry(sessionId);
           const currentUrl =
             extractCurrentUrl(event.content) ?? sessionEntry?.urlInicial;
@@ -223,9 +178,7 @@ async function main(): Promise<void> {
           });
         },
         onGone: () => {
-          // El archivo desapareció y Playwright no lo recrea. Probablemente
-          // el subprocess murió. Limpiamos la entry para que la próxima vez
-          // pueda crear otra.
+          // El archivo desapareció y Playwright no lo recrea (el subprocess probablemente murió): se limpia la entry.
           console.warn(
             `[recorder-worker] spec file gone para ${sessionId} — removiendo entry`,
           );
@@ -234,11 +187,7 @@ async function main(): Promise<void> {
       });
       watchers.set(sessionId, watcher);
 
-      // El runner termina solo cuando el usuario cierra la ventana del
-      // navegador. Ese cierre tiene que terminar la grabación igual que el
-      // botón Detener: persistir el script final, marcar la sesión y avisar
-      // a la pantalla. Antes nadie escuchaba esto y la sesión quedaba
-      // colgada en 'activa'.
+      // El runner termina solo cuando el usuario cierra el navegador; eso debe cerrar la grabación igual que el botón Detener.
       const entry = getEntry(sessionId);
       void entry?.handle
         .exitCode()
@@ -275,17 +224,13 @@ async function main(): Promise<void> {
     },
   });
 
-  // 3. WS server
+  // 3. Servidor WS
   const wss = new WebSocketServer({ server: httpServer });
 
-  /**
-   * Heartbeat timeout handler (C2). Sesión sin heartbeats → kill subprocess
-   * + persist estado='detenida' + removeEntry.
-   */
+  /** Heartbeat timeout: sesión sin heartbeats → mata el subprocess, persiste 'detenida' y quita la entry. */
   const onHeartbeatExpire: HeartbeatExpireCallback = async (sessionId) => {
     console.log(`[recorder-worker] heartbeat_timeout ${sessionId}`);
-    // Misma parada que Detener y que el cierre del navegador: así el
-    // script grabado hasta ese momento también queda persistido.
+    // Misma parada que Detener y que el cierre del navegador, para persistir el script grabado
     await handleStop(sessionId, "heartbeat_timeout");
   };
 
@@ -302,7 +247,7 @@ async function main(): Promise<void> {
 
   const shutdown = async (signal: string) => {
     console.log(`[recorder-worker] ${signal} recibido, cerrando...`);
-    // Kill all subprocesses registrados en el registry.
+    // Mata todos los subprocesses del registry
     const reg = await import("../lib/recorder/session-registry");
     for (const [, entry] of reg.listEntries()) {
       try {
@@ -310,10 +255,10 @@ async function main(): Promise<void> {
           await entry.handle.kill();
         }
       } catch {
-        // ignore
+        // ignorar
       }
     }
-    // Stop all watchers
+    // Detiene todos los watchers
     for (const [, w] of watchers) w.close();
     watchers.clear();
     wss.clients.forEach((c) => c.close(1001, "shutting down"));
@@ -330,9 +275,7 @@ async function main(): Promise<void> {
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
 }
 
-// =============================================================
-// WS handshake + simple ping/pong
-// =============================================================
+// WS: handshake y ping/pong
 
 interface HandleWsOptions {
   heartbeatTimeoutMs: number;
@@ -357,7 +300,7 @@ async function handleWsConnection(
   }
   const sessionId = validation.sessionId;
 
-  // Chequear que la entry exista (no expirada)
+  // Verifica que la entry exista (no expirada)
   const entry = getEntry(sessionId);
   if (!entry) {
     closeWs(ws, WS_CLOSE_MAX_SESSIONS, "sesion no encontrada");
@@ -404,17 +347,14 @@ async function handleWsConnection(
       return;
     }
     if (msg.type === "navigate") {
-      // V2: codegen navega por sí solo desde su inspector toolbar, no
-      // exponemos goto programático aquí. Solo logueamos el intento
-      // para que el QA sepa que su BrowserChrome llegó al worker.
+      // Codegen navega por sí solo; acá solo se loguea el intento del BrowserChrome
       console.log(
         `[recorder-worker] navigate request from ${sessionId}: ${msg.url}`,
       );
       return;
     }
     if (msg.type === "stop") {
-      // Fire-and-forget intencional: el handler de mensajes WS no es async.
-      // Igual capturamos cualquier rechazo para no perderlo silenciosamente.
+      // Fire-and-forget: el handler WS no es async; se captura cualquier rechazo para no perderlo
       void handleStop(sessionId).catch((err) =>
         console.error(`[recorder-worker] error en handleStop(${sessionId}):`, err),
       );
@@ -431,14 +371,7 @@ main().catch((err) => {
   process.exit(1);
 });
 
-/**
- * Extrae la primera URL del spec.ts con la regex `await page.goto("...")`
- * (o variantes de comillas). Devuelve `null` si no hay goto.
- *
- * Usado para sincronizar la URL en el grabador sin exponer chrome real
- * al frontend. Si el QA navega con el popup de codegen, el codegen
- * escribe un `await page.goto(...)` al .spec.ts que detectamos acá.
- */
+/** Extrae la URL del primer `await page.goto("...")` del spec.ts; devuelve `null` si no hay. */
 function extractCurrentUrl(specContent: string): string | null {
   if (!specContent) return null;
   const m = specContent.match(

@@ -1,7 +1,4 @@
-/**
- * Mapa único estado → etiqueta, tono e ícono para ejecuciones, pasos y casos.
- * Vocabulario del dominio: "Conforme / No conforme".
- */
+/** Mapa estado → etiqueta, tono e ícono para ejecuciones, pasos y casos. */
 import type { StatusBadgeTone } from '@/components/ui/status-badge'
 
 export type EstadoContexto = 'ejecucion' | 'paso'

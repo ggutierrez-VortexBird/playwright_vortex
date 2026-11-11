@@ -20,7 +20,7 @@ Qué piezas forman vorTest, con qué se construyen y cómo se ejecutan. Las vers
 | [`vortest-web/`](../vortest-web) | `vortest` 0.1.0 | Interfaz, API, esquema Prisma y migraciones, consumidor de eventos, grabador, plantilla del Acta | `web`, `execution-consumer` y el grabador |
 | [`vortest-engine/`](../vortest-engine) | `vortest-engine` 0.1.0 | Motor de ejecución, reporter de Playwright, cliente de subida de artefactos | `engine` |
 | [`docs/`](./indice.md) | — | Esta documentación (índice en `indice.md`) | — |
-| raíz | — | `docker-compose.dev.yml`, `Makefile`, `.env.example`, `AUDIT.md`, `CHANGELOG.md` | Orquestación local |
+| raíz | — | `docker-compose.dev.yml`, `Makefile`, `.env.example`, `CHANGELOG.md` | Orquestación local |
 
 Cada subproyecto es independiente: su propio `node_modules` y lockfile; no hay workspace.
 

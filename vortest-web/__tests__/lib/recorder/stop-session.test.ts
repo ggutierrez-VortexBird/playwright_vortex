@@ -1,11 +1,4 @@
-/**
- * Tests de lib/recorder/stop-session.ts.
- *
- * Cubre lo que antes no existía: cerrar la ventana del navegador tiene que
- * terminar la grabación igual que el botón Detener. Antes nadie escuchaba
- * la salida del proceso de grabación y la sesión quedaba colgada en
- * 'activa', con el .spec.ts sin persistir.
- */
+// Cerrar la ventana del navegador debe terminar la grabación igual que el botón Detener.
 
 import { createStopSession, type StopSessionDeps } from "@/lib/recorder/stop-session";
 import type { SessionEntry, WsServerMessage } from "@/lib/recorder/types";
@@ -75,9 +68,7 @@ function crearEscenario(
     },
     persist: async (_id, data) => {
       orden.push("persist");
-      // Se registran solo las claves realmente enviadas: que `specCode`
-      // esté ausente (y no en undefined) es lo que evita pisar el script
-      // ya guardado cuando el archivo no se pudo leer.
+      // Se registran solo las claves enviadas: `specCode` ausente evita pisar el script ya guardado.
       const registro: { estado: string; specCode?: string } = {
         estado: data.estado,
       };
@@ -161,8 +152,7 @@ describe("recorder/stop-session", () => {
   });
 
   it("dos paradas seguidas no duplican escrituras ni avisos", async () => {
-    // Detener y cerrar la ventana pueden ocurrir con milisegundos de
-    // diferencia.
+    // Detener y cerrar la ventana pueden ocurrir con milisegundos de diferencia.
     const e = crearEscenario();
     const stop = createStopSession(e.deps);
 
@@ -201,8 +191,7 @@ describe("recorder/stop-session", () => {
   });
 
   it("sigue adelante aunque falle la persistencia", async () => {
-    // Perder la fila en base de datos no debe dejar el runner vivo ni la
-    // sesión ocupando un cupo del registro.
+    // Perder la fila en BD no debe dejar el runner vivo ni ocupar un cupo del registro.
     const e = crearEscenario();
     e.deps.persist = async () => {
       throw new Error("db caída");

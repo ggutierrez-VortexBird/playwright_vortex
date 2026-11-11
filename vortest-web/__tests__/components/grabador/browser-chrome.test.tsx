@@ -1,11 +1,3 @@
-/**
- * BrowserChrome — tests sobre el input URL y el submit:
- *  - Render del draft inicial con pageUrl
- *  - Sincronización del draft cuando pageUrl cambia
- *  - Submit del form llama onNavigate con la URL trimmed
- *  - Botón Ir deshabilitado cuando el input está vacío
- *  - Disabled cuando disabled=true (sesión no live)
- */
 import { render, cleanup, act, screen, fireEvent } from "@testing-library/react";
 import { BrowserChrome } from "@/components/grabador/browser-chrome";
 

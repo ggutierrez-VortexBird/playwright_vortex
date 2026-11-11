@@ -1,14 +1,4 @@
-/**
- * Tests for POST /api/casos/[id]/ejecutar (HU-G16 redirect target stub).
- *
- * Motor Fase 1: esta ruta ya no crea su propia Ejecucion a mano — delega en
- * `dispararEjecucion` (lib/ejecuciones/actions.ts), la misma Server Action
- * que usa el resto de la app (guard anti-concurrencia + despacho a
- * RabbitMQ). Estos tests mockean `dispararEjecucion` directamente: lo que
- * le compete verificar A ESTA ruta es su propio guard de auth/activo y el
- * mapeo de la respuesta/errores, no la lógica interna de dispararEjecucion
- * (que tiene su propia suite en __tests__/lib/ejecuciones/actions.test.ts).
- */
+// POST /api/casos/[id]/ejecutar: se mockea dispararEjecucion y se prueba solo el guard de auth y el mapeo de errores.
 
 import { POST } from "@/app/api/casos/[id]/ejecutar/route";
 import { getSession } from "@/lib/auth";

@@ -1,6 +1,3 @@
-/**
- * Tests for components/ui/switch.tsx — Radix-based on/off switch.
- */
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { Switch } from "@/components/ui/switch";
 
@@ -32,8 +29,5 @@ describe("Switch", () => {
     expect(onCheckedChange).toHaveBeenCalledWith(false);
   });
 
-  // Nota: el componente <Switch> NO expone `disabled` en su API pública (su
-  // interface solo acepta { checked, onCheckedChange, id, aria-label }), por
-  // lo que no se testea el comportamiento de bloqueo aquí — Radix lo
-  // soportaría si se reenviara la prop, pero no es parte del contrato actual.
+  // <Switch> no expone `disabled` en su API pública, así que no se prueba el bloqueo.
 });

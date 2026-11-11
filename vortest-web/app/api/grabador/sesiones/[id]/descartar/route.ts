@@ -1,14 +1,4 @@
-/**
- * POST /api/grabador/sesiones/[id]/descartar
- *
- * Marca una SesionGrabacion como 'descartada'. El browser del usuario
- * también cierra el WS (vía handleDescartar en grabador-client.tsx).
- * El worker, al ver el WS cerrado, ya matará el subprocess de codegen.
- *
- * Auth: superadmin (via getSession).
- * Estado permitidos desde: 'iniciando' | 'activa' | 'detenida' — nunca
- * si la sesión ya tiene CasoPrueba asociado.
- */
+/** POST: marca la sesión como descartada (solo si no tiene caso asociado). */
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";

@@ -1,6 +1,4 @@
-/**
- * Types for CasoPrueba entities.
- */
+/** Tipos de CasoPrueba. */
 
 export interface CasoPrueba {
   id: string;

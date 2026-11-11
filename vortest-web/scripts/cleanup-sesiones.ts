@@ -1,29 +1,5 @@
 #!/usr/bin/env node
-/**
- * HU-GR-1 — Cron de limpieza de sesiones de grabación antiguas.
- *
- * Borra las `SesionGrabacion` en estados terminales ('descartada' o
- * 'guardada') cuya `updatedAt` supera el umbral de retención
- * (default: 7 días). El borrado es en cascada — los `PasoGrabado`
- * asociados se eliminan automáticamente por el FK en schema.prisma.
- *
- * Uso:
- *   node --import tsx scripts/cleanup-sesiones.ts
- *
- * Variables de entorno:
- *   SESIONES_RETENTION_DAYS — días antes de purgar (default 7).
- *
- * El script está pensado para correr como cron diario en el host que
- * aloja Next.js (no necesita scheduler externo). Se recomienda:
- *
- *   0 3 * * *  cd /ruta/al/repo/playwright_vortex && \
- *             node --import tsx scripts/cleanup-sesiones.ts \
- *             >> /var/log/acta-cleanup.log 2>&1
- *
- * Exit codes:
- *   0 — éxito (incluso si no había nada que borrar)
- *   1 — error de conexión a DB
- */
+// Borra sesiones de grabación terminales (descartada/guardada) más viejas que SESIONES_RETENTION_DAYS (default 7); pensado para cron diario.
 
 import { prisma } from "../lib/db";
 

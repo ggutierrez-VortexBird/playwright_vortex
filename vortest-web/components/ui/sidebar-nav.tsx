@@ -5,11 +5,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 export interface SidebarNavItem {
-  /** Ruta destino (e.g. "/casos"). Se compara contra el primer segmento del layout. */
+  /** Ruta destino (p. ej. "/casos"). Se compara contra el primer segmento del layout. */
   href: string;
   /** Etiqueta visible. */
   label: string;
-  /** Nombre del icono Material Symbols Outlined (e.g. "fact_check"). */
+  /** Nombre del icono Material Symbols Outlined (p. ej. "fact_check"). */
   icon: string;
 }
 
@@ -17,17 +17,7 @@ interface SidebarNavProps {
   items: SidebarNavItem[];
 }
 
-/**
- * Sidebar nav primaria del dashboard.
- *
- * - Detecta la sección activa leyendo el primer segmento del layout actual
- *   (vía `useSelectedLayoutSegments`), por lo que rutas anidadas como
- *   `/proyectos/[id]/casos` siguen marcando "Proyectos" como activa.
- * - Marca el item activo con `aria-current="true"` y un tratamiento tipo
- *   "pill" (fondo translúcido + texto blanco) inspirado en dashboards
- *   SaaS de referencia, manteniendo el rail navy (`m3-primary-container`)
- *   sin cambios.
- */
+/** Navegación primaria del dashboard: la sección activa sale del primer segmento del layout, así que las rutas anidadas la mantienen marcada. */
 export function SidebarNav({ items }: SidebarNavProps): ReactNode {
   const segments = useSelectedLayoutSegments();
   const activeSection = segments[0] ?? "";

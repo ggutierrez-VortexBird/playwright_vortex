@@ -1,9 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 
-/**
- * Compara un secreto recibido contra el esperado en tiempo constante (SEG-09).
- * `timingSafeEqual` lanza si las longitudes difieren, por eso se chequea antes.
- */
+/** Compara un secreto en tiempo constante; `timingSafeEqual` lanza si las longitudes difieren, por eso se chequean antes. */
 export function secretoValido(recibido: string | null | undefined, esperado: string): boolean {
   if (!recibido || !esperado) return false;
   const a = Buffer.from(recibido);

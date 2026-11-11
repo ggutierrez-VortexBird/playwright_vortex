@@ -1,33 +1,4 @@
-/**
- * codegen-subprocess.ts — lanza el proceso hijo que graba el `.spec.ts`.
- *
- * Antes spawneaba `npx playwright codegen --output=<spec> <url>`. Ese
- * binario abre SIEMPRE la ventana del Playwright Inspector y no tiene
- * bandera para desactivarla, así que había que ocultarla a posteriori
- * desde el sistema operativo (`hide-inspector.ts`, ya eliminado), con
- * parpadeo visible y sin garantía de éxito.
- *
- * Ahora spawnea `scripts/codegen-runner.ts`, que activa el MISMO grabador
- * de Playwright en modo programático: no crea ninguna ventana de Inspector
- * y escribe el mismo `.spec.ts`. Ver la cabecera del runner para el detalle
- * de la API interna que usa.
- *
- * Lo que NO cambia, porque el resto de la cadena depende de ello:
- *   - la ruta y el nombre del archivo de salida (`resolveSpecPath`),
- *   - el archivo semilla,
- *   - la forma del handle que se devuelve,
- *   - el contenido del `.spec.ts`, que sigue siendo exactamente el que
- *     produce codegen (política ZERO modificación).
- *
- * Salida esperada del archivo (probado con playwright@1.62.1):
- *
- *     import { test, expect } from '@playwright/test';
- *
- *     test('test', async ({ page }) => {
- *       await page.goto('https://x');
- *       await page.getByRole('button', { name: 'Login' }).click();
- *     });
- */
+// Lanza el proceso hijo `scripts/codegen-runner.ts` que graba el `.spec.ts`; la ruta de salida, el archivo semilla y el handle no cambian.
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -41,46 +12,32 @@ const READY_TIMEOUT_MS = 45_000;
 const GRACEFUL_STOP_MS = 3_000;
 
 export interface CodegenHandle {
-  /** Path absoluto al .spec.ts que escribe el runner. */
+  /** Ruta absoluta al .spec.ts que escribe el runner. */
   specPath: string;
   /** PID del subprocess (undefined si ya cerró o no spawneó). */
   pid?: number;
   /** Pide parada ordenada y, si hace falta, termina el proceso. */
   kill(): Promise<void>;
-  /** ¿Sigue vivo? */
+  /** Indica si sigue vivo. */
   isAlive(): boolean;
 }
 
 export interface SpawnCodegenResult extends CodegenHandle {
-  /** Resuelve cuando el subprocess termina. Retorna exit code. */
+  /** Resuelve con el exit code cuando el subprocess termina. */
   exitCode(): Promise<number | null>;
-  /**
-   * Resuelve `true` cuando el runner avisó que el navegador abrió, y
-   * `false` si el proceso murió antes o se agotó la espera. Permite
-   * distinguir "arrancó" de "falló al arrancar" sin adivinar.
-   */
+  /** Resuelve `true` si el runner avisó que abrió el navegador, `false` si el proceso murió o se agotó la espera. */
   ready(): Promise<boolean>;
 }
 
-/**
- * Convierte cualquier string a un component apto para filesystem
- * (sin caracteres raros). Como Playwright nos da UUID, basta cortar a 8 chars.
- */
+/** Convierte un string a un componente apto para filesystem (basta cortar a 8 chars, son UUID). */
 function shortSessionTag(sessionId: string): string {
   return sessionId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 8) || "anon";
 }
 
-/**
- * Resuelve la ruta del .spec.ts para esta sesión.
- *
- * - dirHint: si se pasa (ej. directorio dedicado del proyecto), úsalo
- *   mkdir-p incluido. Si no, usa OS tempdir.
- * - Devuelve SIEMPRE ruta absoluta.
- */
+/** Ruta absoluta del .spec.ts de la sesión: en `dirHint` (con mkdir -p) si se pasa, si no en el tempdir del SO. */
 export function resolveSpecPath(sessionId: string, dirHint?: string): string {
   const tag = shortSessionTag(sessionId);
-  // 4 bytes random para que múltiples sesiones del mismo usuario
-  // no pisen el mismo archivo si Playwright tiene bug de concurrencia.
+  // 4 bytes aleatorios para que sesiones del mismo usuario no pisen el mismo archivo
   const nonce = randomBytes(4).toString("hex");
   const fileName = `grabador-${tag}-${nonce}.spec.ts`;
   if (dirHint) {
@@ -91,11 +48,7 @@ export function resolveSpecPath(sessionId: string, dirHint?: string): string {
   return join(tmpdir(), fileName);
 }
 
-/**
- * Ruta del runner. Los workers arrancan desde la raíz del proyecto (ver
- * los scripts de `package.json`), igual que el resto de `lib/worker`.
- * `RECORDER_RUNNER_PATH` permite apuntar a otro archivo en pruebas.
- */
+/** Ruta del runner (los workers arrancan desde la raíz del proyecto); `RECORDER_RUNNER_PATH` permite otra en pruebas. */
 export function resolveRunnerPath(): string {
   const override = process.env.RECORDER_RUNNER_PATH;
   if (override) {
@@ -105,29 +58,23 @@ export function resolveRunnerPath(): string {
 }
 
 export interface SpawnCodegenOptions {
-  /** URL a la que navega el runner cuando abre el navegador. */
+  /** URL a la que navega el runner al abrir el navegador. */
   urlInicial: string;
-  /** Navegador (chromium/firefox/webkit). Default "chromium". */
+  /** Navegador (chromium/firefox/webkit); por defecto "chromium". */
   navegador?: "chromium" | "firefox" | "webkit";
-  /** Directorio donde se escribe el .spec.ts. Default OS tempdir. */
+  /** Directorio donde se escribe el .spec.ts (por defecto el tempdir del SO). */
   specDir?: string;
   /** StorageState de Playwright para iniciar el contexto autenticado. */
   storageState?: unknown;
-  /** Si el spec file NO existe, ¿lo creamos vacío antes? Útil cuando el
-   *  QA cancela antes de cualquier interacción — el runner no habría
-   *  escrito nada y nuestro watcher lo ignora. Default true. */
+  /** Crea el spec vacío si no existe antes de empezar (por defecto true). */
   seedSpecFile?: boolean;
-  /** Entorno adicional para el child process. Default process.env. */
+  /** Entorno adicional para el proceso hijo (por defecto process.env). */
   env?: NodeJS.ProcessEnv;
-  /** Si se pasa, no usar el runner — invocar este binario directamente
-   *  (solo pruebas: evita abrir un navegador real). */
+  /** Si se pasa, se invoca este binario en vez del runner (solo pruebas). */
   overrideBin?: string;
 }
 
-/**
- * Spawn del runner de grabación. El subprocess queda vivo hasta que el
- * usuario cierre la ventana del navegador o hasta que llamemos `kill()`.
- */
+/** Lanza el runner de grabación; queda vivo hasta que el usuario cierre el navegador o se llame `kill()`. */
 export function spawnCodegen(
   sessionId: string,
   options: SpawnCodegenOptions,
@@ -136,9 +83,7 @@ export function spawnCodegen(
   mkdirSync(dirname(specPath), { recursive: true });
 
   if (options.seedSpecFile !== false) {
-    // Archivo semilla para que el watcher tenga un baseline desde el cual
-    // medir diffs. El runner lo sobreescribe con el envoltorio real apenas
-    // arranca.
+    // Archivo semilla como baseline para el watcher; el runner lo sobreescribe al arrancar
     try {
       writeFileSync(
         specPath,
@@ -146,8 +91,7 @@ export function spawnCodegen(
         "utf8",
       );
     } catch {
-      // Si falla (permisos, etc.), seguimos — el watcher igual detecta
-      // el archivo cuando el runner lo cree.
+      // Si falla (permisos, etc.) se sigue; el watcher detecta el archivo cuando el runner lo cree
     }
   }
 
@@ -160,7 +104,7 @@ export function spawnCodegen(
       try {
         rmSync(storageStatePath, { force: true });
       } catch {
-        // ignore
+        // ignorar
       }
       storageStatePath = undefined;
     }
@@ -184,8 +128,7 @@ export function spawnCodegen(
     ...(storageStatePath ? ["--storage-state", storageStatePath] : []),
   ];
 
-  // `node --import tsx <runner>` es la misma forma en que arrancan
-  // `scripts/worker.ts` y `scripts/recorder-worker.ts`.
+  // `node --import tsx <runner>`, igual que scripts/recorder-worker.ts
   const bin = options.overrideBin ?? process.execPath;
   const args =
     options.overrideBin !== undefined
@@ -193,9 +136,7 @@ export function spawnCodegen(
       : ["--import", "tsx", resolveRunnerPath(), ...runnerArgs];
 
   const proc: ChildProcess = spawn(bin, args, {
-    // stdin abierto para la parada ordenada; stdout para los eventos del
-    // runner; stderr heredado para que los errores se vean en el log del
-    // worker.
+    // stdin abierto para la parada ordenada, stdout para eventos del runner, stderr heredado para el log
     stdio: ["pipe", "pipe", "inherit"],
     detached: false,
     cwd: process.cwd(),
@@ -222,8 +163,7 @@ export function spawnCodegen(
   const readyTimer = setTimeout(() => resolveReady(false), READY_TIMEOUT_MS);
   readyTimer.unref?.();
 
-  // El runner emite una línea JSON por evento. Solo nos interesa `ready`;
-  // el resto se registra para diagnóstico.
+  // El runner emite una línea JSON por evento; solo importa `ready`, el resto se registra
   let stdoutBuffer = "";
   proc.stdout?.on("data", (chunk: Buffer) => {
     stdoutBuffer += chunk.toString("utf8");
@@ -263,10 +203,7 @@ export function spawnCodegen(
         if (stopping) return resolvePromise();
         stopping = true;
         if (proc.exitCode !== null) {
-          // El proceso ya había terminado por su cuenta (ej. el usuario
-          // cerró la ventana del navegador) antes de que se pidiera kill().
-          // Sin este cleanup, el storage-state temporal quedaba huérfano
-          // en disco para siempre.
+          // El proceso ya había terminado solo antes de kill(); sin este cleanup el storage-state temporal quedaba huérfano
           cleanupStorageState();
           return resolvePromise();
         }
@@ -279,13 +216,11 @@ export function spawnCodegen(
           resolvePromise();
         };
 
-        // Parada ordenada por stdin. En Windows las señales terminan el
-        // proceso sin ejecutar sus manejadores, así que el volcado final
-        // del runner no puede depender de ellas.
+        // Parada ordenada por stdin: en Windows las señales matan el proceso sin ejecutar sus manejadores
         try {
           proc.stdin?.write("stop\n");
         } catch {
-          // stdin ya cerrado — se cae al camino de la señal.
+          // stdin ya cerrado: se cae al camino de la señal
         }
 
         const forceTimer = setTimeout(() => {
@@ -293,14 +228,14 @@ export function spawnCodegen(
             try {
               proc.kill("SIGTERM");
             } catch {
-              // ignore
+              // ignorar
             }
             setTimeout(() => {
               if (proc.exitCode === null) {
                 try {
                   proc.kill("SIGKILL");
                 } catch {
-                  // ignore
+                  // ignorar
                 }
               }
               cleanupStorageState();

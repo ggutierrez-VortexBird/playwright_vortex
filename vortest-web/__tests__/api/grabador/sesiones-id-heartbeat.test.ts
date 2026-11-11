@@ -1,17 +1,4 @@
-/**
- * Integration test: POST /api/grabador/sesiones/[id]/heartbeat
- *
- * Covers HU-G2 — heartbeat HTTP fallback so the browser can keep the
- * session alive even when the WS is down.
- *
- * Cases:
- *   - 401 sin sesión
- *   - 200 happy path → {ok: true, ttl: 600}
- *   - 404 sesión inexistente
- *   - 403 sesión de otro usuario
- *   - 409 sesión no activa (estado != 'activa')
- *   - Persiste updatedAt (refresca el timestamp para cleanupOrphans)
- */
+// POST /api/grabador/sesiones/[id]/heartbeat: respaldo HTTP para mantener viva la sesión sin WS.
 
 import { POST } from "@/app/api/grabador/sesiones/[id]/heartbeat/route";
 import { getSession } from "@/lib/auth";
@@ -84,7 +71,7 @@ describe("POST /api/grabador/sesiones/[id]/heartbeat", () => {
     const data = await res.json();
     expect(data).toEqual({ ok: true, ttl: 600 });
 
-    // UpdatedAt is refreshed (Date object = "now")
+    // updatedAt se refresca con la fecha actual
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     const updateArgs = mockUpdate.mock.calls[0][0];
     expect(updateArgs.where.id).toBe("ses-1");

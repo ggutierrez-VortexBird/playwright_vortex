@@ -1,8 +1,4 @@
-// src/queue/events-publisher.module.ts
-// Módulo hoja (sin dependencias de ExecutionModule) que expone
-// EventsPublisherService, para que ExecutionModule pueda importarlo sin
-// crear un ciclo con QueueModule (que sí depende de ExecutionModule para
-// el consumidor de trabajos).
+// Módulo hoja que expone EventsPublisherService sin crear ciclo con QueueModule
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ClientsModule, Transport } from '@nestjs/microservices'

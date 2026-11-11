@@ -1,22 +1,4 @@
-// lib/worker/artifacts.ts
-// Motor Fase 1: sobrevive SOLO la mitad de escritura en DB. El escaneo del
-// directorio de salida de Playwright + el cómputo de SHA256 ahora viven en
-// vortest-engine/src/artifacts/artifacts.service.ts (el motor sube cada
-// archivo por HTTP en vez de moverlo localmente con fs.renameSync).
-//
-// `ensureArtefacto` ya NO calcula el hash desde un archivo local — lo recibe
-// ya calculado (por el motor) como parámetro, vía el multipart POST que
-// atiende app/api/internal/artefactos/upload/route.ts. Dedup por
-// sha256+ejecucionId, igual que el `ensureArtefacto` original de
-// lib/worker/runner.ts.
-//
-// `linkCaptureToSubaccion`/`linkCaptureToSubaccionAuto` son un port
-// verbatim de la heurística de matching por nombre de archivo que tenía
-// `collectArtifacts` (ahora eliminado) — antes se disparaban durante un
-// barrido de filesystem local; ahora las dispara
-// scripts/execution-consumer.ts al recibir el evento `end`, a partir del
-// array `artefactos: CollectedArtifactRef[]` que el motor ya subió y
-// referenció (ver EndEventPayload en vortest-engine/src/queue/events.publisher.ts).
+// Escritura en DB de los artefactos que sube el motor (hash ya calculado, dedup por sha256+ejecucionId) y su vinculación a pasos al recibir el evento `end`.
 import { prisma } from '@/lib/db'
 import { ArtefactoTipo, type Prisma } from '@prisma/client'
 
@@ -24,7 +6,7 @@ export interface EnsureArtefactoParams {
   ejecucionId: string
   tipo: ArtefactoTipo
   nombre: string
-  /** Path local donde vortest-web ya escribió el archivo subido (storage/artefactos/<ejecucionId>/<fileName>). */
+  /** Ruta local del archivo subido (storage/artefactos/<ejecucionId>/<fileName>). */
   path: string
   sha256: string
   bytes: number
@@ -36,12 +18,7 @@ export interface EnsureArtefactoResult {
   deduplicated: boolean
 }
 
-/**
- * Asegura que existe un Artefacto para el (ejecucionId, sha256) dado.
- * Si ya existe (subida repetida — el motor reintenta hasta 3 veces y puede
- * volver a subir el mismo archivo, o el mismo asset se referencia dos veces
- * por eventos distintos), retorna el id existente sin duplicar la fila.
- */
+/** Asegura el Artefacto de (ejecucionId, sha256); si ya existe (reintentos del motor), devuelve su id. */
 export async function ensureArtefacto(params: EnsureArtefactoParams): Promise<EnsureArtefactoResult> {
   const { ejecucionId, tipo, nombre, path, sha256, bytes, metadata } = params
 
@@ -67,11 +44,7 @@ export async function ensureArtefacto(params: EnsureArtefactoParams): Promise<En
   return { artefactoId: artefacto.id, deduplicated: false }
 }
 
-/**
- * Vincula una captura explícita (con fase detectada — toHaveScreenshot
- * naming) al primer PasoSubaccion del paso indicado. Port verbatim de la
- * función homónima que vivía en `collectArtifacts`.
- */
+/** Vincula una captura explícita (con fase detectada) al primer PasoSubaccion del paso. */
 export async function linkCaptureToSubaccion(
   ejecucionId: string,
   pasoEjecucionId: string,
@@ -99,12 +72,7 @@ export async function linkCaptureToSubaccion(
   }
 }
 
-/**
- * Vincula una captura automática (screenshot automático de Playwright, sin
- * sufijo "actual"/"expected") al primer substep del paso que aún no tenga
- * una captura asignada. Port verbatim de la función homónima que vivía en
- * `collectArtifacts`.
- */
+/** Vincula una captura automática al primer substep del paso que aún no tenga captura. */
 export async function linkCaptureToSubaccionAuto(
   ejecucionId: string,
   pasoEjecucionId: string,
@@ -129,21 +97,14 @@ export async function linkCaptureToSubaccionAuto(
   }
 }
 
-/** Forma mínima del `CollectedArtifactRef` del motor que este módulo necesita. */
+/** Forma mínima del `CollectedArtifactRef` del motor que necesita este módulo. */
 export interface CollectedArtifactRefLite {
   artefactoId: string
   pasoNumero?: number | null
   phase?: 'captura-actual' | 'captura-referencia' | null
 }
 
-/**
- * Vincula una captura de nivel test (`captura-test` — screenshot:'on' de
- * Playwright, no atada a un substep específico por el reporter) al ÚLTIMO
- * substep sin captura del paso — es decir, la acción real que estaba
- * corriendo cuando Playwright la tomó. No sobrescribe capturas ya
- * existentes. Port verbatim de `handleCapturaTestEvent` (la mitad de DB) del
- * runner.ts original.
- */
+/** Vincula una captura de nivel test (`captura-test`) al último substep sin captura del paso; no sobrescribe las existentes. */
 export async function linkCapturaTestToLastSubaccion(
   ejecucionId: string,
   pasoNumero: number,
@@ -165,10 +126,7 @@ export async function linkCapturaTestToLastSubaccion(
     return
   }
 
-  // Si el motor envía `substepNumero`, la referencia es directa e
-  // idempotente (una reentrega reescribe el MISMO subpaso). Si no viene
-  // (motor viejo), se mantiene la heurística posicional: el último subpaso
-  // sin captura — que NO es idempotente ante reentregas.
+  // Con `substepNumero` la referencia es directa e idempotente; sin él (motor viejo) se usa el último subpaso sin captura, que no es idempotente.
   const subaccion =
     substepNumero !== null && substepNumero !== undefined
       ? await prisma.pasoSubaccion
@@ -203,19 +161,12 @@ export async function linkCapturaTestToLastSubaccion(
   })
 }
 
-/**
- * Orquesta la vinculación de TODOS los artefactos recolectados por el motor
- * en el barrido post-ejecución (`EndEventPayload.artefactos`). Reemplaza el
- * bucle final de `collectArtifacts`: por cada referencia, resuelve el
- * PasoEjecucion por número y aplica la heurística fase-explícita vs.
- * automática.
- */
+/** Vincula todos los artefactos recolectados por el motor (`EndEventPayload.artefactos`) a sus pasos. */
 export async function linkCollectedArtifacts(
   ejecucionId: string,
   artefactos: CollectedArtifactRefLite[]
 ): Promise<void> {
-  // [REN-04] Una sola query para todos los pasos referenciados (antes: un
-  // findUnique por artefacto).
+  // Una sola query para todos los pasos referenciados (en vez de un findUnique por artefacto)
   const numeros = [
     ...new Set(
       artefactos.map((r) => r.pasoNumero).filter((n): n is number => n !== null && n !== undefined)

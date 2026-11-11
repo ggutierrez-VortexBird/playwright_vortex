@@ -1,7 +1,4 @@
-// __tests__/app/api/ejecuciones/[id]/acta/route.test.ts
-// HU-G19 — tests para POST /api/ejecuciones/[id]/acta
-//
-// Mockeamos Prisma y Playwright para no requerir browser real.
+// POST /api/ejecuciones/[id]/acta, con Prisma y Playwright mockeados.
 
 import { POST } from "@/app/api/ejecuciones/[id]/acta/route";
 
@@ -50,7 +47,7 @@ jest.mock("@/lib/db", () => ({
   },
 }));
 
-// Mock renderActaToPdf para no lanzar Chromium real
+// Evita lanzar Chromium real
 jest.mock("@/lib/acta/render-pdf", () => {
   const actual = jest.requireActual("@/lib/acta/render-pdf");
   return {
@@ -77,10 +74,7 @@ describe("POST /api/ejecuciones/[id]/acta", () => {
 
   it("retorna 403 si el usuario no tiene acceso al proyecto", async () => {
     mockGetSession.mockResolvedValue({ userId: "user-1" });
-    // La ejecución existe (se necesita su proyectoId para el guard), pero el
-    // usuario no tiene acceso — reject con un Error "FORBIDDEN" — el route
-    // handler matchea por mensaje (porque en tests el sentinel mockeado es
-    // una instancia distinta).
+    // La ejecución existe pero el usuario no tiene acceso (la ruta compara el error por mensaje).
     mockFindUniqueEjecucion.mockResolvedValue({
       id: "ejec-1",
       casoPrueba: { proyectoId: "proyecto-1" },
@@ -229,7 +223,7 @@ describe("POST /api/ejecuciones/[id]/acta", () => {
     mockActaFindUnique.mockResolvedValue(null);
     mockConsecutivoUpsert.mockResolvedValue({ anio: 2026, ultimo: 1 });
 
-    // Override the render mock to throw
+    // El mock de render falla
     const { renderActaToPdf } = jest.requireMock("@/lib/acta/render-pdf");
     (renderActaToPdf as jest.Mock).mockRejectedValueOnce(new Error("chrome crashed"));
 

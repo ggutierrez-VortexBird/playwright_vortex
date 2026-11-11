@@ -1,6 +1,3 @@
-/**
- * Tests for components/ui/logo.tsx.
- */
 import { render, screen } from "@testing-library/react";
 import { Logo } from "@/components/ui/logo";
 

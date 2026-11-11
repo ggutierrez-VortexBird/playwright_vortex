@@ -1,9 +1,4 @@
-/**
- * Tests for the decrypt helper that parses JSON in one call.
- *
- * The recorder-worker receives ciphertext → calls decryptCredencialJson()
- * to get the parsed storageState object directly (no separate JSON.parse step).
- */
+// decryptCredencialJson descifra y parsea el JSON en un solo paso.
 
 import { encryptCredencial } from "@/lib/credenciales/crypto";
 import { decryptCredencialJson } from "@/lib/credenciales/decrypt";
@@ -24,12 +19,12 @@ describe("credenciales/decrypt — JSON helper", () => {
   it("returns null/undefined for non-object JSON (array case)", () => {
     const ciphertext = encryptCredencial(JSON.stringify([1, 2, 3]));
     const result = decryptCredencialJson(ciphertext);
-    // Arrays parse OK but we explicitly reject non-objects
+    // Los arrays parsean pero se rechazan los no-objetos
     expect(result).toBeNull();
   });
 
   it("returns null when JSON is invalid", () => {
-    // Encrypt invalid JSON
+    // Se cifra un JSON inválido
     const ciphertext = encryptCredencial("{not valid json");
     const result = decryptCredencialJson(ciphertext);
     expect(result).toBeNull();

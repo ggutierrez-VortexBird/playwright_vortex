@@ -1,10 +1,4 @@
-/**
- * Helper de descifrado + JSON.parse en una sola llamada.
- * Usado por el recorder-worker para obtener el storageState desde una Credencial.
- *
- * Retorna null si el ciphertext es inválido, el JSON no parsea, o el resultado
- * no es un objeto (no aceptamos arrays/primitives como storageState).
- */
+/** Descifra y parsea el storageState de una Credencial; devuelve null si es inválido o no es un objeto. */
 import { decryptCredencial } from "./crypto";
 
 export function decryptCredencialJson<T = unknown>(ciphertext: Buffer): T | null {

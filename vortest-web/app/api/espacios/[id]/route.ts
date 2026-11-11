@@ -21,8 +21,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   try {
-    // Igual que el flujo /espacios/[id]/proyectos: solo superadmin o el
-    // admin de este espacio pueden ver su detalle vía API.
+    // Solo superadmin o admin del espacio pueden ver el detalle.
     await requireEspacioAdmin(session, id);
     const espacio = await getEspacioById(id);
     if (!espacio) {

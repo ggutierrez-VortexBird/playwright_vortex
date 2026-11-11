@@ -3,12 +3,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import type { SessionData } from "@/lib/auth";
 import { getUsuarioActual } from "@/lib/auth";
 
-/**
- * Acciones de autogestión de cuenta: a diferencia de `lib/usuarios/actions.ts`
- * (que gestiona a OTROS usuarios y requiere rol admin/superadmin), estas
- * funciones operan siempre sobre `session.userId` — nunca reciben un `id` de
- * la URL, así que no necesitan guard de rol.
- */
+/** Acciones de autogestión de cuenta: operan siempre sobre `session.userId`, sin guard de rol. */
 
 export async function actualizarNombrePropio(nombre: string, session: SessionData) {
   const actor = await getUsuarioActual(session);

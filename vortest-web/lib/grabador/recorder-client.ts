@@ -1,16 +1,4 @@
-/**
- * recorder-client.ts — cliente HTTP para hablarle al recorder-worker.
- *
- * V2 (Pivot playwright-codegen): el endpoint /internal/start ahora spawn
- * un subprocess en lugar de lanzar Chromium. El contrato desde el lado
- * Next.js es idéntico: { sessionId, userId, urlInicial, navegador } →
- * 200 { token, wsUrl, specPath } o 503 { error: 'MAX_SESSIONS_REACHED' }.
- *
- * IMPORTANTE: el worker habla HTTP en el mismo puerto que WS, así que la
- * base URL HTTP se deriva de `RECORDER_WS_PORT`. NO se usa
- * `RECORDER_PUBLIC_URL` (que es `ws://...`) porque `fetch` no entiende
- * el esquema `ws://` y se rechaza con "fetch failed".
- */
+/** Cliente HTTP del recorder-worker; la base URL se deriva de `RECORDER_WS_PORT` (no de `RECORDER_PUBLIC_URL`, que es `ws://` y fetch lo rechaza). */
 
 function defaultRecorderHttpUrl(): string {
   const port = process.env.RECORDER_WS_PORT ?? "3100";
@@ -36,7 +24,7 @@ export interface CallInternalStartOptions {
   userId: string;
   urlInicial: string;
   navegador?: string;
-  /** Optional storageState — V2 ahora lo aplica al contexto del codegen. */
+  /** storageState opcional, aplicado al contexto del codegen. */
   storageState?: unknown;
 }
 
@@ -56,8 +44,7 @@ export async function callInternalStart(
     );
   }
   const baseUrl = defaultRecorderHttpUrl();
-  // Defensivo: nunca usar esquema `ws://` para fetch HTTP. Si por algún
-  // cambio de env var esto se cuela, fallamos temprano con mensaje claro.
+  // Nunca usar `ws://` con fetch; si se cuela por la variable de entorno, falla temprano con mensaje claro.
   if (baseUrl.startsWith("ws://") || baseUrl.startsWith("wss://")) {
     throw new RecorderUnavailableError(
       `RECORDER_INTERNAL_URL/RECORDER_PUBLIC_URL apunta a ${baseUrl}; se necesita http(s):// para el endpoint interno. Ajustá la env var.`,
@@ -65,9 +52,7 @@ export async function callInternalStart(
   }
   let res: Response;
   try {
-    // Timeout cross-runtime: `AbortSignal.timeout` existe en Node 18+
-    // pero NO está garantizado en jsdom (tests). Usamos un
-    // AbortController + setTimeout manual que funciona en ambos.
+    // Timeout multi-runtime: AbortSignal.timeout no está garantizado en jsdom, así que se usa AbortController + setTimeout.
     const ac = new AbortController();
     const timeoutMs = 30_000;
     const timer = setTimeout(() => ac.abort(), timeoutMs);
@@ -91,10 +76,7 @@ export async function callInternalStart(
       clearTimeout(timer);
     }
   } catch (err: unknown) {
-    // Logueamos el error COMPLETO (incluyendo cause) en el servidor para
-    // diagnosticar problemas de red sin esconder el motivo tras un
-    // mensaje genérico. La excepción que se devuelve al cliente sigue
-    // siendo chica, pero en consola (Vortexbird logs) queda el detalle.
+    // Se loguea el error completo (con cause) en el servidor; al cliente solo llega un mensaje genérico.
     if (err instanceof Error) {
       console.error(
         `[recorder-client] fetch to ${baseUrl}/internal/start failed:`,

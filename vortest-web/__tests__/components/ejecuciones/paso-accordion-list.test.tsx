@@ -1,6 +1,3 @@
-// __tests__/components/ejecuciones/paso-accordion-list.test.tsx
-// TDD RED/GREEN/TRIANGULATE for HU-4.5 PasoAccordionList + fix sub-pasos dentro panel
-
 import { render, cleanup, screen, fireEvent } from "@testing-library/react";
 import { PasoAccordionList } from "@/components/ejecuciones/paso-accordion-list";
 
@@ -104,9 +101,7 @@ describe("PasoAccordionList", () => {
     expect(buttons[1]).toHaveAttribute("aria-expanded", "false");
   });
 
-  // ============================================================
-  // FIX HU-4.5: sub-pasos dentro del panel
-  // ============================================================
+  // Sub-pasos dentro del panel
 
   it("does not render sub-pasos outside the panel anymore", () => {
     const pasos = makePasosConSubs("paso-1", [
@@ -145,7 +140,7 @@ describe("PasoAccordionList", () => {
       ],
     }];
     render(<PasoAccordionList pasos={pasos as any} />);
-    // Paso 1 ya está expandido por default; clickeamos sub-2 para expandirlo
+    // El paso 1 ya está expandido: se expande sub-2
     const subs = screen.getAllByTestId("subaccion-item");
     const sub2Button = subs[1].querySelector("button")!;
     fireEvent.click(sub2Button);

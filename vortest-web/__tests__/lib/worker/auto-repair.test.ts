@@ -1,15 +1,4 @@
-/**
- * Tests for lib/worker/auto-repair.ts (HU-G15).
- *
- * Verifies:
- *   - tryWithReparacionTs returns the principal result on first try.
- *   - tryWithReparacionTs falls back to respaldos when the principal fails.
- *   - tryWithReparacionTs sets selfHealed=true when usedIndex > 0.
- *   - tryWithReparacionTs sets detalleReparacion="se usó respaldo por <strategy>".
- *   - tryWithReparacionTs returns ok=false when all candidates fail.
- *   - countReparadosFromPasos counts only selfHealed=true.
- *   - The injected JS source contains the expected function structure.
- */
+// tryWithReparacionTs usa los respaldos si falla el principal y marca selfHealed; countReparadosFromPasos cuenta los reparados.
 
 import {
   tryWithReparacionTs,
@@ -18,11 +7,7 @@ import {
   type SelectorCandidate,
 } from "@/lib/worker/auto-repair";
 
-/**
- * Mock page that delegates every strategy's click/fill to ONE function
- * so we can simulate "fail first N calls, succeed on N+1" without
- * distinguishing which strategy was used.
- */
+// Mock de page que delega cada estrategia en una función: permite simular "fallan N llamadas y la N+1 funciona".
 function mockPageWithCounter(
   counter: { calls: number; failFirst: number; value?: unknown },
 ): any {
@@ -46,7 +31,7 @@ function mockPageWithCounter(
   };
 }
 
-describe("tryWithReparacionTs — HU-G15", () => {
+describe("tryWithReparacionTs", () => {
   it("returns the principal result on first try (usedIndex=0, selfHealed=false)", async () => {
     const counter = { calls: 0, failFirst: 0, value: "ok" };
     const page = mockPageWithCounter(counter);
@@ -83,7 +68,7 @@ describe("tryWithReparacionTs — HU-G15", () => {
   });
 
   it("returns ok=false when all candidates fail", async () => {
-    const counter = { calls: 0, failFirst: 99 }; // always fail
+    const counter = { calls: 0, failFirst: 99 }; // siempre falla
     const page = mockPageWithCounter(counter);
     const candidates: SelectorCandidate[] = [
       { strategy: "testid", value: "x" },
@@ -171,7 +156,7 @@ describe("tryWithReparacionTs — HU-G15", () => {
   });
 });
 
-describe("countReparadosFromPasos — HU-G15", () => {
+describe("countReparadosFromPasos", () => {
   it("returns 0 when no selfHealed steps", () => {
     expect(
       countReparadosFromPasos([
@@ -197,7 +182,7 @@ describe("countReparadosFromPasos — HU-G15", () => {
   });
 });
 
-describe("TRY_WITH_REPARACION_SOURCE — HU-G15", () => {
+describe("TRY_WITH_REPARACION_SOURCE", () => {
   it("contains the expected function declaration", () => {
     expect(TRY_WITH_REPARACION_SOURCE).toContain("async function tryWithReparacion");
   });

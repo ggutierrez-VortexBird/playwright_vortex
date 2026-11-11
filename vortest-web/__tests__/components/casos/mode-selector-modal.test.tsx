@@ -1,20 +1,7 @@
-/**
- * Tests for components/casos/mode-selector-modal.tsx (HU-G20).
- *
- * Cubre:
- *   - Renderiza título y 2 tarjetas (Grabar / Subir) cuando open=true.
- *   - No renderiza cuando open=false.
- *   - Ninguna tarjeta aparece preseleccionada (sin estilos "activos" fijos).
- *   - "Subir Script" embebe el CreateCasoForm en el mismo modal (sin cerrar ni navegar).
- *   - "Grabar Acción" embebe el flujo de grabación en el mismo modal (sin navegar).
- *   - El botón "Volver" del paso 2 regresa al paso 1 sin cerrar el modal.
- *   - Cancelar / Escape / click-outside cierra el modal.
- */
-
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ModeSelectorModal } from "@/components/casos/mode-selector-modal";
 
-// Mock next/navigation router
+// Mock del router de next/navigation
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -29,7 +16,7 @@ beforeEach(() => {
   ) as jest.Mock;
 });
 
-describe("ModeSelectorModal (HU-G20)", () => {
+describe("ModeSelectorModal", () => {
   it("no renderiza nada cuando open=false", () => {
     render(
       <ModeSelectorModal open={false} onClose={jest.fn()} />,
@@ -48,7 +35,6 @@ describe("ModeSelectorModal (HU-G20)", () => {
       }),
     ).toBeInTheDocument();
 
-    // Las 2 tarjetas
     const grabarCard = screen.getByTestId("mode-selector-card-grabar");
     const subirCard = screen.getByTestId("mode-selector-card-subir");
     expect(grabarCard).toBeInTheDocument();
@@ -56,13 +42,11 @@ describe("ModeSelectorModal (HU-G20)", () => {
     expect(screen.getByText("Grabar acción (No-Code)")).toBeInTheDocument();
     expect(screen.getByText("Subir Script Playwright")).toBeInTheDocument();
 
-    // Ninguna tarjeta debe verse "preseleccionada" (mismas clases base para ambas)
+    // Ninguna tarjeta debe verse preseleccionada (mismas clases base)
     expect(grabarCard.className).toBe(subirCard.className);
 
-    // Cancelar
     expect(screen.getByTestId("mode-selector-cancel")).toBeInTheDocument();
 
-    // No hay botón "Volver" en el paso 1
     expect(screen.queryByTestId("mode-selector-back")).not.toBeInTheDocument();
   });
 

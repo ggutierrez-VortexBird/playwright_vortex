@@ -1,33 +1,4 @@
-/**
- * GET /api/casos/[id]/juego-de-datos
- *
- * Lista los JuegoDeDatos del caso (el más reciente primero).
- *
- * Responses:
- *   - 200 { juegos: [{ id, nombreArchivo, filas, createdAt }] }
- *   - 401 { error: 'No autenticado' }
- *   - 404 { error: 'not_found' }
- *
- * POST /api/casos/[id]/juego-de-datos
- *
- * Sube un CSV data-driven (HU-G13).
- *
- * Body: multipart/form-data con campo `archivo` (text/csv).
- *
- * Validación:
- *   - Las columnas del CSV deben matchear EXACTAMENTE los nombres de
- *     ParametroGrabacion del caso (error claro si falta/sobra).
- *   - Header row obligatorio.
- *
- * Reemplaza el juego de datos anterior (1-a-1 con CasoPrueba en MVP;
- * si hay varios, los borramos todos antes de crear el nuevo).
- *
- * Responses:
- *   - 201 { juego: { id, nombreArchivo, filas, createdAt }, headers, previewRows }
- *   - 400 { error: 'validation', message } / { error: 'csv_validation', errors, message }
- *   - 401 { error: 'No autenticado' }
- *   - 404 { error: 'not_found' }
- */
+/** GET lista los juegos de datos del caso; POST sube un CSV (columnas = parámetros) que reemplaza el anterior. */
 
 import { NextResponse } from "next/server";
 import { getSession, requireProyectoAccess } from "@/lib/auth";
@@ -74,7 +45,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   return NextResponse.json({ juegos });
 }
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB MVP
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 export async function POST(request: Request, { params }: RouteParams) {
   const session = await getSession();
@@ -133,7 +104,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const texto = await archivo.text();
   const nombreArchivo = archivo.name || "data.csv";
 
-  // Load param names for validation.
+  // Nombres de parámetros para validar.
   const parametros = await prisma.parametroGrabacion.findMany({
     where: { casoPruebaId },
     select: { nombre: true },
@@ -160,7 +131,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Replace any existing juego de datos (1-a-1 in MVP).
+  // Reemplaza el juego de datos existente (1 a 1).
   await prisma.juegoDeDatos.deleteMany({ where: { casoPruebaId } });
 
   const juego = await prisma.juegoDeDatos.create({

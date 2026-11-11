@@ -9,10 +9,7 @@ interface SwitchProps {
   "aria-label"?: string;
 }
 
-/**
- * Switch on/off basado en Radix (primitivo accesible y probado), en vez de
- * un botón hand-rolled — usar este para cualquier toggle nuevo.
- */
+/** Switch on/off basado en Radix; usar para cualquier toggle nuevo. */
 export function Switch({ checked, onCheckedChange, id, "aria-label": ariaLabel }: SwitchProps) {
   return (
     <SwitchPrimitive.Root

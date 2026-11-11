@@ -1,6 +1,3 @@
-// __tests__/lib/acta/render-pdf.test.ts
-// HU-G19 — tests para el renderizado de PDF (con mocks de Playwright).
-
 import { renderActaToPdf } from "@/lib/acta/render-pdf";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -10,7 +7,7 @@ describe("renderActaToPdf", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "acta-test-"));
 
   afterAll(() => {
-    // best-effort cleanup
+    // Limpieza best-effort
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     } catch {

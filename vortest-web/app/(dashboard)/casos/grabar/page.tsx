@@ -10,21 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 
 export const metadata: Metadata = { title: "Grabador" };
-/**
- * HU-GR-1 — Página /casos/grabar
- *
- * Lista las sesiones de grabación del usuario actual en estados
- * recuperables (activa, pausada, detenida, guardada, error), ordenadas
- * por último update. Desde acá el usuario puede revisar los pasos
- * capturados o descartar una sesión que ya no le sirve.
- *
- * "Reanudar" (HU-GR-2) existió acá pero se retiró: asumía que el
- * BrowserContext del recorder-worker seguía vivo tras detener, esperando
- * una reconexión. El grabador sin ventana de Inspector (codegen-runner)
- * cierra siempre el proceso al detener — no queda nada a lo que
- * reconectarse. "Revisar pasos capturados" es la vía real de
- * recuperación: lee el specCode ya persistido en DB.
- */
+/** Lista las sesiones de grabación recuperables del usuario. */
 
 interface PageProps {
   searchParams: Promise<{ proyectoId?: string }>;
@@ -70,8 +56,7 @@ export default async function SesionesRecuperablesPage({ searchParams }: PagePro
 
   const sesionesView = sesiones.map(({ specCode, ...s }) => ({
     ...s,
-    // El grabador actual no escribe PasoGrabado — contar pasos reales
-    // parseando el specCode, igual que hace el panel de "Revisar".
+    // Cuenta los pasos parseando el specCode, como el panel de Revisar.
     pasosCount: parseSpecToSteps(specCode ?? "").length,
     startedAt: s.startedAt ? s.startedAt.toISOString() : null,
     endedAt: s.endedAt ? s.endedAt.toISOString() : null,

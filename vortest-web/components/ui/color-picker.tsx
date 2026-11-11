@@ -63,7 +63,6 @@ export function ColorPicker({
           );
         })}
 
-        {/* Custom color picker */}
         <div className="relative">
           <button
             type="button"

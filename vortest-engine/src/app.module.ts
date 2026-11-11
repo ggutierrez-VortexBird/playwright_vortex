@@ -11,16 +11,7 @@ import { QueueModule } from './queue/queue.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Falla rápido en el arranque si falta configuración crítica — mismo
-      // principio que la regla devops-use-config-module de la skill
-      // nestjs-best-practices: nunca leer process.env directo y descubrir
-      // un undefined en producción a mitad de una ejecución.
-      // RABBITMQ_URL / ENGINE_INTERNAL_SECRET / MAIN_APP_INTERNAL_URL ya
-      // estaban requeridas desde la Parte 1 — no se duplican acá.
-      //
-      // Migrado de Joi a Zod en NestJS 12: NestJS 12 espera un validador
-      // compatible con StandardSchemaV1; Joi v17 no lo satisface sin adapter.
-      // Zod es el estándar interno del proyecto (vortest-web ya lo usa).
+      // Falla rápido si falta configuración crítica
       validate: () => parsedEnv,
     }),
     HealthModule,

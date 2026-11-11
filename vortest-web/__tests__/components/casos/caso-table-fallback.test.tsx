@@ -1,9 +1,4 @@
-// __tests__/components/casos/caso-table-fallback.test.tsx
-// RED test — for the crash fix in components/casos/caso-table.tsx
-//
-// getEstadoPill() has a closed map of 5 states, but returns undefined for any
-// other value. Reading .classes on the undefined result crashes the table.
-// This test verifies the fallback path keeps the row renderable.
+// getEstadoPill devuelve undefined para estados desconocidos: la fila debe seguir renderizando.
 
 import { render } from "@testing-library/react";
 import { CasoTable } from "@/components/casos/caso-table";
@@ -22,8 +17,7 @@ describe("CasoTable — fallback when estado is not in the pill map", () => {
       responsableEmail: "x@y.z",
       parentCaseId: null,
       parentCaseCodigo: null,
-      // Bypass the discriminated-union guard so we can simulate an
-      // unexpected estado value coming through from the API/DB.
+      // Se evita el tipo unión para simular un estado inesperado desde la API.
       estado: "pendiente" as CasoPruebaListItem["estado"],
       origen: "subirScript",
       activo: true,

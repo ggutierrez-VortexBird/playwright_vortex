@@ -1,12 +1,6 @@
 "use client";
 
-/**
- * Gestión de espacios que administra un usuario — la contraparte
- * usuario-céntrica de `components/espacios/admins-dialog.tsx` (que es
- * espacio-céntrica). Solo aplica a usuarios con rol admin. Reemplaza el
- * conjunto completo de espacios asignados de una sola vez (checklist +
- * Guardar), a diferencia de AdminsDialog que asigna/quita de a uno.
- */
+/** Gestiona los espacios que administra un usuario admin: reemplaza el conjunto completo (checklist + Guardar). */
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";

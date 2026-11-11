@@ -1,10 +1,4 @@
-/**
- * Borrador de "Nueva grabación" que viaja por query string entre el
- * formulario (`NuevaGrabacionForm`) y la pantalla de arranque
- * (`/casos/grabar/preparar`). La sesión real (fila en BD + navegador
- * headed vía recorder-worker) recién se crea cuando el usuario confirma
- * el arranque en esa pantalla — no al enviar el formulario.
- */
+/** Borrador de "Nueva grabación" que viaja por query string hasta la pantalla de arranque; la sesión real se crea al confirmar allí. */
 export interface GrabacionDraft {
   proyectoId: string;
   nombre: string;

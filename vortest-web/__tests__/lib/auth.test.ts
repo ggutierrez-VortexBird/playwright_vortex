@@ -94,10 +94,7 @@ describe("auth", () => {
 
   describe("requireSuperadmin", () => {
     it("should throw 403 when userId is missing", async () => {
-      // `requireSuperadmin` lanza un marker error `FORBIDDEN_ERROR` (Error con
-      // message "FORBIDDEN") que los route handlers mapean a HTTP 403.
-      // Verificamos el marker, no el shape HTTP, porque ese shape solo lo
-      // produce la capa de route handler (lib/auth.ts solo lanza el marker).
+      // requireSuperadmin lanza el marker FORBIDDEN_ERROR; se verifica el marker, no el shape HTTP.
       await expect(requireSuperadmin({ userId: undefined, email: "" })).rejects.toThrow("FORBIDDEN");
     });
 

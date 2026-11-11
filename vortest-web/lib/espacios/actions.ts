@@ -3,11 +3,7 @@ import { requireSuperadmin, scopeEspacioWhere } from "@/lib/auth";
 import type { SessionData, UsuarioActual } from "@/lib/auth";
 import type { CreateEspacioInput, UpdateEspacioInput } from "@/types/espacio";
 
-/**
- * Lista Espacios activos. Si se pasa `usuario`, se filtra por su alcance
- * (superadmin: todos; admin: solo los que administra; tester: ninguno).
- * Sin `usuario` devuelve todos (uso interno/legacy).
- */
+/** Lista Espacios activos; con `usuario` filtra por su alcance, sin él devuelve todos. */
 // `null` = sesión sin usuario activo (borrado o desactivado): nunca listar sin filtro; `undefined` queda para usos internos sin alcance.
 export async function listEspacios(usuario?: UsuarioActual | null) {
   if (usuario === null) return [];
@@ -30,13 +26,7 @@ export interface EspacioMetrics {
   miembros: { id: string; email: string }[];
 }
 
-/**
- * Rollup de métricas por espacio para las cards de /espacios: proyectos,
- * casos, tasa de éxito agregada (basada en la última ejecución de cada
- * caso, igual criterio que getMetrics de proyectos) y miembros (admins
- * asignados vía UsuarioEspacio). Todo en un puñado de queries batched,
- * sin N+1 por espacio.
- */
+/** Métricas por espacio para las cards de /espacios, en pocas queries por lote (sin N+1). */
 export async function getEspaciosMetrics(espacioIds: string[]): Promise<Record<string, EspacioMetrics>> {
   const metrics: Record<string, EspacioMetrics> = {};
   for (const id of espacioIds) {
@@ -183,7 +173,7 @@ export async function deleteEspacio(id: string, session: SessionData) {
     throw { status: 404, body: { error: "not_found" } };
   }
 
-  // Check if there are any active proyectos for this espacio
+  // Verifica que no haya proyectos activos en el espacio
   const proyectosActivos = await prisma.proyecto.count({
     where: { espacioId: id, activo: true },
   });
@@ -200,10 +190,7 @@ export async function deleteEspacio(id: string, session: SessionData) {
   return { success: true };
 }
 
-/**
- * Asigna a un usuario (rol admin) como administrador de un Espacio.
- * Requiere superadmin.
- */
+/** Asigna a un usuario (rol admin) como administrador de un Espacio. Requiere superadmin. */
 export async function asignarAdminEspacio(espacioId: string, usuarioId: string, session: SessionData) {
   await requireSuperadmin(session);
 
@@ -229,9 +216,7 @@ export async function asignarAdminEspacio(espacioId: string, usuarioId: string, 
   return { success: true };
 }
 
-/**
- * Quita a un usuario como administrador de un Espacio. Requiere superadmin.
- */
+/** Quita a un administrador de un Espacio. Requiere superadmin. */
 export async function quitarAdminEspacio(espacioId: string, usuarioId: string, session: SessionData) {
   await requireSuperadmin(session);
 
@@ -242,9 +227,7 @@ export async function quitarAdminEspacio(espacioId: string, usuarioId: string, s
   return { success: true };
 }
 
-/**
- * Lista los admins asignados a un Espacio. Requiere superadmin.
- */
+/** Lista los admins asignados a un Espacio. Requiere superadmin. */
 export async function listAdminsEspacio(espacioId: string, session: SessionData) {
   await requireSuperadmin(session);
 

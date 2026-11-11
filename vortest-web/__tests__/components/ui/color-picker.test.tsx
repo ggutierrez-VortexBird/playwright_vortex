@@ -1,6 +1,3 @@
-/**
- * Tests for components/ui/color-picker.tsx.
- */
 import { render, cleanup, screen, fireEvent, within } from "@testing-library/react";
 import { ColorPicker } from "@/components/ui/color-picker";
 

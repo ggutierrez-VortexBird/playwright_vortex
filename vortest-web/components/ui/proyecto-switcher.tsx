@@ -18,15 +18,15 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
   const segments = useSelectedLayoutSegments();
   const { activeProject, setActiveProject } = useProject();
 
-  // Detect active proyecto from URL pattern: proyectos/[id]
+  // Detecta el proyecto activo desde la URL: proyectos/[id]
   const activeProyectoIdFromUrl = segments.length >= 2 && segments[0] === 'proyectos'
     ? segments[1]
     : undefined;
   
-  // Use context if available, otherwise fall back to URL detection
+  // Usa el contexto si existe, si no la URL
   const activeProyecto = activeProject ?? proyectos.find((p) => p.id === activeProyectoIdFromUrl);
 
-  // Sync context when URL changes (e.g., navigating via link)
+  // Sincroniza el contexto cuando cambia la URL
   useEffect(() => {
     if (activeProyectoIdFromUrl) {
       const proyecto = proyectos.find((p) => p.id === activeProyectoIdFromUrl);
@@ -36,14 +36,14 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
     }
   }, [activeProyectoIdFromUrl, proyectos, activeProject, setActiveProject]);
 
-  // Sync context with single project on mount
+  // Sincroniza el contexto si hay un solo proyecto
   useEffect(() => {
     if (proyectos.length === 1 && !activeProject) {
       setActiveProject(proyectos[0]);
     }
   }, [proyectos, activeProject, setActiveProject]);
 
-  // Single project: static header
+  // Un proyecto: encabezado estático
   if (proyectos.length === 1) {
     const proyecto = proyectos[0];
     return (
@@ -57,7 +57,7 @@ export function ProyectoSwitcher({ proyectos }: ProyectoSwitcherProps) {
     );
   }
 
-  // Multiple projects: dropdown
+  // Varios proyectos: desplegable
   return (
     <div className="relative">
       <button

@@ -62,8 +62,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
           Saltar al contenido
         </a>
         <div className="flex min-h-screen bg-m3-background">
-          {/* Rail — Material 3 dark sidebar (fase2/mockups/nuevo-caso-script.html).
-              lg: completo (sin cambios) · md: riel de solo iconos · <md: cajón. */}
+          {/* Rail lateral: completo en lg, solo iconos en md, cajón en móvil */}
           <ResponsiveSidebarShell>
             <div className="flex items-center justify-center px-5 py-6 md:px-2 lg:justify-start lg:px-5">
               <div className="md:hidden lg:block">
@@ -102,7 +101,6 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
             </div>
           </ResponsiveSidebarShell>
 
-          {/* Main — TopAppBar + body */}
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="sticky top-0 z-sticky flex min-h-16 flex-wrap items-center gap-3 border-b border-m3-outline-variant bg-m3-surface px-4 py-2 sm:gap-4 lg:px-6">
               <MobileMenuButton />

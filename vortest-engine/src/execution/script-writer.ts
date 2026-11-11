@@ -1,12 +1,4 @@
-// src/execution/script-writer.ts
-// Escribe `job.scriptText` (ya con el hook afterEach de storageState y el
-// templating de auto-reparación inyectados por vortest-web) a un archivo
-// temporal real en disco, porque el CLI de Playwright necesita un archivo.
-//
-// Este es solo el `fs.writeFile` real de vortest-web/lib/worker/script-temp.ts
-// — el templating del hook (`writeTempScript`'s storageStateHook string) se
-// queda en vortest-web, que ya lo concatena en `scriptText` antes de publicar
-// el job. El motor no genera texto de script, solo lo persiste a disco.
+// Escribe job.scriptText a un archivo temporal, porque el CLI de Playwright lo necesita en disco
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as crypto from 'crypto'
@@ -32,10 +24,7 @@ export async function cleanupTempScript(filePath: string): Promise<void> {
   }
 }
 
-/**
- * Limpia el directorio runtime/ejecuciones de archivos viejos (>1 hora) para
- * evitar acumulación de scripts huérfanos entre reinicios del motor.
- */
+/** Borra scripts de más de 1 hora en runtime/ejecuciones */
 export async function cleanupStaleScripts(maxAgeMs = 60 * 60 * 1000): Promise<void> {
   try {
     const files = await fs.readdir(RUNTIME_DIR)

@@ -1,11 +1,4 @@
-/**
- * Integration test: POST /api/grabador/sesiones
- *
- * - 401 sin sesión
- * - 201 con sesión + input válido (mockea la Server Action)
- * - 400 con JSON inválido
- * - Errors de la action se propagan correctamente
- */
+// POST /api/grabador/sesiones: auth, JSON inválido y propagación de errores de la action.
 
 import { POST } from "@/app/api/grabador/sesiones/route";
 import { getSession } from "@/lib/auth";
@@ -74,7 +67,6 @@ describe("POST /api/grabador/sesiones", () => {
     expect(data.token).toBe("abc");
     expect(data.wsUrl).toBe("ws://localhost:3100/?token=abc");
 
-    // Action fue invocada con el session object + input
     expect(iniciarSesionGrabacion).toHaveBeenCalledWith(
       validInput,
       expect.objectContaining({ userId: "user-1" }),

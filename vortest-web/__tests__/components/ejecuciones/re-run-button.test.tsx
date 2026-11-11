@@ -1,10 +1,4 @@
-/**
- * Tests for components/ejecuciones/re-run-button.tsx.
- *
- * El componente invoca `dispararEjecucion` (server action) y luego hace
- * router.push al detalle de la nueva ejecución. Como server actions no se
- * pueden ejecutar bajo jsdom, mockeamos directamente la acción.
- */
+// Se mockea dispararEjecucion (server action) y se verifica el router.push al detalle.
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ReRunButton } from "@/components/ejecuciones/re-run-button";
 

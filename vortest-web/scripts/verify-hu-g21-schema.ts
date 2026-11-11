@@ -1,16 +1,4 @@
-/**
- * scripts/verify-hu-g21-schema.ts
- *
- * Verifica que la migración HU-G21 está aplicada correctamente:
- * 1. CasoPrueba.origen existe y casos preexistentes tienen origen='subirScript'
- * 2. Los 4 modelos nuevos (SesionGrabacion, PasoGrabado, ParametroGrabacion, JuegoDeDatos) existen
- * 3. Las columnas nuevas en Ejecucion/PasoEjecucion son nullable
- * 4. CasoOrigen enum expone los 3 valores
- *
- * Ejecutar con: npx tsx scripts/verify-hu-g21-schema.ts
- *
- * Sale con código 0 si todo OK; código 1 si falla. Útil para CI/manual gate.
- */
+/** Verifica que la migración del grabador esté aplicada (origen, modelos nuevos, columnas nullable, enum CasoOrigen). Uso: npx tsx scripts/verify-hu-g21-schema.ts */
 import { CasoOrigen, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -31,7 +19,7 @@ function assert(condition: unknown, message: string): void {
 async function main(): Promise<void> {
   console.log("\n[verify-hu-g21-schema] Verificando migración HU-G21...\n");
 
-  // Test 1: CasoPrueba.origen existe y casos preexistentes tienen origen válido
+  // Test 1: CasoPrueba.origen existe y los casos previos tienen origen válido
   console.log("→ CasoPrueba.origen");
   const casos = await prisma.casoPrueba.findMany({
     select: { id: true, origen: true },
@@ -62,7 +50,7 @@ async function main(): Promise<void> {
     assert(Array.isArray(r), "JuegoDeDatos es accesible"),
   );
 
-  // Test 3: Crear y borrar una SesionGrabacion smoke (transacción)
+  // Test 3: crea y borra una SesionGrabacion de prueba (transacción)
   console.log("\n→ Transacción create+delete en SesionGrabacion");
   const user = await prisma.usuario.findFirst();
   const proyecto = await prisma.proyecto.findFirst();
@@ -99,7 +87,7 @@ async function main(): Promise<void> {
     select: { loteId: true },
     take: 1,
   });
-  // loteId puede ser null, undefined, o string; todos válidos para columna nullable
+  // loteId es nullable: null, undefined o string
   assert(
     ejec === null || ejec.loteId === null || typeof ejec.loteId === "string",
     "Ejecucion.loteId es nullable",

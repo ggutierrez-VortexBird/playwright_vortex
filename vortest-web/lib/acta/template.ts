@@ -1,22 +1,10 @@
-/**
- * HU-G19 — Plantilla HTML del acta de evidencia (PDF).
- *
- * Renderiza una página A4 con los datos de la ejecución:
- *   - Encabezado: caso, código, ambiente, navegador, sistema operativo
- *   - Resumen: resultado, duración, inicio/fin, aserciones
- *   - Lista de pasos con estado (conforme / no conforme)
- *   - Tabla de entorno
- *   - Sello "Conforme" o "No conforme" + consecutivo del acta
- *
- * Devuelve HTML listo para `page.setContent(html)` en Playwright.
- * Etiquetas desde lib/ejecuciones/estado.ts; colores fijos de la marca porque el PDF no lee los tokens CSS.
- */
+/** Plantilla HTML del acta de evidencia (PDF A4); etiquetas de lib/ejecuciones/estado.ts y colores fijos porque el PDF no lee los tokens CSS. */
 
 import type { ActaTemplateInput } from "./types";
 import { formatDuration, formatFecha } from "@/lib/format";
 import { estadoLabel, resultadoEjecucionLabel } from "@/lib/ejecuciones/estado";
 
-/** Escape básico de HTML para evitar inyección desde campos libres. */
+// Escape básico de HTML para campos libres.
 function escapeHtml(value: string | null | undefined): string {
   if (value == null) return "";
   return String(value)
@@ -41,11 +29,7 @@ function statusColor(estado: string): string {
   return COLOR_ESTADO[estado] ?? "#43575b";
 }
 
-/**
- * Genera el HTML del acta de evidencia.
- * @param input Datos de la ejecución + consecutivo del acta.
- * @returns String HTML para Playwright `page.setContent`.
- */
+/** Genera el HTML del acta de evidencia a partir de los datos de la ejecución y su consecutivo. */
 export function renderActaHTML(input: ActaTemplateInput): string {
   const { ejecucion, actaConsecutivo, generadoEn } = input;
   const caso = ejecucion.casoPrueba;

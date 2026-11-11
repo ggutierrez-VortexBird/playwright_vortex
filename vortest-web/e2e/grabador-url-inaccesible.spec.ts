@@ -1,15 +1,10 @@
-/**
- * HU-G1 E2E: URL no accesible (variante específica de error path).
- *
- * Split del happy path test para tener un caso dedicado al flujo de error
- * que valida que el recorder marca estado='error' y el frontend refleja.
- */
+// URL no accesible: el recorder marca estado='error' y el frontend lo refleja.
 import { test, expect } from "@playwright/test";
 
 const ADMIN_EMAIL = "admin@admin.com";
 const ADMIN_PASSWORD = "admin123";
 
-test.describe("HU-G1 URL no accesible", () => {
+test.describe("URL no accesible", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.fill('input[name="email"]', ADMIN_EMAIL);
@@ -29,8 +24,7 @@ test.describe("HU-G1 URL no accesible", () => {
 
     await page.waitForURL(/\/casos\/grabar\/.+/, { timeout: 5000 });
 
-    // Esperar que aparezca un indicador de error en <12s
-    // (10s de page.goto timeout + 2s de margen)
+    // Indicador de error en menos de 12s (10s de timeout de page.goto + 2s de margen)
     const startTime = Date.now();
     await expect(
       page.getByRole("alert").or(page.getByTestId("connection-status")),

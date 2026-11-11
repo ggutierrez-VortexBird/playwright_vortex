@@ -1,14 +1,6 @@
 "use client";
 
-/**
- * PrepararGrabacionClient — la MISMA pantalla del grabador (mismo shell:
- * Topbar + BrowserChrome + Hero + Guía), pero en estado "sin iniciar":
- * el botón donde normalmente está "Detener y procesar prueba" es un
- * "Iniciar grabación" con animación de espera. Al hacer click, recién ahí
- * se crea la `SesionGrabacion` real (spawnea el navegador headed vía
- * recorder-worker) y esta misma pantalla se convierte en la sesión en
- * vivo (`GrabadorClient`) — sin navegar a ninguna otra pantalla.
- */
+/** Misma pantalla del grabador en estado "sin iniciar": al pulsar "Iniciar grabación" crea la sesión real y pasa a vivo sin navegar. */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GrabadorTopbar } from "./grabador-topbar";
@@ -70,8 +62,7 @@ export function PrepararGrabacionClient({ draft }: PrepararGrabacionClientProps)
     }
   }
 
-  // Ya se creó la sesión real: de acá en más es la MISMA pantalla, ahora
-  // en vivo (WS conectado, botón Detener, etc.) — no hay navegación.
+  // Con la sesión creada es la misma pantalla, ahora en vivo.
   if (live) {
     return (
       <GrabadorClient

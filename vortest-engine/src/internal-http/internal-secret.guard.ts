@@ -1,6 +1,4 @@
-// src/internal-http/internal-secret.guard.ts
-// Verifica el header X-Internal-Secret contra ENGINE_INTERNAL_SECRET.
-// SEG-09: comparación en tiempo constante para evitar ataques de timing.
+// Verifica X-Internal-Secret contra ENGINE_INTERNAL_SECRET en tiempo constante
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { timingSafeEqual } from 'node:crypto'

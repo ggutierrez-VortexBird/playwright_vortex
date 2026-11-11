@@ -22,10 +22,7 @@ interface ConfirmDialogProps {
   isLoading?: boolean;
 }
 
-/**
- * Diálogo de confirmación para acciones destructivas: compone Modal (Escape, clic fuera, foco atrapado).
- * Cancelar recibe el foco inicial para que Enter no confirme por accidente.
- */
+/** Diálogo para acciones destructivas: compone Modal y Cancelar recibe el foco inicial para que Enter no confirme. */
 export function ConfirmDialog({
   open,
   title,

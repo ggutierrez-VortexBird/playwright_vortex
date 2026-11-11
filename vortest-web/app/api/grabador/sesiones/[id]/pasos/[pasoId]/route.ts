@@ -1,15 +1,4 @@
-/**
- * /api/grabador/sesiones/[id]/pasos/[pasoId]
- *
- * PATCH: edita un PasoGrabado (descripcion / selectorPrincipal / valor).
- *        Si el flag `actualizarDefaultParametro` viene true y el paso está
- *        vinculado a un ParametroGrabacion por nombre (heurística: el valor
- *        contiene `{{nombre}}`), actualiza `valorDefecto`.
- *
- * DELETE: elimina el paso y renumera los siguientes.
- *
- * Auth: requiere ser owner de la sesión.
- */
+/** PATCH edita un paso (y opcionalmente el default del parámetro vinculado); DELETE lo elimina y renumera. */
 
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
@@ -21,9 +10,6 @@ interface RouteParams {
   params: Promise<{ id: string; pasoId: string }>;
 }
 
-/* ====================================================================== */
-/* PATCH                                                                   */
-/* ====================================================================== */
 
 interface PatchBody {
   descripcion?: string;
@@ -68,7 +54,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Validate descripcion if provided.
+  // Valida la descripción si viene.
   if (body.descripcion !== undefined) {
     const d = body.descripcion.trim();
     if (!d) {
@@ -99,9 +85,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         },
       });
 
-      // Heuristic: if actualizarDefaultParametro=true, find any ParametroGrabacion
-      // whose name appears as `{{nombre}}` in the paso's valor OR descripcion
-      // and update its valorDefecto to the new valor (or descripcion-trim if no valor).
+      // Con actualizarDefaultParametro, actualiza el valorDefecto del parámetro cuyo {{nombre}} aparece en el valor o la descripción.
       if (body.actualizarDefaultParametro) {
         const newDefault =
           body.valor ?? body.descripcion?.trim() ?? paso.valor ?? "";
@@ -136,9 +120,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-/* ====================================================================== */
-/* DELETE                                                                  */
-/* ====================================================================== */
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
   const session = await getSession();
@@ -164,7 +145,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Renumber in a transaction: delete then shift numero-1 for all pasos > numero.
+  // Renumera en una transacción: borra y baja numero en 1 a los siguientes.
   await prisma.$transaction(async (tx) => {
     await tx.pasoGrabado.delete({ where: { id: pasoId } });
     const futuros = await tx.pasoGrabado.findMany({

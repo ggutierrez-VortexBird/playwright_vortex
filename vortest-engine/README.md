@@ -8,14 +8,9 @@ HTTP interno a `vortest-web`. **Cero acceso a base de datos** — no conoce
 Prisma, no sabe qué es un `CasoPrueba` ni una `Ejecucion`, solo ejecuta
 scripts y reporta.
 
-> Estado actual: **motor completo e implementado**, no un scaffolding. Recibe
-> jobs por RabbitMQ, spawnea `playwright test` como proceso hijo, reporta
-> eventos estructurados (env/step/substep/log/assertion/end) y sube
-> artefactos por HTTP — todo conectado y en uso en `docker-compose.dev.yml`.
-> Gaps conocidos, vigentes (no bloqueantes para correr en local): sin
-> dead-letter queue de RabbitMQ configurada para `engine.execute`, y
-> cancelación/encadenamiento padre-hijo probados con tests unitarios
-> (mocks), no en vivo contra una instancia real de punta a punta.
+> Gaps conocidos: sin dead-letter queue de RabbitMQ configurada para
+> `engine.execute`, y cancelación/encadenamiento padre-hijo probados con
+> tests unitarios (mocks), no de punta a punta contra una instancia real.
 
 ## Cómo correrlo en local (sin Docker)
 

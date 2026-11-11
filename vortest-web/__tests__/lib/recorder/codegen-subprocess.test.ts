@@ -1,15 +1,4 @@
-/**
- * Tests for lib/recorder/codegen-subprocess.ts — verifica que:
- *   1. resolveSpecPath devuelve una ruta absoluta, en tempdir por default,
- *      y crea el directorio si se pasa `specDir`.
- *   2. spawnCodegen invoca al runner propio (no a `npx playwright codegen`)
- *      con los argumentos correctos.
- *   3. kill() pide parada ordenada por stdin antes de recurrir a señales,
- *      y es idempotente.
- *
- * Nunca se abre un navegador real: los tests que inspeccionan el spawn
- * mockean `node:child_process`, y el resto usa `overrideBin`.
- */
+// resolveSpecPath, spawnCodegen (runner propio, no `npx playwright codegen`) y kill() ordenado e idempotente.
 
 import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";

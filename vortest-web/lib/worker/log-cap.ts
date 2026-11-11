@@ -1,5 +1,4 @@
-// lib/worker/log-cap.ts
-// Pure helper: FIFO cap for log buffers
+// Tope FIFO para buffers de logs
 
 export interface LogEntry {
   ts: string
@@ -8,10 +7,7 @@ export interface LogEntry {
   source: 'page' | 'console' | 'stderr' | 'stdout'
 }
 
-/**
- * Append a log entry to a buffer, capping to `max` entries via FIFO.
- * Returns a new array (immutable).
- */
+/** Agrega una entrada al buffer con tope `max` (FIFO); devuelve un arreglo nuevo. */
 export function capLogs(buffer: LogEntry[] | null | undefined, entry: LogEntry, max: number): LogEntry[] {
   const current = buffer ?? []
   const next = [...current, entry]

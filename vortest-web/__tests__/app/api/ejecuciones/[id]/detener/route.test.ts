@@ -1,19 +1,4 @@
-// __tests__/app/api/ejecuciones/[id]/detener/route.test.ts
-// Tests for HU-3 Botón Detener — API route POST /api/ejecuciones/[id]/detener
-//
-// Contrato real (app/api/ejecuciones/[id]/detener/route.ts):
-// - Llama `detenerEjecucion(id)` (server action).
-// - Mapea errores a códigos HTTP:
-//   * NOT_FOUND_ERROR → 404
-//   * EJECUCION_YA_TERMINADA_ERROR → 409
-//   * FORBIDDEN_ERROR → 403
-//   * cualquier otro error → 500
-// - Éxito → 200 con { id, estado: 'cancelado' }
-// - En Next.js 15+, `params` es `Promise<{id: string}>` (se debe `await`).
-//
-// NOTA: el helper `readJson` usa `Response.json()` estático (patched en
-// jest.setup.ts) en lugar de `res.json()` instancia, porque NextResponse
-// en jsdom tiene problemas con la lectura de body via la API estándar.
+// POST /api/ejecuciones/[id]/detener: mapea NOT_FOUND a 404, YA_TERMINADA a 409, FORBIDDEN a 403 y el resto a 500.
 
 import { POST } from "@/app/api/ejecuciones/[id]/detener/route";
 import { detenerEjecucion } from "@/lib/ejecuciones/actions";
@@ -35,10 +20,7 @@ jest.mock("@/lib/ejecuciones/actions", () => ({
   detenerEjecucion: jest.fn(),
 }));
 
-// Workaround: leer el body via Response.json() estático + reutilizar el status.
-// En jsdom + NextResponse, el body no se deserializa correctamente con
-// `res.json()` (problema preexistente en este repo). Usamos el status code
-// como contrato principal — es lo que el cliente (frontend) más le importa.
+// Se lee el body con Response.json() estático: en jsdom NextResponse no deserializa bien con res.json().
 async function readStatus(res: Response): Promise<number> {
   return res.status;
 }

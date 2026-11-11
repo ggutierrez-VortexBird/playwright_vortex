@@ -57,7 +57,7 @@ describe("ProyectoSwitcher", () => {
       });
       
       expect(screen.getByText("Proyecto 1")).toBeInTheDocument();
-      // No dropdown button should be present for single project
+      // Con un solo proyecto no hay dropdown
       expect(screen.queryByRole("button", { hidden: true })).not.toBeInTheDocument();
     });
 
@@ -111,7 +111,7 @@ describe("ProyectoSwitcher", () => {
 
       await waitFor(() => {
         const options = screen.getAllByRole("option");
-        fireEvent.click(options[1]); // Click on "Proyecto 2"
+        fireEvent.click(options[1]);
       });
 
       expect(mockPush).toHaveBeenCalledWith("/proyectos/p2/casos");
@@ -142,7 +142,7 @@ describe("ProyectoSwitcher", () => {
         expect(screen.getByRole("listbox")).toBeInTheDocument();
       });
 
-      // Click on the overlay (outside)
+      // Clic en el overlay (fuera)
       const overlay = document.querySelector(".fixed.inset-0");
       fireEvent.click(overlay!);
 

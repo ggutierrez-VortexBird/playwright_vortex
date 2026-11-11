@@ -72,9 +72,7 @@ describe("CasosPage", () => {
   });
 
   it("renders CasosClient with canEdit=true for any authenticated role (tester incluido)", async () => {
-    // Casos y Ejecuciones ahora los puede crear/editar cualquier rol
-    // autenticado con acceso al proyecto puntual — el guard real vive en
-    // la Server Action (`requireProyectoAccess`), no en esta página.
+    // El guard real vive en la Server Action (`requireProyectoAccess`), no en esta página.
     (getSession as jest.Mock).mockResolvedValue({ userId: "user-2", email: "user@test.com" });
     (getUsuarioActual as jest.Mock).mockResolvedValue({ id: "user-2", email: "user@test.com", rol: "tester" });
     (prisma.proyecto.findMany as jest.Mock).mockResolvedValue([]);

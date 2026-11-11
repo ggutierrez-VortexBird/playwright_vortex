@@ -1,12 +1,9 @@
-// __tests__/components/ejecuciones/video-chapter-bar.test.tsx
-// HU-G18 — click-to-seek behavior del chapter bar
-
 import { render, cleanup, act, screen, fireEvent } from "@testing-library/react";
 import { VideoChapterBar } from "@/components/ejecuciones/video-chapter-bar";
 
 function makeVideoMock() {
   const video = document.createElement("video");
-  // jsdom: stub methods we care about
+  // jsdom: se stubbean los métodos necesarios
   Object.defineProperty(video, "duration", { configurable: true, value: 10 });
   let currentTime = 0;
   Object.defineProperty(video, "currentTime", {
@@ -61,7 +58,7 @@ describe("VideoChapterBar", () => {
     const segments = screen.getAllByTestId("chapter-bar");
     fireEvent.click(segments[1]);
 
-    // p2 starts at 2000ms = 2.0s
+    // p2 empieza en 2000ms = 2.0s
     expect(getCurrentTime()).toBe(2.0);
   });
 
@@ -116,7 +113,7 @@ describe("VideoChapterBar", () => {
       />,
     );
 
-    // Click p2 → seek to 2.0s → overlay should show "Paso 2 · Submit"
+    // Clic en p2 → seek a 2.0s → el overlay muestra "Paso 2 · Submit"
     const p2Btn = screen.getAllByTestId("chapter-bar")[1];
     act(() => {
       fireEvent.click(p2Btn);

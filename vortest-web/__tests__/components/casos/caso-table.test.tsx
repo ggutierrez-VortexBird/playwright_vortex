@@ -80,8 +80,7 @@ describe("CasoTable", () => {
 
   it("renders all casos rows", () => {
     render(<CasoTable casos={mockCasos} />);
-    // El componente renderiza DOS vistas (md:table y móvil:cards), ambas en
-    // el DOM — verificamos que cada código aparezca AL MENOS una vez.
+    // Se renderizan dos vistas (tabla y cards móviles): cada código aparece al menos una vez.
     expect(screen.getAllByText("CP-TEST-01").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("CP-TEST-02").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("CP-TEST-03").length).toBeGreaterThanOrEqual(1);
@@ -89,7 +88,6 @@ describe("CasoTable", () => {
 
   it("renders estado pills with correct labels", () => {
     render(<CasoTable casos={mockCasos} />);
-    // Cada estado aparece tanto en la fila de tabla como en la card móvil.
     expect(screen.getAllByText("Conforme").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("No conforme · paso 2").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Sin ejecutar").length).toBeGreaterThanOrEqual(1);
@@ -98,8 +96,7 @@ describe("CasoTable", () => {
   it("calls onEdit when edit button clicked", () => {
     const onEdit = jest.fn();
     render(<CasoTable casos={mockCasos} canEdit onEdit={onEdit} />);
-    // Buscamos dentro de la tabla para evitar ambigüedad entre la fila
-    // desktop y la card móvil.
+    // Se busca dentro de la tabla para evitar ambigüedad con la card móvil.
     const table = screen.getByRole("table");
     const row = within(table).getByText("CP-TEST-01").closest("tr");
     if (!row) throw new Error("Row not found");
@@ -122,11 +119,9 @@ describe("CasoTable", () => {
   });
 
   it("links código and nombre to the caso detail page", () => {
-    // Antes de este fix no había forma de llegar a /casos/[id] desde
-    // ningún lado de la interfaz — quedaba inalcanzable.
+    // Debe existir un enlace a /casos/[id]
     render(<CasoTable casos={mockCasos} />);
-    // Tomamos el primer <a> con ese href (tabla o card móvil — ambos
-    // tienen el mismo href esperado).
+    // Primer <a> con ese href (tabla o card móvil).
     const links = screen.getAllByRole("link", { name: "CP-TEST-01" });
     expect(links[0]).toHaveAttribute("href", "/casos/caso-1");
     const nombreLinks = screen.getAllByRole("link", { name: "Caso de prueba A" });

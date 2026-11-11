@@ -21,8 +21,7 @@ interface AdminsDialogProps {
   espacioId: string;
   espacioNombre: string;
   onClose: () => void;
-  /** Se dispara con la lista final de admins cada vez que cambia (asignar/quitar),
-   *  para que el padre pueda reflejarlo en la card sin esperar a un recargar. */
+  /** Se dispara con la lista final de admins cada vez que cambia. */
   onChanged?: (admins: AdminAsignado[]) => void;
 }
 

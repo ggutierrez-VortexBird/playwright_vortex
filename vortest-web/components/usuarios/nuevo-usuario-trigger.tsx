@@ -2,13 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
-/**
- * Client-only trigger for the "Nuevo usuario" action in the PageHeader.
- * Extracted because Server Components cannot pass event handlers as props
- * (e.g. an inline onClick on <Button>) — React throws
- * "Event handlers cannot be passed to Client Component props" otherwise.
- * Dispatches a CustomEvent that UsuariosClient listens for to open its modal.
- */
+/** Disparador cliente de "Nuevo usuario": emite un CustomEvent que UsuariosClient escucha, porque un Server Component no pasa handlers. */
 export function NuevoUsuarioTrigger() {
   return (
     <Button

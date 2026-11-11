@@ -1,11 +1,4 @@
-/**
- * RecordingGuide — tarjeta de guía + estado del servicio del grabador,
- * columna derecha del modo grabador.
- *
- * Look & feel: réplica de las tarjetas "Guía durante la grabación" y
- * "Estado del Servicio Local" del mockup
- * documentacion/referencias-diseño/cambios/grabador.html.
- */
+/** Tarjetas de guía y estado del servicio del grabador (columna derecha). */
 export interface RecordingGuideProps {
   connState: "connecting" | "live" | "reconnecting" | "error" | "closed";
 }

@@ -12,8 +12,7 @@ import { useBreadcrumbExtra, type BreadcrumbSegment } from "@/components/breadcr
 import { useLanzarEjecucion } from "@/lib/ejecuciones/use-lanzar-ejecucion";
 import { Alert } from "@/components/ui/alert";
 
-// Monaco toca `window`/`navigator` al cargar — se difiere al cliente para
-// no romper el render del servidor de esta pantalla.
+// Monaco usa window/navigator al cargar: se difiere al cliente.
 const Editor = dynamic(() => import("@monaco-editor/react").then((m) => m.Editor), {
   ssr: false,
   loading: () => (
@@ -23,15 +22,7 @@ const Editor = dynamic(() => import("@monaco-editor/react").then((m) => m.Editor
   ),
 });
 
-/**
- * CasoDetalleCliente — case detail page (HU-G16 + HU-G12).
- *
- * Shows the saved script + "Ejecutar" button. The full detalle con
- * ejecuciones pasadas vive en /ejecuciones/[id] (HU-4.x).
- *
- * HU-G12: panel de parámetros editable (PATCH /api/casos/[id]/parametros/[paramId]).
- *         Credenciales NO editables — sólo lectura enmascarada.
- */
+/** Detalle del caso: script editable, botón Ejecutar y panel de parámetros (credenciales solo lectura). */
 
 function formatBytes(chars: number): string {
   if (chars === 0) return "0 B";
@@ -66,8 +57,7 @@ export interface CasoDetalleClienteProps {
   backHref: string;
   /** Ruta completa Espacio › Proyecto › Caso, armada en el servidor. */
   migas?: BreadcrumbSegment[];
-  /** Abre el editor de script ya desplegado al montar — llega desde la
-   *  acción "Script" de la tabla de Casos (?editarScript=1). */
+  /** Abre el editor del script al montar (?editarScript=1). */
   autoAbrirEditorScript?: boolean;
 }
 
@@ -88,9 +78,7 @@ export function CasoDetalleCliente({
     return () => setExtra([]);
   }, [caso.nombre, setExtra, migas]);
 
-  // Editor del script — separado del formulario "Editar" (nombre, código,
-  // responsable) que vive en la tabla de Casos. Este edita el .spec.ts en
-  // sí, con un editor de verdad (Monaco), no solo reemplazar el archivo.
+  // Editor del .spec.ts en Monaco, separado del formulario "Editar" de la tabla de Casos.
   const [script, setScript] = useState(caso.script);
   const [editingScript, setEditingScript] = useState(autoAbrirEditorScript);
   const [scriptDraft, setScriptDraft] = useState(caso.script);
@@ -264,7 +252,6 @@ export function CasoDetalleCliente({
             data-testid="script-editor-container"
             className="flex h-[380px] flex-col overflow-hidden rounded-md border border-slate-800 bg-[#0f172a] shadow-xl lg:h-[440px]"
           >
-            {/* Titlebar + tab del archivo — mismo tratamiento que el editor del grabador */}
             <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b1120] px-3 py-2">
               <div className="flex items-center gap-2 rounded-t-md border-t-2 border-blue-500 bg-[#0f172a] px-3 py-1.5 font-mono-code text-xs text-slate-200 shadow">
                 <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-600 text-label-xs font-bold text-white">
@@ -296,7 +283,6 @@ export function CasoDetalleCliente({
               />
             </div>
 
-            {/* Statusbar */}
             <div className="flex items-center justify-between border-t border-slate-800 bg-[#0b1120] px-4 py-1.5 font-mono-code text-label-xs text-slate-400">
               <span className="flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-full ${editingScript ? "bg-amber-400" : "bg-emerald-400"}`} />

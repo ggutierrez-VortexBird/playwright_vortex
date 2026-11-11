@@ -1,16 +1,9 @@
-// src/execution/storage-state.spec.ts
-// Ported from vortest-web/__tests__/lib/worker/storage-state.test.ts,
-// adapted only in import path — the module's local-fs mechanics are
-// unchanged (still keyed by process.cwd()/runtime/storage-state/<id>.json).
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 
 describe('execution/storage-state', () => {
-  // El módulo calcula `RUNTIME_DIR` una sola vez al ser importado, usando
-  // `process.cwd()`. Para evitar contaminar el workspace real, hacemos
-  // `process.chdir(tmpDir)` ANTES de requerir el módulo, dentro de
-  // `jest.isolateModules` para que su const top-level capture el tmpdir.
+  // Se cambia el cwd al tmpDir antes de requerir el módulo, que calcula RUNTIME_DIR al importarse
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vortest-engine-storage-'))
   const originalCwd = process.cwd()
 

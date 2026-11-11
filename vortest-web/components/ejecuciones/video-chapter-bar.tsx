@@ -17,16 +17,7 @@ interface Props {
   videoRef: React.RefObject<HTMLVideoElement | null>
 }
 
-/**
- * HU-G18 — barra segmentada de capítulos del video.
- *
- *   - Click en un segmento → seek del <video> al inicio del capítulo.
- *   - Resalta el capítulo activo mientras el video reproduce.
- *   - Overlay "Paso N · descripción" arriba del player.
- *
- * Si los pasos no tienen timestamps válidos, caemos al fallback por
- * `duracionMs` (chapter-segments.ts).
- */
+/** Barra segmentada de capítulos del video: click hace seek y resalta el capítulo activo; sin timestamps válidos usa duracionMs. */
 export function VideoChapterBar({ pasos, videoDurationMs, videoRef }: Props) {
   const segments = useMemo(() => computeChapterSegments(pasos, videoDurationMs), [pasos, videoDurationMs])
   const [activeChapterSegment, setActiveChapterSegment] = useState<ChapterSegment | null>(null)
@@ -61,7 +52,7 @@ export function VideoChapterBar({ pasos, videoDurationMs, videoRef }: Props) {
       if (!v) return
       v.currentTime = Math.max(0, seg.inicioMs / 1000)
       v.play().catch(() => {
-        // ignore play() promise rejection (e.g., user hasn't interacted yet)
+        // se ignora el rechazo de play() (p. ej. sin interacción previa)
       })
       setActiveChapterSegment(seg)
     },
@@ -74,7 +65,6 @@ export function VideoChapterBar({ pasos, videoDurationMs, videoRef }: Props) {
 
   return (
     <>
-      {/* Overlay: paso activo */}
       <div
         className="video-chapter-overlay"
         data-testid="video-chapter-overlay"
@@ -85,7 +75,6 @@ export function VideoChapterBar({ pasos, videoDurationMs, videoRef }: Props) {
           : null}
       </div>
 
-      {/* Barra segmentada */}
       <div
         className="bar video-chapter-bar"
         role="group"

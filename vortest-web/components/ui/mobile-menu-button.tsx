@@ -2,8 +2,7 @@
 
 import { useMobileNav } from "@/components/mobile-nav-context";
 
-/** Botón hamburguesa del header, solo visible por debajo de `md:` (en `md:`
- *  y superior el sidebar ya está siempre visible como riel o completo). */
+/** Botón hamburguesa del header, visible solo por debajo de `md:`. */
 export function MobileMenuButton() {
   const { toggle } = useMobileNav();
   return (

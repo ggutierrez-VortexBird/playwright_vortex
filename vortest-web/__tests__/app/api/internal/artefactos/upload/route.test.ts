@@ -1,8 +1,4 @@
-// __tests__/app/api/internal/artefactos/upload/route.test.ts
-// Motor Fase 1 — POST /api/internal/artefactos/upload
-// Mismo patrón de mock de multipart que __tests__/app/api/casos/route.test.ts
-// (Map-backed FormData), y mismo patrón de guard que
-// __tests__/app/api/grabador/sesiones/route.test.ts para X-Internal-Secret.
+// POST /api/internal/artefactos/upload, con el guard de X-Internal-Secret.
 
 import { POST } from "@/app/api/internal/artefactos/upload/route";
 import { ensureArtefacto } from "@/lib/worker/artifacts";
@@ -22,19 +18,10 @@ jest.mock("@/lib/db", () => ({
   },
 }));
 
-// Mismo detalle que __tests__/lib/worker/script-temp.test.ts (ya eliminado
-// junto con writeTempScript, pero el gotcha sigue vigente): `fs/promises`
-// expone tanto propiedades nombradas como un `default` — el código bajo
-// test (`import fsPromises from 'fs/promises'`) recibe el `default`, un
-// objeto DISTINTO del namespace que ve `jest.mock('fs/promises', factory)`.
-// La forma que funciona de verdad bajo next/jest es `jest.spyOn` sobre
-// `(fsPromises as any).default`.
+// El código importa el `default` de fs/promises, distinto del namespace que ve jest.mock; se espía `(fsPromises as any).default`.
 const fsPromisesDefault = (fsPromises as unknown as { default: { mkdir: jest.Mock } }).default;
 
-// `fs.createWriteStream` devuelve un Writable de Node REAL (no un plain
-// object) — pipeline() necesita un sink que implemente el protocolo de
-// verdad; un objeto fake haría fallar (o directamente no ejecutar) el
-// pipeline real.
+// createWriteStream devuelve un Writable real: pipeline() necesita un sink verdadero.
 jest.mock("fs", () => {
   const { Writable } = jest.requireActual("stream");
   return {
@@ -49,13 +36,7 @@ jest.mock("fs", () => {
   };
 });
 
-// jsdom's global File (usado por otros tests de este repo, ej.
-// __tests__/app/api/casos/route.test.ts) no implementa `.stream()` — a
-// diferencia del File nativo de Node en runtime real. Mockeamos
-// `Readable.fromWeb` para que, sin importar qué le pasemos, devuelva un
-// Readable de Node REAL y vacío (`push(null)` de entrada) — así el
-// `pipeline()` real (no mockeado) de stream/promises corre de verdad contra
-// streams válidos en vez de reventar contra un objeto fake.
+// El File de jsdom no implementa .stream(): Readable.fromWeb devuelve un Readable real y vacío.
 jest.mock("stream", () => {
   const actual = jest.requireActual("stream");
   return {
@@ -75,10 +56,7 @@ const ENGINE_SECRET = "test-engine-secret-32-characters!!";
 // El stream mockeado está vacío: el hash y el tamaño verificados por la ruta son los de un archivo de 0 bytes.
 const SHA_VACIO = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-// jsdom's global File no implementa `.stream()` (a diferencia del File
-// nativo de Node en runtime real). Como Readable.fromWeb está mockeado
-// arriba para ignorar su input, solo necesitamos que `file.stream()` no
-// tire — el valor de retorno es irrelevante para estos tests.
+// file.stream() solo necesita no fallar; su valor de retorno es irrelevante.
 if (typeof File !== "undefined" && typeof File.prototype.stream !== "function") {
   (File.prototype as unknown as { stream: () => unknown }).stream = function stream() {
     return {};

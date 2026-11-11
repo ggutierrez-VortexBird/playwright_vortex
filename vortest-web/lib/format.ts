@@ -1,15 +1,6 @@
-/**
- * Formato canónico de duraciones y fechas (DUP-01).
- *
- * El formato por defecto replica byte a byte las copias que existían en
- * `ejecucion-summary`, `ejecuciones-list` y `lib/acta/template.ts` (Acta PDF).
- * Las variantes históricas (solo segundos, `< 1000 ms`, rango entre dos fechas,
- * día numérico) se conservan mediante `opts` para no cambiar lo que ve el
- * usuario; unificarlas es una decisión de producto pendiente.
- */
+/** Formato canónico de duraciones y fechas; las variantes históricas se conservan vía `opts`. */
 
-// Locale histórico del producto. NO cambiar a es-CO sin decisión de producto:
-// es-CO usa reloj de 12 h ("a. m.") y alteraría el Acta PDF.
+// Locale histórico: es-CO usa reloj de 12 h y alteraría el Acta PDF.
 export const LOCALE = 'es-ES'
 
 // Fija la zona para que el render del servidor (UTC en Docker) y el del navegador coincidan; sin esto React reporta hydration mismatch y el Acta imprime horas en UTC.
@@ -20,7 +11,7 @@ export interface FormatDurationOpts {
   soloSegundos?: boolean
   /** Por debajo de 1000 ms muestra `Nms`: variante del timeline. */
   milisegundos?: boolean
-  /** Texto cuando `ms` es null/undefined. Por defecto `—`. */
+  // Texto cuando `ms` es null/undefined (por defecto `—`).
   vacio?: string
 }
 
@@ -54,11 +45,11 @@ export function formatDurationRange(inicio: Date, fin: Date): string {
 }
 
 export interface FormatFechaOpts {
-  /** Incluir año. Por defecto true. */
+  // Incluir año (por defecto true).
   anio?: boolean
-  /** Incluir hora y minutos. Por defecto true. */
+  // Incluir hora y minutos (por defecto true).
   hora?: boolean
-  /** Formato del día. Por defecto `2-digit` (`caso-table` usa `numeric`). */
+  // Formato del día (por defecto `2-digit`).
   dia?: '2-digit' | 'numeric'
 }
 

@@ -1,10 +1,4 @@
-/**
- * Integration test: GET /api/proyectos/[id]/credenciales
- *
- * - 401 sin sesión
- * - 200 con sesión; devuelve lista sin `valor`
- * - `vence` se mapea a ISO string o null
- */
+// GET /api/proyectos/[id]/credenciales: lista sin exponer `valor`.
 
 import { GET } from "@/app/api/proyectos/[id]/credenciales/route";
 import { getSession } from "@/lib/auth";
@@ -40,7 +34,6 @@ jest.mock("@/lib/db", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // requireSuperadmin calls usuario.findFirst
   mockUsuarioFindUnique.mockResolvedValue({ id: "user-1", rol: "superadmin" });
 });
 
@@ -85,7 +78,7 @@ describe("GET /api/proyectos/[id]/credenciales", () => {
     expect(Array.isArray(data)).toBe(true);
     expect(data).toHaveLength(2);
 
-    // Critical: NO debe incluir `valor`
+    // No debe incluir `valor`
     for (const item of data) {
       expect(item).not.toHaveProperty("valor");
       expect(item).toHaveProperty("id");
@@ -98,7 +91,6 @@ describe("GET /api/proyectos/[id]/credenciales", () => {
     expect(data[0].vence).toBe("2030-01-01T00:00:00.000Z");
     expect(data[1].vence).toBeNull();
 
-    // Verifica que el query filtra por proyectoId
     expect(mockFindMany).toHaveBeenCalledWith({
       where: { proyectoId: "p1" },
       select: expect.objectContaining({
@@ -109,7 +101,6 @@ describe("GET /api/proyectos/[id]/credenciales", () => {
       }),
       orderBy: { nombre: "asc" },
     });
-    // Y que el select EXCLUYE `valor`
     const selectArg = mockFindMany.mock.calls[0][0].select;
     expect(selectArg).not.toHaveProperty("valor");
   });

@@ -1,7 +1,4 @@
-// lib/worker/kill-tree.ts
-// Mata todo el árbol de procesos de forma robusta.
-// En Windows usa `taskkill /T /F` (mata CMD intermedio + hijos).
-// En Unix usa SIGTERM/SIGKILL.
+// Mata todo el árbol de procesos (taskkill /T /F en Windows, SIGTERM/SIGKILL en Unix)
 
 import { spawn } from 'child_process'
 
@@ -32,7 +29,7 @@ export async function killProcessTree(
     } catch (e) {
       const err = e as NodeJS.ErrnoException
       if (err.code === 'ESRCH') {
-        // Proceso ya no existe — éxito
+        // Proceso ya inexistente: éxito
         return
       }
       throw e

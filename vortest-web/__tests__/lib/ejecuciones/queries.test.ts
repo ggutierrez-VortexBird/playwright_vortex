@@ -1,13 +1,4 @@
-// __tests__/lib/ejecuciones/queries.test.ts
-// Tests for HU-3 Motor de Ejecución Playwright — AC-4, AC-9, AC-11
-//
-// El contrato real de la implementación (lib/ejecuciones/queries.ts):
-// - `getEjecucionConPasos(id)` retorna la Ejecucion con:
-//     casoPrueba: { include: { proyecto: { include: { espacio: true } } } }
-//     pasos: orderBy numero asc
-// - `listEjecuciones(proyectoId?)` retorna { ejecuciones, hasNextPage, total } (orden createdAt desc)
-//     con casoPrueba → proyecto → espacio (nested include)
-// - `listEjecucionesPorProyecto()` retorna `Record<string, Ejecucion[]>` agrupado por proyectoId
+// Contrato de getEjecucionConPasos, listEjecuciones y listEjecucionesPorProyecto.
 
 import { getEjecucionConPasos, listEjecuciones, listEjecucionesPorProyecto } from "@/lib/ejecuciones/queries";
 import { prisma } from "@/lib/db";
@@ -22,14 +13,13 @@ jest.mock("@/lib/db", () => ({
   },
 }));
 
-describe("getEjecucionConPasos (AC-9, AC-11)", () => {
+describe("getEjecucionConPasos", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("retorna ejecución con pasos ordenados por número asc", async () => {
-    // Arrange — el orden en el mock simula el orden que Prisma devolvería
-    // después del `orderBy: { numero: 'asc' }` del include.
+    // El orden del mock simula el orderBy asc del include de Prisma
     const mockEjecucion = {
       id: "ejec-1",
       casoPruebaId: "caso-1",
@@ -58,10 +48,8 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     };
     (prisma.ejecucion.findUnique as jest.Mock).mockResolvedValue(mockEjecucion);
 
-    // Act
     const result = await getEjecucionConPasos("ejec-1");
 
-    // Assert
     expect(result).not.toBeNull();
     expect(result!.pasos).toHaveLength(3);
     expect(result!.pasos[0].numero).toBe(1);
@@ -138,7 +126,7 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     expect(result!.artefactos[1].id).toBe("art-2");
     expect(result!.artefactos[0].tipo).toBe("video");
 
-    // Verify the query includes artefactos ordered by createdAt
+    // La query incluye artefactos ordenados por createdAt
     expect(prisma.ejecucion.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
@@ -178,7 +166,7 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     expect(result!.artefactos).toEqual([]);
   });
 
-  it("incluye subacciones anidadas dentro de cada paso (HU-4.5)", async () => {
+  it("incluye subacciones anidadas dentro de cada paso", async () => {
     const mockEjecucion = {
       id: "ejec-1",
       casoPruebaId: "caso-1",
@@ -225,7 +213,7 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     expect(result!.pasos[0].subacciones).toHaveLength(1);
     expect(result!.pasos[0].subacciones[0].descripcion).toBe("Sub-paso 1");
 
-    // Verify the query includes subacciones in the pasos include
+    // La query incluye subacciones en el include de pasos
     expect(prisma.ejecucion.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
@@ -239,7 +227,7 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
     );
   });
 
-  it("incluye nuevos campos de entorno y aserciones en la ejecución (HU-4.5)", async () => {
+  it("incluye nuevos campos de entorno y aserciones en la ejecución", async () => {
     const mockEjecucion = {
       id: "ejec-1",
       casoPruebaId: "caso-1",
@@ -279,7 +267,7 @@ describe("getEjecucionConPasos (AC-9, AC-11)", () => {
   });
 });
 
-describe("listEjecuciones (AC-4)", () => {
+describe("listEjecuciones", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -377,14 +365,13 @@ describe("listEjecuciones (AC-4)", () => {
   });
 });
 
-describe("listEjecucionesPorProyecto (AC-4)", () => {
+describe("listEjecucionesPorProyecto", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("agrupa ejecuciones por proyectoId en un Record<string, Ejecucion[]>", async () => {
-    // listEjecucionesPorProyecto llama a listEjecuciones() y agrupa por casoPrueba.proyectoId.
-    // Mockeamos findMany para que devuelva tres ejecuciones de dos proyectos distintos.
+    // Agrupa por casoPrueba.proyectoId; findMany devuelve tres ejecuciones de dos proyectos.
     const mockEjecuciones = [
       {
         id: "ejec-1",
@@ -416,10 +403,9 @@ describe("listEjecucionesPorProyecto (AC-4)", () => {
     ];
     (prisma.ejecucion.findMany as jest.Mock).mockResolvedValue(mockEjecuciones);
 
-    // Act
     const result = await listEjecucionesPorProyecto();
 
-    // Assert: es un objeto con porProyecto y hasNextPage
+    // Es un objeto con porProyecto y hasNextPage
     expect(typeof result).toBe("object");
     expect(Array.isArray(result)).toBe(false);
     expect(Object.keys(result).sort()).toEqual(["hasNextPage", "porProyecto", "total"]);

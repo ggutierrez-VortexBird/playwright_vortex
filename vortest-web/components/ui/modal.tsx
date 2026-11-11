@@ -15,10 +15,7 @@ interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   hayCambios?: boolean;
 }
 
-/**
- * Overlay de modal compartido: Escape, clic afuera y foco atrapado.
- * `className` afecta el panel interno (p. ej. el ancho máximo) y se mergea con twMerge.
- */
+/** Overlay de modal: Escape, clic afuera y foco atrapado; `className` afecta el panel interno (twMerge). */
 export function Modal({ open, onClose, children, className, labelledBy, hayCambios = false, ...rest }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmando, setConfirmando] = useState(false);

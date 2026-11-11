@@ -1,12 +1,6 @@
 "use client";
 
-/**
- * Segmentos extra del breadcrumb superior (ScopeBarWithContext), en el
- * mismo espíritu que MobileNavProvider/ProjectProvider: una pantalla anidada
- * (p. ej. /casos/[casoId]) vive lejos del header en el árbol, así que
- * empuja sus segmentos ("Script", el nombre del caso...) vía contexto en
- * vez de que el header intente adivinarlos a partir de la URL.
- */
+/** Segmentos extra del breadcrumb: las pantallas anidadas los empujan vía contexto en vez de que el header los deduzca de la URL. */
 import { createContext, useCallback, useContext, useState, useMemo, type ReactNode } from "react";
 
 export interface BreadcrumbSegment {

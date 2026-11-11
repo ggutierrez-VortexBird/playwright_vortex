@@ -1,14 +1,4 @@
-/**
- * Tests for lib/recorder/codegen-watcher.ts — verifica que:
- *   1. Detecta cuando el spec aparece (poll → fs.watch).
- *   2. Emite onUpdate cuando el archivo cambia.
- *   3. Debouncea rafagas (multi-write en <50ms → 1 emit).
- *   4. NO re-emite si el size es idéntico al último emitido.
- *   5. close() detiene la vigilancia.
- *
- * No mockea fs (queremos probar el behavior real, no mocks que hacen
- * mentir al test).
- */
+// No mockea fs: se prueba el comportamiento real del watcher (poll, debounce y close).
 
 import { mkdtempSync, writeFileSync, rmSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,10 +18,7 @@ describe("recorder/codegen-watcher", () => {
     } catch {}
   });
 
-  /**
-   * Helper: en Windows `fs.watch` puede tardar hasta ~150ms en entregar
-   * eventos. Usamos timeouts generosos en los tests para evitar flakiness.
-   */
+  // En Windows fs.watch puede tardar ~150ms: timeouts generosos para evitar flakiness.
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   it("emite onUpdate cuando el spec se crea (poll → fs.watch)", async () => {

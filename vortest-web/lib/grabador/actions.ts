@@ -1,17 +1,4 @@
-/**
- * Server Action orquestadora para iniciar una sesión de grabación.
- *
- * Flujo (HU-G1):
- *   1. Validar input y requireProyectoAccess(session, proyectoId)
- *   2. (fusionado con el paso 1)
- *   3. Verificar credencial pertenece al proyecto (solo si se envió una)
- *   4. Crear SesionGrabacion estado='iniciando'
- *   5. POST /internal/start al recorder-worker
- *   6. UPDATE SesionGrabacion SET token=...
- *   7. Retornar {sessionId, wsUrl, token}
- *
- * Errores se mapean a {status, body} para que route handlers los traduzcan a HTTP.
- */
+/** Server Action que inicia una sesión de grabación: valida, crea SesionGrabacion, llama al recorder-worker y devuelve {sessionId, wsUrl, token}. */
 import { prisma } from "@/lib/db";
 import { requireProyectoAccess, type SessionData } from "@/lib/auth";
 import { decryptCredencial } from "@/lib/credenciales/crypto";
@@ -48,7 +35,7 @@ async function runParentCaseAndGetStorageState(
     throw { status: 400, body: { error: "validation", message: "El caso padre está inactivo" } };
   }
 
-  // Antes del split esta fila 'pendiente' la recogía por polling scripts/worker.ts; ahora hay que publicar el job o nadie la ejecuta.
+  // Hay que publicar el job; si no, nadie ejecuta la fila 'pendiente'.
   const parentEjecucion = await prisma.ejecucion.create({
     data: { casoPruebaId: parentCaseId, estado: "corriendo", inicioAt: new Date(), navegador },
   });
@@ -103,9 +90,7 @@ async function runParentCaseAndGetStorageState(
 }
 
 const VALID_AMBIENTES = ["QA", "Staging", "Prod"] as const;
-// HU-G34: tres navegadores soportados por Playwright. Chromium default;
-// firefox/webkit quedan disponibles por preferencia del usuario. La
-// columna `navegador` en DB es String libre; esta lista es solo la guard.
+// Navegadores soportados por Playwright (chromium por defecto); la columna en DB es String libre, esta lista es solo la guard.
 const VALID_NAVEGADORES = ["chromium", "firefox", "webkit"] as const;
 
 function validate(input: NuevaGrabacionInput): void {
@@ -115,7 +100,7 @@ function validate(input: NuevaGrabacionInput): void {
       body: { error: "validation", message: "Escribe un nombre para la grabación" },
     };
   }
-  // URL validation: debe ser http o https
+  // Validación de URL: debe ser http o https
   try {
     const url = new URL(input.urlInicial);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
@@ -151,12 +136,11 @@ export async function iniciarSesionGrabacion(
   input: NuevaGrabacionInput,
   session: SessionData,
 ): Promise<SesionGrabacionOut> {
-  // 1. Auth: superadmin, admin del espacio, o tester con acceso al proyecto
+  // 1. Auth: superadmin, admin del espacio o tester con acceso al proyecto
   validate(input);
   await requireProyectoAccess(session, input.proyectoId);
 
-  // 3. La credencial es OPCIONAL: si viene una, se valida que pertenezca al
-  //    proyecto. El storageState resultante se aplica al navegador del grabador.
+  // 3. La credencial es opcional; si viene, debe pertenecer al proyecto y su storageState se aplica al navegador.
   let credencial = null;
   if (input.credencialId) {
     credencial = await prisma.credencial.findFirst({
@@ -173,7 +157,7 @@ export async function iniciarSesionGrabacion(
     }
   }
 
-  // 4. Descifrar storageState de credencial (best-effort)
+  // 4. Descifrar el storageState de la credencial (best-effort)
   let storageState: unknown = null;
   if (credencial) {
     try {
@@ -188,14 +172,12 @@ export async function iniciarSesionGrabacion(
     }
   }
 
-  // 4b. HU-PARENT: si eligió un caso padre, lo ejecutamos ANTES de crear la
-  // sesión para arrancar el grabador ya autenticado. El storageState del padre
-  // tiene prioridad sobre el de la credencial.
+  // 4b. Si eligió un caso padre se ejecuta antes de crear la sesión; su storageState tiene prioridad sobre el de la credencial.
   if (input.parentCaseId) {
     try {
       storageState = await runParentCaseAndGetStorageState(input.parentCaseId, input.proyectoId, input.navegador);
     } catch (err) {
-      // Propagar el error con status/body si ya viene formateado
+      // Propaga el error si ya viene con status/body
       const formateado = err as { status?: number; body?: unknown };
       if (formateado?.status && formateado.body) {
         throw err;
@@ -237,7 +219,7 @@ export async function iniciarSesionGrabacion(
     });
   } catch (err: unknown) {
     if (err instanceof RecorderMaxSessionsError) {
-      // Marcar la sesión como error para no dejarla huérfana
+      // Marca la sesión como error para no dejarla huérfana
       await prisma.sesionGrabacion.update({
         where: { id: sesion.id },
         data: { estado: "error", mensajeError: err.message },

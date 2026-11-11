@@ -1,15 +1,3 @@
-// src/execution/runner.spec.ts
-// Two groups:
-//  1. `parseReporterEvent` — ported verbatim from
-//     vortest-web/__tests__/lib/worker/parse-reporter-event.test.ts (pure
-//     function, only the import path changed).
-//  2. `runPlaywrightTest` — NEW tests for the ported runner's event-emission
-//     behavior. The original vortest-web/__tests__/lib/worker/runner.test.ts
-//     mocked `prisma`/`@/lib/db` throughout; since this engine has zero DB
-//     knowledge (prisma.* calls became eventsPublisher.emit* calls), those
-//     DB-shaped assertions don't carry over 1:1. These tests mock
-//     EventsPublisherService/ArtifactsService instead and assert the same
-//     state-mapping/timeout/cancellation behavior against the new contract.
 import { spawn } from 'child_process'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -89,7 +77,7 @@ function makeDeps(): RunnerDeps & {
   }
 }
 
-describe('parseReporterEvent — 6 event types (HU-4.5)', () => {
+describe('parseReporterEvent — 6 event types', () => {
   it('parsea evento env', () => {
     const event = parseReporterEvent(
       REPORTER_LINE_PREFIX + JSON.stringify({ type: 'env', navegador: 'chromium', sistemaOperativo: 'Linux', nodoEjecucion: 'host' }),
@@ -274,7 +262,7 @@ describe('runPlaywrightTest — state mapping', () => {
     expect(result.pasoNumero).toBe(0)
   })
 
-  describe('HU-G18 — videoInicioMs / videoFinMs chapter timestamps', () => {
+  describe('videoInicioMs / videoFinMs chapter timestamps', () => {
     it('reenvía los timestamps de capítulo emitidos por el reporter', async () => {
       const deps = makeDeps()
       mockProcess({
@@ -376,23 +364,18 @@ describe('runPlaywrightTest — timeout configurable (job.timeoutMs)', () => {
     jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] })
 
     const promise = runPlaywrightTest('/tmp/test.spec.ts', 'job-1', deps, { timeoutMs: 5_000 })
-    // Evita un unhandled-rejection ruidoso mientras seguimos avanzando
-    // timers — el valor real se verifica más abajo, después de settlear.
+    // Evita un unhandled-rejection mientras avanzan los timers
     promise.catch(() => undefined)
 
     // Antes del timeout configurado, no debería haberse intentado matar el proceso
     await jest.advanceTimersByTimeAsync(4_000)
     expect(killProcessTreeMock).not.toHaveBeenCalled()
 
-    // Al llegar a los 5s configurados (no a los 10 min hardcodeados del
-    // original), el timeout global dispara y empieza a matar el proceso —
-    // esto es lo que demuestra que `job.timeoutMs` es respetado.
+    // A los 5s configurados el timeout global empieza a matar el proceso
     await jest.advanceTimersByTimeAsync(1_500)
     expect(killProcessTreeMock).toHaveBeenCalledWith(12345, false)
 
-    // Simula que el proceso efectivamente murió tras el kill — deja que la
-    // rama del handler 'close' settlee la promesa en vez de recorrer el resto
-    // del flujo de gracia/force-kill (fuera de foco para este test).
+    // Simula que el proceso murió para que el handler close settlee la promesa
     for (const h of closeHandlers) h(143)
     await jest.runOnlyPendingTimersAsync()
 
@@ -428,10 +411,9 @@ describe('runPlaywrightTest — cancelación push-based vía AbortSignal', () =>
       abortSignal: abortController.signal,
     })
 
-    // El controller HTTP (no el runner) es quien mata el proceso — acá solo
-    // simulamos que el proceso terminó luego de que el controller lo mató.
+    // El controller HTTP mata el proceso; acá solo se simula que terminó
     abortController.abort()
-    expect(killProcessTreeMock).not.toHaveBeenCalled() // el runner ya no mata nada por sí mismo
+    expect(killProcessTreeMock).not.toHaveBeenCalled() // el runner no mata el proceso
 
     for (const h of closeHandlers) h(143)
 

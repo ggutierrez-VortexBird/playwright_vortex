@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = Boolean(session.userId);
   const isLoginPage = pathname === "/login";
 
-  // SEG-10: /api/* sin sesión → 401 JSON
+  // /api/* sin sesión: 401 JSON
   if (!isAuthenticated && pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
